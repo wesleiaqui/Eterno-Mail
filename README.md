@@ -1,7 +1,7 @@
 ![Logo](frontend/src/assets/images/logo-universal.png)
 
-# Aerion - An Open Source Lightweight E-Mail Client
-Maintained by: @hkdb
+# Eterno Mail - Fork of Aerion - An Open Source Lightweight E-Mail Client
+Maintained by: @weslley sales pereira
 
 ![screenshot](docs/ss.png)
 

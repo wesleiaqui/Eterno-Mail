@@ -15,6 +15,7 @@ import {imap} from '../models';
 import {settings} from '../models';
 import {pgp} from '../models';
 import {smime} from '../models';
+import {senderlogo} from '../models';
 import {appstate} from '../models';
 import {sync} from '../models';
 import {draft} from '../models';
@@ -207,6 +208,8 @@ export function GetAccount(arg1:string):Promise<account.Account>;
 
 export function GetAccountFoldersForMapping(arg1:string):Promise<Array<folder.Folder>>;
 
+export function GetAccountProfilePhotos(arg1:Array<string>):Promise<Array<contact.ContactPhoto>>;
+
 export function GetAccounts():Promise<Array<account.Account>>;
 
 export function GetAllAccountIdentities():Promise<Array<app.AccountIdentityGroup>>;
@@ -341,6 +344,8 @@ export function GetSearchCount(arg1:string,arg2:string,arg3:string,arg4:string):
 
 export function GetSearchCountUnifiedInbox(arg1:string,arg2:string):Promise<number>;
 
+export function GetSenderLogos(arg1:Array<string>):Promise<Array<senderlogo.SenderLogo>>;
+
 export function GetShowMessageListCircles():Promise<boolean>;
 
 export function GetShowMessageListProfilePics():Promise<boolean>;
@@ -386,6 +391,8 @@ export function HasPGPKey(arg1:string):Promise<boolean>;
 export function HasSMIMECertificate(arg1:string):Promise<boolean>;
 
 export function IMAPSearchFolder(arg1:string,arg2:string,arg3:string,arg4:number):Promise<sync.IMAPSearchResponse>;
+
+export function IMAPSearchUnifiedInbox(arg1:string,arg2:number):Promise<sync.IMAPSearchResponse>;
 
 export function IgnoreReadReceipt(arg1:string,arg2:string):Promise<void>;
 
@@ -508,6 +515,8 @@ export function RebuildFTSIndex(arg1:string):Promise<void>;
 export function RefreshWindowConstraints():Promise<void>;
 
 export function RemoveAccount(arg1:string):Promise<void>;
+
+export function RemoveFromInbox(arg1:Array<string>):Promise<void>;
 
 export function RemoveImageAllowlist(arg1:number):Promise<void>;
 

@@ -69,7 +69,9 @@ function currentEffectiveTZ(): string {
 // backend also seeds from persisted state at init, and this re-pushes on change.
 function pushTimezoneToBackend(): void {
   try {
-    void Calendar_SetDisplayTimezone(currentEffectiveTZ())
+    void Calendar_SetDisplayTimezone(currentEffectiveTZ()).catch((err) => {
+      logger.warn(`calendarSettings: push tz to backend failed: ${err}`)
+    })
   } catch (err) {
     logger.warn(`calendarSettings: push tz to backend failed: ${err}`)
   }

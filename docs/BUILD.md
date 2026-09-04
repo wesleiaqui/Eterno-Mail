@@ -21,10 +21,10 @@ cp .env.example .env
 make flatpak
 
 # Install
-flatpak --user install build/bin/Aerion.flatpak
+flatpak --user install build/bin/Eterno Mail.flatpak
 
 # Run
-flatpak run io.github.hkdb.Aerion
+flatpak run io.github.hkdb.Eterno Mail
 ```
 
 See [build/flatpak/README.md](../build/flatpak/README.md) for detailed Flatpak build instructions and Flathub submission guide.

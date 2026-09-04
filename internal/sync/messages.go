@@ -196,6 +196,17 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 			newUIDs = append(newUIDs, uid)
 		}
 	}
+	// Backfill a small number of old messages on every sync. Their raw headers
+	// are fetched again from IMAP, classified, and the existing body is kept.
+	if unclassified, err := e.messageStore.GetUnclassifiedUIDs(folderID, 100); err != nil {
+		e.log.Warn().Err(err).Msg("Failed to find messages needing inbox classification")
+	} else {
+		for _, uid := range unclassified {
+			if remoteUIDSet[uid] {
+				newUIDs = append(newUIDs, uid)
+			}
+		}
+	}
 
 	// Find deleted UIDs (local but not on server within sync period)
 	var deletedUIDs []uint32
@@ -817,6 +828,7 @@ func (e *Engine) fetchMessageHeaders(ctx context.Context, client *imapclient.Cli
 		if len(headerBytes) > 0 {
 			references = e.extractReferences(headerBytes)
 			m.ReadReceiptTo = e.extractDispositionNotificationTo(headerBytes)
+			m.InboxCategory = classifyInboxCategory(headerBytes, m)
 		}
 
 		// Store references as JSON array

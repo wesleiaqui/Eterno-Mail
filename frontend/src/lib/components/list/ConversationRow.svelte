@@ -16,13 +16,14 @@
   // @ts-ignore - wailsjs path
   import { message } from '../../../../wailsjs/go/models'
   // @ts-ignore - wailsjs path
-  import { Star, Unstar } from '../../../../wailsjs/go/app/App'
+  import { MarkAsRead, MarkAsUnread, RemoveFromInbox, Undo } from '../../../../wailsjs/go/app/App'
   import MessageContextMenu from '$lib/components/common/MessageContextMenu.svelte'
   import Avatar from '$lib/components/kit/Avatar.svelte'
   import { toasts } from '$lib/stores/toast'
   import { getAccentBarUnread, getShowMessageListCircles, getShowMessageListProfilePics, getAlwaysShowMessageCheckbox } from '$lib/stores/settings.svelte'
   import { getLayoutMode } from '$lib/stores/layout.svelte'
   import { contactPhotos } from '$lib/stores/contactPhotos.svelte'
+  import { domainFromEmail, senderLogos } from '$lib/stores/senderLogos.svelte'
 
   interface Props {
     conversation: message.Conversation
@@ -35,9 +36,6 @@
     selectedMessageIds: string[]  // All message IDs from checked conversations (for multi-select)
     selectedIsStarred: boolean    // Aggregated star state for multi-select
     selectedIsRead: boolean       // Aggregated read state for multi-select
-    showAccountIndicator?: boolean  // Show account color dot in unified inbox view
-    accountColor?: string           // Account color for the indicator
-    accountName?: string            // Account name for tooltip
     highlightedSubject?: string     // Subject with <mark> tags for search highlighting
     highlightedSnippet?: string     // Snippet with <mark> tags for search highlighting
     highlightedFromName?: string    // From name with <mark> tags for search highlighting
@@ -63,9 +61,6 @@
     selectedMessageIds,
     selectedIsStarred,
     selectedIsRead,
-    showAccountIndicator = false,
-    accountColor = '',
-    accountName = '',
     highlightedSubject = '',
     highlightedSnippet = '',
     highlightedFromName = '',
@@ -106,30 +101,30 @@
   // micro = smallest (power users), compact = small, standard = default, large = accessibility
   const densityClasses = {
     row: {
-      // Left padding is a half-step wider than the right — symmetric px reads
-      // as left-light next to the right edge's date/star column
-      micro: 'pl-3.5 pr-3 py-2 gap-2',
-      compact: 'pl-[1.125rem] pr-4 py-3 gap-3',
-      standard: 'pl-[1.375rem] pr-5 py-4 gap-4',
-      large: 'pl-[1.625rem] pr-6 py-5 gap-5',
+      // Reserve a left gutter for the unread dot and hover action stack so
+      // sender avatars never overlap or touch those controls.
+      micro: 'pl-8 pr-3 py-1.5 gap-2',
+      compact: 'pl-8 pr-4 py-2 gap-3',
+      standard: 'pl-9 pr-5 py-1.5 gap-3',
+      large: 'pl-11 pr-6 py-3 gap-5',
     },
     avatar: {
       micro: 'w-8 h-8 text-xs',
       compact: 'w-10 h-10 text-sm',
-      standard: 'w-12 h-12 text-base',
+      standard: 'w-10 h-10 text-sm',
       large: 'w-14 h-14 text-lg',
     },
     senderText: {
       micro: 'text-xs',
       compact: 'text-sm',
-      standard: 'text-base',
-      large: 'text-lg',
+      standard: 'text-sm',
+      large: 'text-base',
     },
     text: {
       micro: 'text-[10px]',
       compact: 'text-xs',
-      standard: 'text-sm',
-      large: 'text-base',
+      standard: 'text-xs',
+      large: 'text-sm',
     },
     dateText: {
       micro: 'text-[10px]',
@@ -142,12 +137,6 @@
       compact: 'w-3.5 h-3.5',
       standard: 'w-4 h-4',
       large: 'w-5 h-5',
-    },
-    starIcon: {
-      micro: 'w-3.5 h-3.5',
-      compact: 'w-4 h-4',
-      standard: 'w-5 h-5',
-      large: 'w-6 h-6',
     },
     badge: {
       micro: 'px-1 py-0 text-[10px]',
@@ -188,6 +177,14 @@
       standard: 'w-4 h-4',
       large: 'w-5 h-5',
     },
+    // Keep the quick actions aligned with the row's left edge. The small
+    // inset clears the rounded border without covering the avatar.
+    quickActions: {
+      micro: 'left-1',
+      compact: 'left-1',
+      standard: 'left-1',
+      large: 'left-1',
+    },
   }
 
   // Pixel sizes matching densityClasses.avatar (w-8/10/12/14) so the photo
@@ -211,46 +208,49 @@
     }
   }
 
-  function getInitials(conv: message.Conversation): string {
-    if (!conv.participants || conv.participants.length === 0) {
-      return '?'
-    }
-    const first = conv.participants[0]
-    const name = first.name || first.email
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-
-  function getAvatarColor(conv: message.Conversation): string {
-    // Returns a theme-driven avatar class (.avatar-1 .. .avatar-14, defined in themes.css).
-    const email = conv.participants?.[0]?.email || conv.threadId
-    let hash = 0
-    for (let i = 0; i < email.length; i++) {
-      hash = email.charCodeAt(i) + ((hash << 5) - hash)
-    }
-    return `avatar-${(Math.abs(hash) % 14) + 1}`
-  }
-
-  async function handleStarClick(e: MouseEvent) {
+  async function handleDoneClick(e: MouseEvent) {
     e.stopPropagation()
-    const starring = !conversation.isStarred
     try {
-      if (starring) {
-        await Star(ownMessageIds)
-        toasts.success($_('toast.starred'))
+      await RemoveFromInbox(ownMessageIds)
+      toasts.success($_('toast.archived'), [{ label: $_('common.undo'), onClick: handleUndo }])
+      onActionComplete?.(true)
+    } catch (err) {
+      console.error('Archive failed:', err)
+      toasts.error($_('toast.failedToArchive'))
+    }
+  }
+
+  async function handleQuickToggleRead(e: MouseEvent) {
+    e.stopPropagation()
+    const markingAsUnread = ownIsRead
+    try {
+      if (markingAsUnread) {
+        await MarkAsUnread(ownMessageIds)
+        toasts.success($_('toast.markedAsUnread'))
+      } else {
+        await MarkAsRead(ownMessageIds)
+        toasts.success($_('toast.markedAsRead'))
       }
-      if (!starring) {
-        await Unstar(ownMessageIds)
-        toasts.success($_('toast.starRemoved'))
-      }
+      readOverride = !markingAsUnread
       onActionComplete?.()
     } catch (err) {
-      console.error('Star toggle failed:', err)
-      toasts.error($_('toast.failedToUpdateStar'))
+      console.error('Read status toggle failed:', err)
+      toasts.error($_('toast.failedToUpdateReadStatus'))
+    }
+  }
+
+  function handleQuickDelete(e: MouseEvent) {
+    e.stopPropagation()
+    onDelete?.(ownMessageIds)
+  }
+
+  async function handleUndo() {
+    try {
+      const description = await Undo()
+      toasts.success($_('toast.undone', { values: { description } }))
+    } catch (err) {
+      console.error('Undo failed:', err)
+      toasts.error($_('toast.undoFailed'))
     }
   }
 
@@ -258,8 +258,6 @@
     e.stopPropagation()
     onCheck(!checked, e)
   }
-
-  const hasUnread = $derived((conversation.unreadCount || 0) > 0)
 
   // Get message IDs from the conversation for context menu
   // Use messageIds field (populated by ListConversationsByFolder), fallback to messages array
@@ -269,7 +267,10 @@
 
   // Determine star/read state from this conversation
   const ownIsStarred = $derived(conversation.isStarred ?? false)
-  const ownIsRead = $derived((conversation.unreadCount || 0) === 0)
+  const backendIsRead = $derived((conversation.unreadCount || 0) === 0)
+  let readOverride: boolean | null = $state(null)
+  const ownIsRead = $derived(readOverride ?? backendIsRead)
+  const hasUnread = $derived(!ownIsRead)
 
   // Context menu state - determines whether to use multi-select or single row
   let useMultiSelect = $state(false)
@@ -461,7 +462,7 @@
   <div
     data-conversation-row
     draggable={getLayoutMode() !== 'narrow'}
-    class="group relative w-full flex items-start touch-pan-y {densityClasses.row[density]} text-left border-b border-border transition-colors duration-300 cursor-pointer outline-none {selected
+    class="group relative w-full flex items-start overflow-hidden touch-pan-y {densityClasses.row[density]} text-left border-b border-border transition-colors duration-300 cursor-pointer outline-none {selected
       ? 'bg-primary/20'
       : 'hover:bg-muted/50'} {getAccentBarUnread() && hasUnread ? 'border-l-2 border-l-primary' : ''} {swipeAnim === 'select' ? 'swipe-select-anim' : ''} {swipeAnim === 'delete' ? 'swipe-delete-anim' : ''}"
     onclick={handleRowClick}
@@ -495,12 +496,46 @@
       </div>
     {/if}
 
+    <!-- Quick actions replace the avatar on hover without opening the row. -->
+    <div
+      class="absolute top-1/2 z-20 flex -translate-y-1/2 flex-col gap-0.5 rounded-lg bg-background/90 p-1 opacity-0 pointer-events-none shadow-lg ring-1 ring-white/10 backdrop-blur-sm transition-opacity duration-150 group-hover:opacity-100 group-hover:pointer-events-auto {densityClasses.quickActions[density]}"
+      aria-label={$_('common.done')}
+    >
+      <button
+        type="button"
+        class="quick-row-action"
+        title={$_('common.done')}
+        aria-label={$_('common.done')}
+        onclick={handleDoneClick}
+      >
+        <Icon icon="mdi:check" class="w-3.5 h-3.5" />
+      </button>
+      <button
+        type="button"
+        class="quick-row-action"
+        title={$_(ownIsRead ? 'contextMenu.markAsUnread' : 'contextMenu.markAsRead')}
+        aria-label={$_(ownIsRead ? 'contextMenu.markAsUnread' : 'contextMenu.markAsRead')}
+        onclick={handleQuickToggleRead}
+      >
+        <Icon icon={ownIsRead ? 'mdi:circle-outline' : 'mdi:circle'} class="w-3.5 h-3.5" />
+      </button>
+      <button
+        type="button"
+        class="quick-row-action hover:text-destructive"
+        title={$_('common.delete')}
+        aria-label={$_('common.delete')}
+        onclick={handleQuickDelete}
+      >
+        <Icon icon="mdi:trash-can-outline" class="w-3.5 h-3.5" />
+      </button>
+    </div>
+
     <!-- Checkbox column. Setting OFF (default): hidden (width-clipped) until
          row hover on desktop, revealed while checked, toggled by swipe on
          narrow/touch. Setting ON: legacy always-reserved column with opacity
          fade (invisible until hover on desktop, faint on narrow). -->
     <div
-      class="flex-shrink-0 flex items-center justify-center self-center {getAlwaysShowMessageCheckbox()
+      class="quick-selection-checkbox flex-shrink-0 flex items-center justify-center self-center {getAlwaysShowMessageCheckbox()
         ? `${densityClasses.checkbox[density]} transition-opacity duration-200 ${checked ? 'opacity-100' : densityClasses.checkboxAlways}`
         : `overflow-hidden transition-all duration-200 ${checked ? densityClasses.checkbox[density] : densityClasses.checkboxHidden[density]}`}"
     >
@@ -516,41 +551,37 @@
       </button>
     </div>
 
+    <!-- Same absolute anchor as the middle hover action: left-1 (4px) +
+         4px container padding + 10px button centre = 18px from the row. -->
+    {#if !getAlwaysShowMessageCheckbox() && !checked && hasUnread}
+      <span
+        class="absolute left-[13px] top-1/2 z-10 w-2.5 h-2.5 -translate-y-1/2 rounded-full bg-primary transition-opacity duration-150 group-hover:opacity-0"
+        title={$_('contextMenu.markAsRead')}
+      ></span>
+    {/if}
+
     <!-- Sender avatar: colored circle, or the contact's photo when enabled
          (falling back to the colored circle when the contact has no photo) -->
     {#if getShowMessageListCircles()}
-      {#if getShowMessageListProfilePics()}
-        {@const avatarPhoto = contactPhotos.get(conversation.participants?.[0]?.email ?? '')}
+      {@const senderEmail = conversation.participants?.[0]?.email || ''}
+      {@const avatarPhoto = getShowMessageListProfilePics() ? contactPhotos.get(senderEmail) : undefined}
+      {@const senderLogo = avatarPhoto ? undefined : senderLogos.get(domainFromEmail(senderEmail))}
+      <div>
         <Avatar
-          email={conversation.participants?.[0]?.email || conversation.threadId}
+          email={senderEmail || conversation.threadId}
           name={conversation.participants?.[0]?.name}
           size={AVATAR_PX[density]}
           photoData={avatarPhoto?.data}
           photoMediaType={avatarPhoto?.mediaType}
+          logoData={senderLogo?.data}
+          logoMediaType={senderLogo?.mediaType}
         />
-      {:else}
-        <div
-          class="{densityClasses.avatar[density]} rounded-full flex-shrink-0 flex items-center justify-center font-medium {getAvatarColor(
-            conversation
-          )}"
-        >
-          {getInitials(conversation)}
-        </div>
-      {/if}
+      </div>
     {/if}
 
     <!-- Content -->
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 mb-0.5">
-        <!-- Account Indicator (for unified inbox) -->
-        {#if showAccountIndicator && accountColor}
-          <span
-            class="w-2 h-2 rounded-full flex-shrink-0"
-            style="background-color: {accountColor}"
-            title={accountName}
-          ></span>
-        {/if}
-
         <!-- Participant Names (with highlighting if in search mode) -->
         {#if highlightedFromName}
           <span class="{densityClasses.senderText[density]} truncate {hasUnread ? 'font-semibold text-foreground' : 'text-foreground'}">
@@ -638,20 +669,37 @@
       {/if}
     </div>
 
-    <!-- Star -->
-    <button
-      class="flex-shrink-0 p-1 -mr-1 rounded hover:bg-muted transition-colors duration-200"
-      onclick={handleStarClick}
-    >
-      <Icon
-        icon={conversation.isStarred ? 'mdi:star' : 'mdi:star-outline'}
-        class="{densityClasses.starIcon[density]} {conversation.isStarred ? 'text-yellow-500' : 'text-muted-foreground'}"
-      />
-    </button>
   </div>
 </MessageContextMenu>
 
 <style>
+  .quick-row-action {
+    display: inline-flex;
+    width: 1.25rem;
+    height: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.4375rem;
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--muted) / 0.72);
+    transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+  }
+
+  .quick-row-action:hover {
+    color: hsl(var(--foreground));
+    background: hsl(var(--muted));
+    transform: scale(1.06);
+  }
+
+  /* The hover action stack replaces the row-selection checkbox for the
+     duration of the hover, leaving only the three requested quick actions. */
+  :global([data-conversation-row]:hover .quick-selection-checkbox) {
+    width: 0 !important;
+    min-width: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+
   /* Swipe-to-select feedback: nudge right, then bounce back; the checkbox
      checks as the row settles. Duration must match SWIPE_ANIM_MS. Both the
      rule and keyframes are global because the class is applied through a

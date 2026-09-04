@@ -23,9 +23,10 @@
 
   interface Props {
     onOpenSettings?: () => void
+    onReturnToMail?: () => void
   }
 
-  let { onOpenSettings }: Props = $props()
+  let { onOpenSettings, onReturnToMail }: Props = $props()
 
   // Sections derived from the sources store. Empty when no sources are
   // configured yet — the bottom-strip "Add CalDAV" button is the entry point.
@@ -95,6 +96,19 @@
 </script>
 
 <SidebarFrame title={$_('calendar.sidebar.title')}>
+  {#snippet header()}
+    <div class="px-3 pb-3">
+      <button
+        type="button"
+        class="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        onclick={() => onReturnToMail?.()}
+      >
+        <Icon icon="mdi:email-outline" class="h-4 w-4" />
+        {$_('sidebar.returnToMail')}
+      </button>
+    </div>
+  {/snippet}
+
   {#snippet body()}
     <div class="py-2">
       {#if sections.length === 0}

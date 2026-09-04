@@ -55,7 +55,8 @@
   }
 
   function selectFolder(f: folder.Folder) {
-    onFolderSelect?.(acc.id, f.id, f.path, f.name, f.type)
+    const displayName = f.type === 'inbox' ? $_('sidebar.inbox') : f.name
+    onFolderSelect?.(acc.id, f.id, f.path, displayName, f.type)
   }
 
   function toggleMenu(e: MouseEvent) {
@@ -100,7 +101,7 @@
         class="w-4 h-4 text-muted-foreground"
       />
       <Icon icon="mdi:email-outline" class="w-4 h-4" />
-      <span class="truncate flex-1 text-left">{acc.name}</span>
+      <span data-sidebar-label class="truncate flex-1 text-left">{acc.name}</span>
 
       {#if syncing}
         <Icon icon="mdi:sync" class="w-4 h-4 animate-spin text-muted-foreground" />

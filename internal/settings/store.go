@@ -162,6 +162,9 @@ func NewStore(db *database.DB) *Store {
 
 // Get retrieves a setting value by key
 func (s *Store) Get(key string) (string, error) {
+	if s == nil || s.db == nil {
+		return "", fmt.Errorf("settings store is not initialized")
+	}
 	var value string
 	err := s.db.QueryRow("SELECT value FROM settings WHERE key = ?", key).Scan(&value)
 	if err == sql.ErrNoRows {

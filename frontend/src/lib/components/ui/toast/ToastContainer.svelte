@@ -28,13 +28,13 @@
 </script>
 
 <div
-  class="fixed bottom-4 inset-x-4 z-50 flex flex-col gap-2 max-w-sm ml-auto pointer-events-none {expanded
+  class="fixed bottom-4 inset-x-4 z-50 flex flex-col gap-2 max-w-[300px] ml-auto pointer-events-none {expanded
     ? 'max-h-[70vh] overflow-y-auto pointer-events-auto'
     : ''}"
 >
   {#each fullCards as toast (toast.id)}
     <div class="pointer-events-auto">
-      <Toast {toast} onClose={() => toasts.remove(toast.id)} />
+      <Toast {toast} />
     </div>
   {/each}
 
@@ -54,7 +54,7 @@
         aria-label={$_('aria.showAllToasts')}
       ></button>
       <div class="relative">
-        <Toast toast={pile} onClose={() => toasts.remove(pile.id)} />
+        <Toast toast={pile} />
         <button
           class="absolute -top-2 -right-2 text-xs font-medium px-1.5 py-0.5 rounded-full bg-muted border border-border text-muted-foreground shadow hover:bg-accent transition-colors"
           onclick={() => (expanded = true)}

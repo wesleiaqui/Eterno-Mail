@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.5
 Type=Application
-Name=Aerion
+Name=Eterno Mail
 GenericName=Email
 GenericName[cs]=E-mail
 GenericName[de]=E-Mail
@@ -35,14 +35,14 @@ Keywords[vi]=Mail;E-mail;email;IMAP;SMTP;CardDAV;thư;thư điện tử;
 Keywords[zh_CN]=邮件;电子邮件;IMAP;SMTP;CardDAV;
 Keywords[zh_HK]=郵件;電子郵件;IMAP;SMTP;CardDAV;
 Keywords[zh_TW]=郵件;電子郵件;IMAP;SMTP;CardDAV;
-Icon=io.github.hkdb.Aerion
+Icon=io.github.hkdb.EternoMail
 TryExec=aerion
 Exec=aerion %U
 Terminal=false
 Categories=Network;Email;
 MimeType=x-scheme-handler/mailto;
 StartupNotify=true
-StartupWMClass=Aerion
+StartupWMClass=io.github.hkdb.EternoMail
 X-GNOME-UsesNotifications=true
 Actions=compose;
 

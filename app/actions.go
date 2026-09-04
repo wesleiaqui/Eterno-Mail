@@ -793,6 +793,36 @@ func (a *App) Archive(messageIDs []string) error {
 	return a.MoveToFolder(messageIDs, archiveFolder.ID)
 }
 
+// RemoveFromInbox removes the Inbox label from messages. Gmail represents
+// this as moving the message to its All Mail label, rather than requiring an
+// Archive folder to be configured.
+func (a *App) RemoveFromInbox(messageIDs []string) error {
+	if len(messageIDs) == 0 {
+		return nil
+	}
+
+	messages, err := a.messageStore.GetByIDs(messageIDs[:1])
+	if err != nil || len(messages) == 0 {
+		return fmt.Errorf("failed to get message")
+	}
+
+	accountID := messages[0].AccountID
+	destinationType := folder.TypeArchive
+	if a.isGmailAccount(accountID) {
+		destinationType = folder.TypeAll
+	}
+
+	destination, err := a.GetSpecialFolder(accountID, destinationType)
+	if err != nil {
+		return fmt.Errorf("failed to get destination folder: %w", err)
+	}
+	if destination == nil {
+		return fmt.Errorf("no destination folder configured")
+	}
+
+	return a.MoveToFolder(messageIDs, destination.ID)
+}
+
 // Trash moves messages to the Trash folder.
 // Returns true if at least one message was moved to trash (show undo toast).
 // Returns false if all messages were just label-removed on Gmail (no undo).

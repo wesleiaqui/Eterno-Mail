@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -46,4 +47,19 @@ func fetchInlinePhoto(client *http.Client, req *http.Request, maxBytes int64) (d
 	}
 
 	return base64.StdEncoding.EncodeToString(body), mediaType, true
+}
+
+// FetchInlinePhotoURL fetches a trusted HTTPS photo URL and returns the same
+// compact inline representation used by synced contact photos. It is exported
+// for account-profile avatars, which are not contact records themselves.
+func FetchInlinePhotoURL(client *http.Client, rawURL string) (data, mediaType string, ok bool) {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return "", "", false
+	}
+	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
+	if err != nil {
+		return "", "", false
+	}
+	return fetchInlinePhoto(client, req, maxInlinePhotoBytes)
 }

@@ -1,6 +1,6 @@
 # CASA Tier 2 — Self-Assessment Questionnaire
 
-This document provides detailed responses to the Cloud Application Security Assessment (CASA) Tier 2 Self-Assessment Questionnaire for [Aerion](https://github.com/hkdb/aerion), a lightweight cross-platform email client.
+This document provides detailed responses to the Cloud Application Security Assessment (CASA) Tier 2 Self-Assessment Questionnaire for [Eterno Mail](https://github.com/hkdb/aerion), a lightweight cross-platform email client.
 
 ---
 
@@ -50,7 +50,7 @@ This document provides detailed responses to the Cloud Application Security Asse
 
 ## 2. Client-Side Technologies
 
-Aerion does not use any unsupported, insecure, or deprecated client-side technologies. Specifically, there is no use of:
+Eterno Mail does not use any unsupported, insecure, or deprecated client-side technologies. Specifically, there is no use of:
 
 - NSAPI plugins
 - Adobe Flash or Shockwave
@@ -69,7 +69,7 @@ All UI rendering uses standard HTML5, CSS, and JavaScript. Communication between
 
 ## 3. Access Control Enforcement
 
-Aerion is a local desktop application. All access controls are enforced in the **Go backend** — never in the frontend (Svelte/WebView). The frontend acts solely as a presentation layer and has no direct access to external services, local files, or credential storage.
+Eterno Mail is a local desktop application. All access controls are enforced in the **Go backend** — never in the frontend (Svelte/WebView). The frontend acts solely as a presentation layer and has no direct access to external services, local files, or credential storage.
 
 **Backend-enforced controls:**
 
@@ -84,7 +84,7 @@ Aerion is a local desktop application. All access controls are enforced in the *
 
 ## 4. Sensitive Data Classification
 
-All sensitive data in Aerion is identified and classified into the following protection levels:
+All sensitive data in Eterno Mail is identified and classified into the following protection levels:
 
 ### Critical — OS Keyring Protected
 
@@ -128,7 +128,7 @@ Each data classification level defined in [Section 4](#4-sensitive-data-classifi
 
 **Key architectural enforcement points:**
 
-- **No telemetry or analytics**: Aerion collects no usage data and makes no network requests beyond user-configured mail/contact/key servers and OAuth providers.
+- **No telemetry or analytics**: Eterno Mail collects no usage data and makes no network requests beyond user-configured mail/contact/key servers and OAuth providers.
 - **All storage is local**: No cloud backend, no server-side component. The user has full control over data retention and deletion.
 - **Credential isolation**: The frontend (WebView) never has direct access to credentials, private keys, or tokens. All sensitive operations go through the Go backend.
 
@@ -142,7 +142,7 @@ All frontend assets (HTML, CSS, JavaScript) are embedded into the compiled Go bi
 
 ### No Remote Code Loading
 
-Aerion does not load or execute code from untrusted or external sources at runtime:
+Eterno Mail does not load or execute code from untrusted or external sources at runtime:
 
 - No CDN-hosted scripts or stylesheets
 - No dynamic plugin/module loading
@@ -167,7 +167,7 @@ Inbound HTML email is sanitized server-side by the Go backend using bluemonday b
 
 ## 7. Subdomain Takeover Protection
 
-Aerion is a **local desktop application** with no web infrastructure. It does not operate or depend on:
+Eterno Mail is a **local desktop application** with no web infrastructure. It does not operate or depend on:
 
 - Custom DNS entries or subdomains
 - Cloud APIs, serverless functions, or storage buckets
@@ -185,11 +185,11 @@ Neither of these involves project-owned DNS records or subdomains that could be 
 
 ## 8. Anti-Automation Controls
 
-Aerion is a **local desktop application** that does not expose any network-accessible APIs, endpoints, or services. There is no attack surface for remote automation, mass data exfiltration, or denial-of-service attacks against the application itself.
+Eterno Mail is a **local desktop application** that does not expose any network-accessible APIs, endpoints, or services. There is no attack surface for remote automation, mass data exfiltration, or denial-of-service attacks against the application itself.
 
 The following built-in controls prevent excessive or abusive local operations:
 
-- **Single-instance enforcement**: Only one instance of Aerion can run at a time (Unix socket lock on Linux/macOS, named mutex on Windows), preventing parallel automated access to the database.
+- **Single-instance enforcement**: Only one instance of Eterno Mail can run at a time (Unix socket lock on Linux/macOS, named mutex on Windows), preventing parallel automated access to the database.
 - **IMAP connection pooling**: Maximum 3 concurrent connections per account with a 5-minute idle timeout, preventing excessive connections to mail servers.
 - **Batch size limits**: Header fetching is capped at 50 messages per batch; body fetching is capped at 512KB or 50 messages per batch. Individual MIME parts are limited to 10MB, and total message size is limited to 50MB.
 - **Sync retry limits**: Failed message fetches are retried a maximum of 3 times before being skipped.
@@ -200,7 +200,7 @@ The following built-in controls prevent excessive or abusive local operations:
 
 ## 9. Untrusted File Storage
 
-Aerion is a desktop application with no web server or web root. There is no directory served over HTTP that untrusted files could be placed into.
+Eterno Mail is a desktop application with no web server or web root. There is no directory served over HTTP that untrusted files could be placed into.
 
 **How untrusted data is handled:**
 
@@ -209,14 +209,14 @@ Aerion is a desktop application with no web server or web root. There is no dire
 - **Email HTML content**: Sanitized server-side by the Go backend (bluemonday) before display. Scripts, event handlers, and dangerous elements are stripped. This content is rendered in the WebView but never written to disk as standalone files.
 - **Data directories**: All application data directories are created with 0700 permissions (owner-only access):
   - Linux: `~/.local/share/aerion/` (XDG Base Directory spec)
-  - macOS: `~/Library/Application Support/Aerion/`
+  - macOS: `~/Library/Application Support/Eterno Mail/`
   - Windows: `%LOCALAPPDATA%\aerion\`
 
 ---
 
 ## 10. Malicious Content Scanning
 
-Aerion is a desktop email client that does not upload or serve files to other users. There is no file hosting, sharing, or serving component.
+Eterno Mail is a desktop email client that does not upload or serve files to other users. There is no file hosting, sharing, or serving component.
 
 **How untrusted content is handled:**
 
@@ -230,7 +230,7 @@ Aerion is a desktop email client that does not upload or serve files to other us
 
 ## 11. API URL Security
 
-Aerion does not expose any API endpoints of its own. Where it consumes external APIs, no sensitive information is included in URLs.
+Eterno Mail does not expose any API endpoints of its own. Where it consumes external APIs, no sensitive information is included in URLs.
 
 **Internal communication:**
 
@@ -254,11 +254,11 @@ The local OAuth2 callback server listens on a random port on `localhost` and onl
 
 ## 12. Authorization Decisions
 
-Aerion is a local desktop application with no HTTP server, URI routing, or multi-user access model. There are no URIs, controllers, or routers to enforce authorization against. However, authorization decisions are enforced at every access boundary:
+Eterno Mail is a local desktop application with no HTTP server, URI routing, or multi-user access model. There are no URIs, controllers, or routers to enforce authorization against. However, authorization decisions are enforced at every access boundary:
 
 **Process-level authorization:**
 
-- **Single-instance lock**: Only one Aerion process can access the database at a time (Unix socket lock on Linux/macOS, named mutex on Windows).
+- **Single-instance lock**: Only one Eterno Mail process can access the database at a time (Unix socket lock on Linux/macOS, named mutex on Windows).
 - **IPC token authentication**: Detached composer processes must present a backend-generated token to communicate with the main process. Unauthenticated connections are rejected.
 
 **Resource-level authorization:**
@@ -277,7 +277,7 @@ Aerion is a local desktop application with no HTTP server, URI routing, or multi
 
 ## 13. RESTful HTTP Methods
 
-Aerion does not expose any RESTful HTTP APIs, endpoints, or web services. There are no HTTP routes, controllers, or method handlers to restrict.
+Eterno Mail does not expose any RESTful HTTP APIs, endpoints, or web services. There are no HTTP routes, controllers, or method handlers to restrict.
 
 **Internal communication**: The frontend communicates with the Go backend exclusively via Wails in-process RPC (direct function calls), not HTTP requests.
 
@@ -297,7 +297,7 @@ All external HTTP calls are made server-side by the Go backend. The frontend has
 
 ### Build Process
 
-Aerion uses a **Makefile** with well-defined, repeatable build targets:
+Eterno Mail uses a **Makefile** with well-defined, repeatable build targets:
 
 - `make build` — Production binary with compile-time ldflags
 - `make build-linux` — Linux-specific build with production tags
@@ -317,7 +317,7 @@ All build steps are deterministic and automated — no manual intervention requi
 
 - **Flathub**: Flatpak distribution uses Flathub's automated build infrastructure, which builds from source in a sandboxed environment with GPG-signed repositories
 - **GitHub Actions**: Used for automated release workflows
-- **Source builds**: Flathub builds from source using the project's manifest (`io.github.hkdb.Aerion.yml`), ensuring the distributed binary matches the published source code
+- **Source builds**: Flathub builds from source using the project's manifest (`io.github.hkdb.Eterno Mail.yml`), ensuring the distributed binary matches the published source code
 
 ### Secrets Management
 
@@ -331,7 +331,7 @@ All build steps are deterministic and automated — no manual intervention requi
 
 ### Rebuildable from Source
 
-Aerion can be fully rebuilt from source at any time using documented, automated build commands:
+Eterno Mail can be fully rebuilt from source at any time using documented, automated build commands:
 
 - `make build` — Build production binary
 - `make build-linux` — Linux-specific production build
@@ -346,7 +346,7 @@ All dependencies are pinned with integrity verification (`go.sum`, `package-lock
 
 ### No Server Infrastructure
 
-Aerion is a local desktop application with no server-side components, cloud infrastructure, or databases to restore. All user data (email, contacts, settings, credentials) is stored locally on the user's machine. In the event of data loss:
+Eterno Mail is a local desktop application with no server-side components, cloud infrastructure, or databases to restore. All user data (email, contacts, settings, credentials) is stored locally on the user's machine. In the event of data loss:
 
 - **Email**: Re-synced from the user's IMAP server automatically on next launch
 - **Credentials**: Re-entered by the user (passwords) or re-authorized (OAuth2 flow)
@@ -357,7 +357,7 @@ Aerion is a local desktop application with no server-side components, cloud infr
 
 ## 16. Configuration Integrity
 
-Aerion is a single-user desktop application. The user is the sole administrator and has full control over all configuration.
+Eterno Mail is a single-user desktop application. The user is the sole administrator and has full control over all configuration.
 
 ### Configuration Storage
 
@@ -370,9 +370,9 @@ All security-relevant configuration is stored in a local SQLite database with re
 ### Tamper Detection
 
 - **OS file permissions**: The database and data directories are restricted to the owner. Any modification by another user or process would require privilege escalation.
-- **Single-instance lock**: Only one Aerion process can access the database at a time, preventing concurrent modification by unauthorized processes.
+- **Single-instance lock**: Only one Eterno Mail process can access the database at a time, preventing concurrent modification by unauthorized processes.
 - **OS keyring**: Credentials and private keys stored in the OS keyring are protected by the operating system's own integrity and access controls (user session scope, encrypted storage).
-- **Schema migrations**: The database schema is versioned. Aerion validates the schema version on startup and applies migrations sequentially — an unexpected schema state would indicate tampering.
+- **Schema migrations**: The database schema is versioned. Eterno Mail validates the schema version on startup and applies migrations sequentially — an unexpected schema state would indicate tampering.
 
 ### No Remote Configuration
 
@@ -384,7 +384,7 @@ There is no remote configuration server, admin panel, or API that could be used 
 
 ### Default State
 
-Debug mode is **disabled by default** in Aerion. It must be explicitly opted into by the user via:
+Debug mode is **disabled by default** in Eterno Mail. It must be explicitly opted into by the user via:
 
 - `--debug` command-line flag
 - `AERION_DEBUG=1` environment variable
@@ -402,15 +402,15 @@ Even when debug mode is explicitly enabled, log output does not contain sensitiv
 
 ### No Debug Endpoints
 
-Aerion does not expose any HTTP debug endpoints, status pages, profiling routes, or developer consoles. There is no web server — the application is a local desktop binary with an embedded WebView.
+Eterno Mail does not expose any HTTP debug endpoints, status pages, profiling routes, or developer consoles. There is no web server — the application is a local desktop binary with an embedded WebView.
 
 ---
 
 ## 18. Origin Header Not Used for Access Control
 
-Aerion does not use the `Origin` header (or any HTTP header) for authentication or access control decisions.
+Eterno Mail does not use the `Origin` header (or any HTTP header) for authentication or access control decisions.
 
-- **No HTTP server**: Aerion does not run a web server or expose HTTP endpoints. There are no incoming HTTP requests to inspect headers on.
+- **No HTTP server**: Eterno Mail does not run a web server or expose HTTP endpoints. There are no incoming HTTP requests to inspect headers on.
 - **Frontend ↔ Backend**: Communication uses Wails in-process RPC (direct function calls within the same process), not HTTP. No HTTP headers are involved.
 - **OAuth2 callback**: The local callback server validates requests using a cryptographic state parameter (PKCE), not the Origin header.
 - **IPC**: Detached composer authentication uses a backend-generated token, not HTTP headers.
@@ -420,22 +420,22 @@ Aerion does not use the `Origin` header (or any HTTP header) for authentication 
 
 ## 19. Cookie-Based Session Tokens
 
-Aerion does not use cookies or cookie-based sessions. There is no HTTP server, no session management layer, and no cookies to protect.
+Eterno Mail does not use cookies or cookie-based sessions. There is no HTTP server, no session management layer, and no cookies to protect.
 
 - **No cookies**: The application does not set, read, or transmit cookies of any kind.
 - **No sessions**: There is no session token mechanism. The user is authenticated implicitly as the OS-level owner of the application process.
 - **Frontend ↔ Backend**: Communication uses Wails in-process RPC — no HTTP, no cookies, no session headers.
-- **CSRF not applicable**: Cross-site request forgery requires a web browser making cross-origin requests with attached cookies. Aerion's WebView renders only embedded application assets and does not navigate to external sites. There is no attack vector for CSRF.
+- **CSRF not applicable**: Cross-site request forgery requires a web browser making cross-origin requests with attached cookies. Eterno Mail's WebView renders only embedded application assets and does not navigate to external sites. There is no attack vector for CSRF.
 
 ---
 
 ## 20. LDAP Injection
 
-Aerion does not use LDAP in any capacity. There are no LDAP queries, connections, directory binds, or search filters anywhere in the codebase.
+Eterno Mail does not use LDAP in any capacity. There are no LDAP queries, connections, directory binds, or search filters anywhere in the codebase.
 
 - **Authentication**: Handled via IMAP/SMTP credentials (password or OAuth2 XOAUTH2 SASL) — no LDAP directory authentication.
 - **Contact lookup**: Uses CardDAV (WebDAV over HTTPS) and Google/Microsoft REST APIs — not LDAP.
-- **No directory services**: Aerion has no integration with Active Directory, OpenLDAP, or any other LDAP-based directory.
+- **No directory services**: Eterno Mail has no integration with Active Directory, OpenLDAP, or any other LDAP-based directory.
 
 LDAP injection is not applicable to this application.
 
@@ -443,7 +443,7 @@ LDAP injection is not applicable to this application.
 
 ## 21. Local and Remote File Inclusion
 
-Aerion is protected against both Local File Inclusion (LFI) and Remote File Inclusion (RFI) attacks.
+Eterno Mail is protected against both Local File Inclusion (LFI) and Remote File Inclusion (RFI) attacks.
 
 - **No dynamic file includes**: The application does not include, require, or load files based on user-supplied input. There are no template engines, server-side includes, or dynamic file path resolution that could be exploited.
 - **Embedded frontend assets**: All frontend files (HTML, CSS, JavaScript) are compiled into the Go binary at build time via `//go:embed`. They are served from an in-memory filesystem, not from disk paths that could be manipulated.
@@ -455,7 +455,7 @@ Aerion is protected against both Local File Inclusion (LFI) and Remote File Incl
 
 ## 22. Encrypted Storage of Private Data
 
-Aerion stores all data locally on the user's machine. There is no cloud backend, no server-side storage, and no third-party data sharing. Regulated private data is encrypted at rest as follows:
+Eterno Mail stores all data locally on the user's machine. There is no cloud backend, no server-side storage, and no third-party data sharing. Regulated private data is encrypted at rest as follows:
 
 ### Encrypted at Rest
 
@@ -477,7 +477,7 @@ Aerion stores all data locally on the user's machine. There is no cloud backend,
 
 ### Privacy by Design
 
-- **No telemetry or analytics**: Aerion collects no usage data whatsoever.
+- **No telemetry or analytics**: Eterno Mail collects no usage data whatsoever.
 - **No cloud sync**: All data remains on the user's local machine.
 - **No third-party data sharing**: No data is transmitted to any party other than the user's configured mail/contact/key servers and OAuth providers.
 - **User-controlled data lifecycle**: Users can delete accounts, messages, contacts, and all associated data through the application UI.
@@ -487,7 +487,7 @@ Aerion stores all data locally on the user's machine. There is no cloud backend,
 
 ## 23. Constant-Time Cryptographic Operations
 
-Aerion does not implement any custom cryptographic primitives or algorithms. All cryptographic operations are delegated to established, audited libraries that implement constant-time operations internally:
+Eterno Mail does not implement any custom cryptographic primitives or algorithms. All cryptographic operations are delegated to established, audited libraries that implement constant-time operations internally:
 
 | Operation | Library | Constant-Time Guarantees |
 |---|---|---|
@@ -500,4 +500,4 @@ Aerion does not implement any custom cryptographic primitives or algorithms. All
 | Credential encryption (fallback) | Go `crypto/aes` + `crypto/cipher` (AES-256-GCM), `golang.org/x/crypto/pbkdf2` (key derivation) | Go standard library uses constant-time GCM implementation |
 | OAuth2 PKCE / state validation | Go `crypto/rand`, `crypto/sha256` | Standard library constant-time primitives |
 
-Application-level security comparisons (e.g., IPC token validation) use `crypto/subtle.ConstantTimeCompare`. All other cryptographic operations are handled by the libraries listed above. There are no short-circuit comparisons on secrets, tokens, or cryptographic material in the Aerion codebase.
+Application-level security comparisons (e.g., IPC token validation) use `crypto/subtle.ConstantTimeCompare`. All other cryptographic operations are handled by the libraries listed above. There are no short-circuit comparisons on secrets, tokens, or cryptographic material in the Eterno Mail codebase.

@@ -61,12 +61,14 @@ function triggerFlash(pane: FocusablePane) {
 }
 
 /**
- * Set the focused pane and trigger flash animation
+ * Set the focused pane. The flash is deliberately opt-in: applying an
+ * animated inset shadow after every mouse/focus event causes full WebKit
+ * repaints on some Linux GPUs, which presents as a brief black frame.
  */
-export function setFocusedPane(pane: FocusablePane) {
+export function setFocusedPane(pane: FocusablePane, flash = false) {
   if (focusedPane !== pane) {
     focusedPane = pane
-    triggerFlash(pane)
+    if (flash) triggerFlash(pane)
   }
 }
 
@@ -76,7 +78,7 @@ export function setFocusedPane(pane: FocusablePane) {
 export function focusPreviousPane() {
   const currentIndex = PANE_ORDER.indexOf(focusedPane)
   const previousIndex = currentIndex === 0 ? PANE_ORDER.length - 1 : currentIndex - 1
-  setFocusedPane(PANE_ORDER[previousIndex])
+  setFocusedPane(PANE_ORDER[previousIndex], true)
 }
 
 /**
@@ -85,7 +87,7 @@ export function focusPreviousPane() {
 export function focusNextPane() {
   const currentIndex = PANE_ORDER.indexOf(focusedPane)
   const nextIndex = (currentIndex + 1) % PANE_ORDER.length
-  setFocusedPane(PANE_ORDER[nextIndex])
+  setFocusedPane(PANE_ORDER[nextIndex], true)
 }
 
 /**

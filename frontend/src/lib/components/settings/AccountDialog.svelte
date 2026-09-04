@@ -15,6 +15,7 @@
   // @ts-ignore - wailsjs path
   import type { v1 } from '../../../../wailsjs/go/models'
   import { accountStore } from '$lib/stores/accounts.svelte'
+  import { contactPhotos } from '$lib/stores/contactPhotos.svelte'
   import { oauthStore } from '$lib/stores/oauth.svelte'
   import { addToast } from '$lib/stores/toast'
   import { dialogGuardOpen, dialogGuardClose } from '$lib/stores/dialogGuard'
@@ -369,6 +370,9 @@
     reauthorizeSuccess = false
     try {
       await oauthStore.reauthorize(accountId)
+      // The old token may have made the account profile a cached miss. Fetch it
+      // again now that Google has granted the profile scope.
+      contactPhotos.invalidate()
       reauthorizeSuccess = true
       addToast({
         type: 'success',

@@ -851,6 +851,12 @@ func (a *App) BeforeClose(ctx context.Context) bool {
 	if shuttingDown {
 		return false
 	}
+	// Startup can fail before the settings store exists (for example while a
+	// migration is being applied). In that state there is no background-mode
+	// preference to read, so let Wails close normally instead of panicking.
+	if a.settingsStore == nil || a.ctx == nil {
+		return false
+	}
 
 	// Background mode: hide window instead of quitting
 	runBg, _ := a.settingsStore.GetRunBackground()
@@ -907,7 +913,10 @@ func (a *App) ShowWindow() {
 // If background mode is enabled, hides the window instead of quitting.
 // Called by the frontend title bar close button.
 func (a *App) CloseWindow() {
-	runBg, _ := a.settingsStore.GetRunBackground()
+	runBg := false
+	if a.settingsStore != nil {
+		runBg, _ = a.settingsStore.GetRunBackground()
+	}
 	if runBg {
 		log := logging.WithComponent("app")
 		log.Info().Msg("Window close requested, hiding to background")
@@ -953,6 +962,9 @@ func (a *App) QuitApp() {
 // GetStartHiddenActive returns true if the window should remain hidden on startup.
 // True when both start_hidden and run_background settings are enabled.
 func (a *App) GetStartHiddenActive() bool {
+	if a.settingsStore == nil {
+		return false
+	}
 	startHidden, _ := a.settingsStore.GetStartHidden()
 	if !startHidden {
 		return false

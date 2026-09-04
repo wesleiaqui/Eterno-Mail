@@ -83,6 +83,9 @@ func NewAPI(store *Store, secrets coreapi.Secrets, auth coreapi.Auth, queue *Pen
 // sync/parse path interprets tz-less all-day/floating event times in that zone
 // — matching how the frontend buckets days. Empty clears the override (system tz).
 func (a *API) SetDisplayTimezone(tz string) error {
+	if a == nil || a.store == nil {
+		return errors.New("calendar: settings store is not initialized")
+	}
 	if err := a.store.SetMeta("display_timezone", tz); err != nil {
 		return err
 	}

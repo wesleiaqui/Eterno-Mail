@@ -16,6 +16,7 @@ export interface UIState {
   selectedConversationFolderId: string | null
   sidebarWidth: number
   listWidth: number
+  sidebarCollapsed: boolean
   // Sidebar section expand/collapse states
   expandedAccounts: Record<string, boolean>  // accountId -> isExpanded (default: true)
   unifiedInboxExpanded: boolean              // Unified Inbox section (default: true)
@@ -29,6 +30,7 @@ const SIDEBAR_MIN = 180
 const SIDEBAR_MAX = 400
 const LIST_MIN = 280
 const LIST_MAX = 600
+const SIDEBAR_LAYOUT_MIGRATION_KEY = 'eterno-mail:sidebar-layout-v3'
 
 // Default state
 const defaultState: UIState = {
@@ -39,8 +41,9 @@ const defaultState: UIState = {
   selectedThreadId: null,
   selectedConversationAccountId: null,
   selectedConversationFolderId: null,
-  sidebarWidth: 240,
-  listWidth: 420,
+  sidebarWidth: 360,
+  listWidth: 360,
+  sidebarCollapsed: false,
   expandedAccounts: {},
   unifiedInboxExpanded: true,
   collapsedFolders: {},
@@ -81,13 +84,26 @@ export async function loadUIState(): Promise<UIState> {
         selectedConversationAccountId: state.selectedConversationAccountId || null,
         selectedConversationFolderId: state.selectedConversationFolderId || null,
         // Validate and clamp pane widths
-        sidebarWidth: clamp(state.sidebarWidth || 240, SIDEBAR_MIN, SIDEBAR_MAX),
-        listWidth: clamp(state.listWidth || 420, LIST_MIN, LIST_MAX),
+        sidebarWidth: clamp(state.sidebarWidth || 360, SIDEBAR_MIN, SIDEBAR_MAX),
+        // Migrate the old default (420px) to the more balanced 360px width.
+        // Any user-selected size is preserved.
+        listWidth: clamp(state.listWidth === 420 ? 360 : state.listWidth || 360, LIST_MIN, LIST_MAX),
+        sidebarCollapsed: state.sidebarCollapsed === true,
         // Sidebar expand/collapse states
         expandedAccounts: state.expandedAccounts || {},
         unifiedInboxExpanded: state.unifiedInboxExpanded !== false, // default true
         collapsedFolders: state.collapsedFolders || {},
         activeExtension: state.activeExtension || 'mail',
+      }
+
+      // Move the former 240px sidebar to the roomier navigation layout once.
+      // Users can still resize it afterwards; collapse never overwrites that
+      // chosen expanded width.
+      if (typeof localStorage !== 'undefined' && localStorage.getItem(SIDEBAR_LAYOUT_MIGRATION_KEY) !== 'done') {
+        currentState.sidebarCollapsed = false
+        currentState.sidebarWidth = 360
+        localStorage.setItem(SIDEBAR_LAYOUT_MIGRATION_KEY, 'done')
+        saveUIState({ sidebarCollapsed: false, sidebarWidth: 360 })
       }
       activeExtensionState = currentState.activeExtension
     }
@@ -134,6 +150,7 @@ export function saveUIState(updates: Partial<UIState>): void {
         selectedConversationFolderId: currentState.selectedConversationFolderId || '',
         sidebarWidth: currentState.sidebarWidth,
         listWidth: currentState.listWidth,
+        sidebarCollapsed: currentState.sidebarCollapsed,
         expandedAccounts: currentState.expandedAccounts,
         unifiedInboxExpanded: currentState.unifiedInboxExpanded,
         collapsedFolders: currentState.collapsedFolders,
@@ -144,6 +161,14 @@ export function saveUIState(updates: Partial<UIState>): void {
       console.error('Failed to save UI state:', err)
     }
   }, 1000)
+}
+
+export function isSidebarCollapsed(): boolean {
+  return currentState.sidebarCollapsed
+}
+
+export function setSidebarCollapsed(collapsed: boolean): void {
+  saveUIState({ sidebarCollapsed: collapsed })
 }
 
 // Helper to check if an account is expanded (defaults to true if not set)

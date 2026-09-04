@@ -205,11 +205,21 @@ func (b *CalendarBridge) Calendar_SetOrganizerIdentity(sourceID, email string) e
 // times to the same zone the UI buckets by. Called from the frontend whenever
 // the display tz resolves/changes and on init.
 func (b *CalendarBridge) Calendar_SetDisplayTimezone(tz string) error {
+	// Wails can dispatch a frontend call while the host is still wiring the
+	// embedded bridge during startup. A promoted method on a nil embedded
+	// pointer reaches this receiver. There is nothing to persist yet; the
+	// bridge initialization will seed its timezone from its stored settings.
+	if b == nil {
+		return nil
+	}
 	if !b.gateEnabled() {
 		return errors.New("calendar: extension disabled")
 	}
 	if err := b.ensureInit(); err != nil {
 		return err
+	}
+	if b.api == nil {
+		return errors.New("calendar: API was not initialized")
 	}
 	return b.api.SetDisplayTimezone(tz)
 }
@@ -622,6 +632,11 @@ func (b *CalendarBridge) Calendar_OpenURL(url string) error {
 // extension tag in coreapi.Logger keeps disabled-extension noise easy to
 // filter downstream.
 func (b *CalendarBridge) Calendar_LogFrontend(level, message string) {
+	// Logging may be the first frontend call during startup. Never let a
+	// diagnostic path panic when Wails reaches a nil embedded bridge.
+	if b == nil {
+		return
+	}
 	if b.deps.Core == nil {
 		return
 	}

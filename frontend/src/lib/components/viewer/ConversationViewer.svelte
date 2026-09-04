@@ -4,13 +4,14 @@
   // @ts-ignore - wailsjs bindings
   import { GetConversation, GetReadReceiptResponsePolicy, SendReadReceipt, IgnoreReadReceipt, GetMarkAsReadDelay, GetMessageSource, ProcessSMIMEMessage, ProcessPGPMessage, FetchMessageBody } from '../../../../wailsjs/go/app/App'
   // @ts-ignore - wailsjs bindings
-  import { MarkAsRead, MarkAsUnread, Star, Unstar, Archive, Trash, MarkAsSpam, MarkAsNotSpam, DeletePermanently, Undo } from '../../../../wailsjs/go/app/App'
+  import { MarkAsRead, MarkAsUnread, Star, Unstar, Archive, RemoveFromInbox, Trash, MarkAsSpam, MarkAsNotSpam, DeletePermanently, Undo } from '../../../../wailsjs/go/app/App'
   // @ts-ignore - wailsjs path
   import { EventsOn } from '../../../../wailsjs/runtime/runtime'
   // @ts-ignore - wailsjs path
   import { message as messageModels } from '../../../../wailsjs/go/models'
   import AttachmentList from './AttachmentList.svelte'
   import EmailBody from './EmailBody.svelte'
+  import Avatar from '$lib/components/kit/Avatar.svelte'
   import { toasts } from '$lib/stores/toast'
   import { setFocusedPane, isInputElement, isComposerOpen } from '$lib/stores/keyboard.svelte'
   import { ConfirmDialog } from '$lib/components/ui/confirm-dialog'
@@ -19,6 +20,7 @@
   import { isDialogGuardActive } from '$lib/stores/dialogGuard'
   import { getShowViewerCircles, getDarkMailContent } from '$lib/stores/settings.svelte'
   import { getIsDarkActive } from '$lib/stores/theme.svelte'
+  import { contactPhotos } from '$lib/stores/contactPhotos.svelte'
 
   interface Props {
     threadId?: string | null
@@ -119,6 +121,15 @@
   // resets when the conversation changes. Truthy value = user explicitly
   // disabled the filter for this message.
   let darkMailOverrides = $state<Record<string, boolean>>({})
+
+  // The message list already retrieves local contact photos in batches. Do the
+  // same in the reader so a saved/synced profile photo does not disappear as
+  // soon as its conversation is opened.
+  $effect(() => {
+    const messages = conversation?.messages ?? []
+    const emails = messages.map(item => item.fromEmail).filter((email): email is string => !!email)
+    if (emails.length) void contactPhotos.ensure(emails)
+  })
 
   function shouldDarkenMessage(msgId: string): boolean {
     if (!getDarkMailContent()) return false
@@ -685,22 +696,9 @@
     return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
   }
 
-  function getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-
-  function getAvatarColor(email: string): string {
-    // Returns a theme-driven avatar class (.avatar-1 .. .avatar-14, defined in themes.css).
-    let hash = 0
-    for (let i = 0; i < email.length; i++) {
-      hash = email.charCodeAt(i) + ((hash << 5) - hash)
-    }
-    return `avatar-${(Math.abs(hash) % 14) + 1}`
+  function getFaviconUrl(email: string): string {
+    const domain = email.trim().split('@')[1]?.toLowerCase()
+    return domain ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64` : ''
   }
 
   // Parse recipient list (JSON array format from backend)
@@ -795,6 +793,20 @@
       onActionComplete?.(true)
     } catch (err) {
       console.error('Archive failed:', err)
+      toasts.error($_('toast.failedToArchive'))
+    }
+  }
+
+  async function handleDone() {
+    if (!conversation?.messages) return
+    const messageIds = conversation.messages.map(m => m.id)
+
+    try {
+      await RemoveFromInbox(messageIds)
+      toasts.success($_('toast.conversationArchived'), [{ label: $_('common.undo'), onClick: handleUndo }])
+      onActionComplete?.(true)
+    } catch (err) {
+      console.error('Done failed:', err)
       toasts.error($_('toast.failedToArchive'))
     }
   }
@@ -1308,7 +1320,7 @@
   {:else if conversation}
     <div class="conversation-viewer-content flex flex-col h-full">
     <!-- Header with Actions -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-border">
+    <div class="spark-viewer-toolbar flex items-center justify-between px-4 py-3 border-b border-border">
       <div class="flex items-center gap-2">
         {#if showBackButton}
           <button
@@ -1321,6 +1333,14 @@
           </button>
           <div class="w-px h-5 bg-border mx-1"></div>
         {/if}
+        <button
+          class="p-2 rounded-md bg-muted/70 hover:bg-muted transition-colors"
+          title={$_('common.done')}
+          aria-label={$_('common.done')}
+          onclick={handleDone}
+        >
+          <Icon icon="mdi:check" class="w-5 h-5 text-muted-foreground" />
+        </button>
         <button
           class="p-2 rounded-md hover:bg-muted transition-colors"
           title={$_('viewer.reply')}
@@ -1344,7 +1364,6 @@
         </button>
 
         <div class="w-px h-5 bg-border mx-1"></div>
-
         <button
           class="p-2 rounded-md hover:bg-muted transition-colors"
           title={$_('viewer.archive')}
@@ -1420,10 +1439,10 @@
     </div>
 
     <!-- Conversation Content -->
-    <div bind:this={contentContainerRef} class="flex-1 min-h-0 overflow-y-auto scrollbar-thin" onfocusin={() => setFocusedPane('viewer')}>
+    <div bind:this={contentContainerRef} class="spark-viewer-scroll flex-1 min-h-0 overflow-y-auto scrollbar-thin" onfocusin={() => setFocusedPane('viewer')}>
       <div class="p-6">
         <!-- Subject -->
-        <h1 class="text-xl font-semibold text-foreground mb-4">
+        <h1 class="spark-conversation-subject text-xl font-semibold text-foreground mb-4">
           {conversation.subject || $_('viewer.noSubject')}
         </h1>
 
@@ -1453,7 +1472,7 @@
                 {onReply}
               >
                 <div
-                  class="border rounded-lg overflow-hidden transition-all {focusedMessageId === msg.id ? 'border-primary ring-2 ring-primary/20' : 'border-border'}"
+                  class="spark-message-card border rounded-lg overflow-hidden transition-all {focusedMessageId === msg.id ? 'border-primary ring-2 ring-primary/20' : 'border-border'}"
                   data-message-id={msg.id}
                   tabindex="-1"
                   role="button"
@@ -1469,7 +1488,7 @@
                 >
                 <!-- Message Header (always visible, clickable to expand/collapse) -->
                 <div
-                  class="w-full flex items-start gap-3 p-4 text-left hover:bg-muted/50 transition-colors cursor-pointer {!isExpanded ? 'bg-muted/30' : ''}"
+                  class="spark-message-card-header w-full flex items-start gap-3 p-4 text-left hover:bg-muted/50 transition-colors cursor-pointer {!isExpanded ? 'bg-muted/30' : ''}"
                   onclick={() => toggleMessage(msg.id)}
                   onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleMessage(msg.id) }}
                   onfocus={() => focusedMessageId = msg.id}
@@ -1478,11 +1497,15 @@
                 >
                   <!-- Sender circle (colored, with initials) -->
                   {#if getShowViewerCircles()}
-                    <div
-                      class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-medium {getAvatarColor(msg.fromEmail)}"
-                    >
-                      {getInitials(msg.fromName || msg.fromEmail)}
-                    </div>
+                    {@const avatarPhoto = contactPhotos.get(msg.fromEmail)}
+                    <Avatar
+                      email={msg.fromEmail}
+                      name={msg.fromName}
+                      size={40}
+                      photoData={avatarPhoto?.data}
+                      photoMediaType={avatarPhoto?.mediaType}
+                      faviconUrl={getFaviconUrl(msg.fromEmail)}
+                    />
                   {/if}
 
                   <!-- Header Info -->

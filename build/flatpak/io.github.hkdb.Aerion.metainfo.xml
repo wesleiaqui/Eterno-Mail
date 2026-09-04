@@ -3,7 +3,7 @@
   <id>io.github.hkdb.Aerion</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>Apache-2.0</project_license>
-  <name>Aerion</name>
+  <name>Eterno Mail</name>
   <summary>Lightweight open-source email client for Linux</summary>
   <summary xml:lang="cs">Nenáročný open-source e-mailový klient pro Linux</summary>
   <summary xml:lang="de">Schlanker Open-Source-E-Mail-Client für Linux</summary>
@@ -17,7 +17,7 @@
   <summary xml:lang="zh-TW">一款現代化，輕量級的開源 Linux 電子郵件客戶端應用程式</summary>
   <description>
     <p>
-      Aerion is a modern, lightweight email client inspired by Geary, focused on
+      Eterno Mail is a modern, lightweight email client inspired by Geary, focused on
       resource efficiency and a clean user experience.
     </p>
     <p xml:lang="cs">

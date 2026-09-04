@@ -39,7 +39,7 @@
         Override the OAuth Client ID and Secret used for adding Google and Microsoft
         email accounts. Most users should leave these on the shipped defaults.
         Use your own credentials if your organization requires it, or to bypass
-        Aerion's quota / verification status.
+        Eterno Mail's quota / verification status.
       </p>
       <OAuthCredsSlotEditor
         configID="google-mail"

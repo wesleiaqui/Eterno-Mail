@@ -29,6 +29,9 @@
     label?: string
     /** The scrollable body content. Required. */
     body: Snippet
+    /** Optional non-scrolling content below the title. Useful for a primary
+     * navigation action that must remain visible while the body scrolls. */
+    header?: Snippet
     /** Optional sticky bottom strip. Consumer owns the strip's chrome
      *  (border-t, padding, content); SidebarFrame just pins it with shrink-0. */
     footer?: Snippet
@@ -51,6 +54,7 @@
     title,
     label,
     body,
+    header,
     footer,
     containerRef = $bindable(null),
     focusable = false,
@@ -90,6 +94,12 @@
 
   {#if title}
     <h2 class="px-4 mb-3 text-lg font-semibold text-foreground">{title}</h2>
+  {/if}
+
+  {#if header}
+    <div class="shrink-0">
+      {@render header()}
+    </div>
   {/if}
 
   <div class="flex-1 min-h-0 overflow-y-auto">

@@ -6,20 +6,19 @@
   import AccountDialog from '$lib/components/settings/AccountDialog.svelte'
   import DeleteAccountDialog from '$lib/components/settings/DeleteAccountDialog.svelte'
   import SettingsDialog from '$lib/components/settings/SettingsDialog.svelte'
-  import SidebarFooter from '$lib/components/kit/SidebarFooter.svelte'
   import { Button } from '$lib/components/ui/button'
+  import Avatar from '$lib/components/kit/Avatar.svelte'
   import { accountStore } from '$lib/stores/accounts.svelte'
   import { contactSourcesStore } from '$lib/stores/contactSources.svelte'
-  import { isAccountExpanded, setAccountExpanded, isUnifiedInboxExpanded, setFolderCollapsed, getUIState, getUIStateVersion, saveUIState } from '$lib/stores/uiState.svelte'
+  import { contactPhotos } from '$lib/stores/contactPhotos.svelte'
+  import { isAccountExpanded, setAccountExpanded, isUnifiedInboxExpanded, setFolderCollapsed, getUIState, getUIStateVersion, saveUIState, setActiveExtension } from '$lib/stores/uiState.svelte'
   import { setFocusedPane } from '$lib/stores/keyboard.svelte'
   import { _ } from '$lib/i18n'
   // @ts-ignore - wailsjs path
   import { account, folder } from '../../../../wailsjs/go/models'
   // @ts-ignore - wailsjs path
-  import { GetUnifiedInboxUnreadCount } from '../../../../wailsjs/go/app/App'
   import { formatDistanceToNow } from 'date-fns'
   import { getCurrentDateFnsLocale } from '$lib/stores/settings.svelte'
-  import { EventsOn } from '../../../../wailsjs/runtime/runtime'
 
   // Folder item type for flat navigation list
   interface FolderNavItem {
@@ -119,6 +118,8 @@
     isFlashing?: boolean
     showBackButton?: boolean
     onBack?: () => void
+    collapsed?: boolean
+    onToggleCollapsed?: () => void
   }
 
   let {
@@ -134,17 +135,25 @@
     isFlashing = false,
     showBackButton = false,
     onBack,
+    collapsed = false,
+    onToggleCollapsed,
   }: Props = $props()
-
-  // Unified inbox state
-  let unifiedUnreadCount = $state(0)
 
   // Dialog state
   let showAccountDialog = $state(false)
   let showDeleteDialog = $state(false)
   let showSettingsDialog = $state(false)
+  let showAllFolders = $state(false)
+  let expandedFolderGroups = $state<Record<string, boolean>>({})
+  const settingsAccount = $derived(accountStore.accounts[0]?.account ?? null)
+  const settingsPhoto = $derived(contactPhotos.get(settingsAccount?.email ?? ''))
   let editingAccount = $state<account.Account | null>(null)
   let deletingAccount = $state<account.Account | null>(null)
+
+  $effect(() => {
+    const emails = accountStore.accounts.map(item => item.account.email).filter(Boolean)
+    if (emails.length) void contactPhotos.ensure(emails)
+  })
 
   // Load accounts and contact sources on mount
   onMount(() => {
@@ -158,27 +167,7 @@
     })
 
     contactSourcesStore.load()
-    loadUnifiedInboxCount()
-
-    // Listen for folder count changes to update unified inbox count
-    const unsubscribe = EventsOn('folders:countsChanged', (_data: Record<string, number>) => {
-      loadUnifiedInboxCount()
-    })
-
-    return () => {
-      unsubscribe()
-    }
   })
-
-  // Load unified inbox unread count
-  async function loadUnifiedInboxCount() {
-    try {
-      const count = await GetUnifiedInboxUnreadCount()
-      unifiedUnreadCount = count
-    } catch (err) {
-      console.error('Failed to load unified inbox count:', err)
-    }
-  }
 
   // Get accounts with their inbox folders for unified inbox section
   function getAccountsWithInbox() {
@@ -240,6 +229,120 @@
     accountStore.selectFolder(accountId, folderId, folderPath, folderName)
     onFolderSelect?.(accountId, folderId, folderPath, folderName, folderType)
   }
+
+  function findFolderByType(trees: folder.FolderTree[], type: string): folder.Folder | null {
+    for (const tree of trees) {
+      if (tree.folder?.type === type) return tree.folder
+      const child = findFolderByType(tree.children || [], type)
+      if (child) return child
+    }
+    return null
+  }
+
+  function findFolderByPath(trees: folder.FolderTree[], path: string): folder.Folder | null {
+    for (const tree of trees) {
+      if (tree.folder?.path === path) return tree.folder
+      const child = findFolderByPath(tree.children || [], path)
+      if (child) return child
+    }
+    return null
+  }
+
+  function findAccountFolder(item: { account: account.Account; folders: folder.FolderTree[] }, type: string): folder.Folder | null {
+    const typedFolder = findFolderByType(item.folders, type)
+    if (typedFolder) return typedFolder
+
+    // Some IMAP providers do not label special folders with a type. The
+    // account's configured special-folder paths are the reliable fallback.
+    const configuredPath = (() => {
+      switch (type) {
+        case 'archive': return item.account.archiveFolderPath
+        case 'spam': return item.account.spamFolderPath
+        case 'all': return item.account.allMailFolderPath
+        case 'starred': return item.account.starredFolderPath
+        case 'sent': return item.account.sentFolderPath
+        case 'drafts': return item.account.draftsFolderPath
+        case 'trash': return item.account.trashFolderPath
+        default: return undefined
+      }
+    })()
+
+    return configuredPath ? findFolderByPath(item.folders, configuredPath) : null
+  }
+
+  function selectPrimaryFolder(type: string) {
+    const preferred = accountStore.accounts.find(item => item.account.id === selectedAccountId && selectedAccountId !== 'unified')
+    const orderedAccounts = preferred ? [preferred, ...accountStore.accounts.filter(item => item !== preferred)] : accountStore.accounts
+    for (const item of orderedAccounts) {
+      const target = findAccountFolder(item, type)
+      if (!target) continue
+      handleFolderSelect(item.account.id, target.id, target.path, target.name, target.type)
+      return
+    }
+    // A folder may not exist on every provider. Opening the full folder panel
+    // still gives the user a real, actionable place to choose from.
+    showAllFolders = true
+  }
+
+  function isPrimaryFolderSelected(type: string): boolean {
+    for (const item of accountStore.accounts) {
+      const target = findAccountFolder(item, type)
+      if (target?.id === selectedFolderId) return true
+    }
+    return false
+  }
+
+  function openAllFolders(): void {
+    // The folders panel intentionally does not render over the compact rail.
+    // Expand first so "More" has the same useful result in both layouts.
+    if (collapsed) {
+      onToggleCollapsed?.()
+      showAllFolders = true
+      return
+    }
+    showAllFolders = !showAllFolders
+  }
+
+  function toggleFolderGroup(event: MouseEvent, type: string): void {
+    event.stopPropagation()
+    expandedFolderGroups[type] = !expandedFolderGroups[type]
+
+    // A per-account list needs the room of the complete navigation. Opening
+    // it from the rail therefore expands the sidebar as part of the action.
+    if (collapsed) onToggleCollapsed?.()
+  }
+
+  function getFolderGroupAccounts(type: string) {
+    // Keep the group useful even if one provider has not exposed/configured
+    // that special folder yet. Resolution happens when its account is chosen.
+    return accountStore.accounts.map(item => ({ account: item.account, type }))
+  }
+
+  function selectFolderGroupAccount(accountId: string, type: string): void {
+    const item = accountStore.accounts.find(candidate => candidate.account.id === accountId)
+    const target = item ? findAccountFolder(item, type) : null
+    if (item && target) {
+      handleFolderSelect(item.account.id, target.id, target.path, target.name, target.type)
+      return
+    }
+
+    // A provider may not support this special folder. Give the user a useful
+    // next action instead of a dead account row.
+    showAllFolders = true
+  }
+
+  const primaryFolders = [
+    { type: 'starred', label: 'sidebar.starred', icon: 'mdi:pin-outline' },
+    { type: 'drafts', label: 'sidebar.drafts', icon: 'mdi:file-outline' },
+    { type: 'sent', label: 'sidebar.sent', icon: 'mdi:send-outline' },
+    { type: 'trash', label: 'sidebar.trash', icon: 'mdi:delete-outline' },
+  ]
+
+  const secondaryFolders = [
+    { type: 'archive', label: 'sidebar.archived', icon: 'mdi:check' },
+    { type: 'spam', label: 'sidebar.blocked', icon: 'mdi:thumb-down-outline' },
+    { type: 'all', label: 'sidebar.snoozed', icon: 'mdi:clock-outline' },
+  ]
 
   // Open add account dialog
   function openAddAccount() {
@@ -445,7 +548,7 @@
     // Build selector based on item type
     let selector: string | null = null
     if (item.type === 'unified') {
-      selector = '[data-sidebar-item="unified"]'
+      selector = '[data-sidebar-nav-item="unified"], [data-sidebar-item="unified"]'
     } else if (item.type === 'unified-account' && item.folderId) {
       selector = `[data-sidebar-item="unified-account"][data-folder-id="${item.folderId}"]`
     } else if (item.type === 'account-header' && item.accountId) {
@@ -534,32 +637,26 @@
   }
 </script>
 
-<div class="flex flex-col h-full {isFlashing ? 'pane-focus-flash' : ''}">
-  <!-- Header with Compose Button -->
-  <div class="px-4 py-3 border-b border-border">
-    <div class="flex items-center gap-2">
-      <button
-        class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
-        onclick={onCompose}
-      >
-        <Icon icon="mdi:pencil" class="w-4 h-4" />
-        <span>{$_('sidebar.compose')}</span>
+<div class="spark-sidebar spark-sidebar-rebuilt {collapsed ? 'spark-sidebar-collapsed' : ''} relative flex flex-col h-full {isFlashing ? 'pane-focus-flash' : ''}">
+  <div class="sidebar-rebuilt-toolbar">
+    <button type="button" class="sidebar-toolbar-button" onclick={syncAllAccounts} title={$_('sidebar.syncAllAccounts')} aria-label={$_('sidebar.syncAllAccounts')}>
+      <Icon icon={accountStore.isAnySyncing ? 'mdi:sync' : 'mdi:refresh'} class="h-5 w-5 {accountStore.isAnySyncing ? 'animate-spin' : ''}" />
+    </button>
+    <button type="button" class="sidebar-toolbar-button" class:sidebar-toolbar-button-active={showAllFolders} onclick={() => (showAllFolders = !showAllFolders)} title={$_('sidebar.allFolders')} aria-label={$_('sidebar.allFolders')}>
+      <Icon icon="mdi:panels" class="h-5 w-5" />
+    </button>
+    <span class="flex-1"></span>
+    <button type="button" class="sidebar-toolbar-button" onclick={onCompose} title={$_('sidebar.compose')} aria-label={$_('sidebar.compose')}>
+      <Icon icon="mdi:pencil-outline" class="h-5 w-5" />
+    </button>
+    {#if showBackButton}
+      <button type="button" class="sidebar-toolbar-button" title={$_('responsive.back')} aria-label={$_('aria.closeSidebar')} onclick={onBack}>
+        <Icon icon="mdi:close" class="h-5 w-5" />
       </button>
-      {#if showBackButton}
-        <button
-          class="p-2 rounded-md hover:bg-muted transition-colors flex-shrink-0"
-          title={$_('responsive.back')}
-          aria-label={$_('aria.closeSidebar')}
-          onclick={onBack}
-        >
-          <Icon icon="mdi:close" class="w-5 h-5 text-muted-foreground" />
-        </button>
-      {/if}
-    </div>
+    {/if}
   </div>
 
-  <!-- Account List -->
-  <div class="flex-1 overflow-y-auto scrollbar-thin py-2" bind:this={scrollContainer}>
+  <div class="sidebar-content sidebar-rebuilt-content flex-1 overflow-y-auto scrollbar-thin" bind:this={scrollContainer}>
     {#if accountStore.loading}
       <div class="flex items-center justify-center py-8">
         <Icon icon="mdi:loading" class="w-6 h-6 animate-spin text-muted-foreground" />
@@ -578,107 +675,140 @@
         </Button>
       </div>
     {:else}
-      <!-- Unified Inbox Section (only show if more than 1 account) -->
-      {#if accountStore.accounts.length > 1}
+      <nav class="sidebar-primary-navigation" aria-label={$_('sidebar.navigation')}>
+        <button type="button" class="sidebar-primary-link" onclick={handleUnifiedInboxSelect}>
+          <Icon icon="mdi:home-outline" class="h-6 w-6" />
+          <span data-sidebar-label>{$_('sidebar.home')}</span>
+        </button>
+
         <UnifiedInboxSection
           accounts={getAccountsWithInbox()}
-          {unifiedUnreadCount}
           {selectedAccountId}
           {selectedFolderId}
           {selectionSource}
+          {collapsed}
           onSelectUnified={handleUnifiedInboxSelect}
           onSelectAccountInbox={handleAccountInboxSelect}
         />
-        <div class="border-b border-border mx-3 my-1"></div>
-      {/if}
 
-      {#each accountStore.accounts as accWithFolders (accWithFolders.account.id)}
-        <AccountSection
-          account={accWithFolders.account}
-          folders={accWithFolders.folders}
-          loading={accWithFolders.loading}
-          syncing={accWithFolders.syncing}
-          error={accWithFolders.error}
-          selectedFolderId={accountStore.selectedFolder?.folderId ?? ''}
-          {selectionSource}
-          isHeaderFocused={focusedAccountId === accWithFolders.account.id}
-          isExpanded={expandedAccounts[accWithFolders.account.id] ?? true}
-          syncError={accountStore.getSyncError(accWithFolders.account.id)}
-          {collapsedFolders}
-          {onMessagesMoved}
-          onFolderSelect={handleFolderSelect}
-          onToggleExpanded={() => toggleAccountExpanded(accWithFolders.account.id)}
-          onToggleFolderCollapse={toggleFolderCollapsed}
-          onEdit={() => openEditAccount(accWithFolders.account)}
-          onDelete={() => openDeleteAccount(accWithFolders.account)}
-          onSync={() => {
-            // Clear any sync error before retrying
-            accountStore.clearSyncError(accWithFolders.account.id)
-            accountStore.syncAccount(accWithFolders.account.id)
-          }}
-        />
-      {/each}
-
-      <!-- Add Account Button -->
-      <div class="px-3 py-2">
-        <button
-          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
-          onclick={openAddAccount}
-        >
-          <Icon icon="mdi:plus" class="w-4 h-4" />
-          <span>{$_('sidebar.addAccount')}</span>
+        <button type="button" class="sidebar-primary-link" onclick={() => setActiveExtension('calendar')}>
+          <Icon icon="mdi:calendar-blank-outline" class="h-6 w-6" />
+          <span data-sidebar-label>{$_('sidebar.calendar')}</span>
         </button>
-      </div>
+
+        <div class="sidebar-primary-separator"></div>
+        {#each primaryFolders as item (item.type)}
+          <div class="sidebar-folder-group">
+            <div class="sidebar-folder-group-row">
+              <button type="button" class="sidebar-folder-toggle" class:sidebar-folder-toggle-expanded={expandedFolderGroups[item.type]} onclick={(event) => toggleFolderGroup(event, item.type)} aria-label={$_(item.label)} aria-expanded={expandedFolderGroups[item.type] ?? false}>
+                <Icon icon={expandedFolderGroups[item.type] ? 'mdi:chevron-down' : 'mdi:chevron-right'} class="h-4 w-4" />
+              </button>
+              <button type="button" class="sidebar-primary-link sidebar-folder-group-link" class:sidebar-primary-link-selected={isPrimaryFolderSelected(item.type)} onclick={() => selectPrimaryFolder(item.type)}>
+                <Icon icon={item.icon} class="h-6 w-6" />
+                <span data-sidebar-label>{$_(item.label)}</span>
+              </button>
+            </div>
+            {#if expandedFolderGroups[item.type]}
+              <div class="sidebar-folder-account-list">
+                {#each getFolderGroupAccounts(item.type) as entry (entry.account.id)}
+                  {@const avatarPhoto = contactPhotos.get(entry.account.email)}
+                  <button type="button" class="sidebar-folder-account" onclick={() => selectFolderGroupAccount(entry.account.id, item.type)}>
+                    <Avatar email={entry.account.email} name={entry.account.name} size={16} photoData={avatarPhoto?.data} photoMediaType={avatarPhoto?.mediaType} />
+                    <span class="truncate">{entry.account.email || entry.account.name}</span>
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/each}
+
+        {#if !collapsed}
+          <p class="sidebar-primary-heading" data-sidebar-label>{$_('sidebar.folders')}</p>
+          {#each secondaryFolders as item (item.type)}
+            <div class="sidebar-folder-group sidebar-secondary-folder-group">
+              <div class="sidebar-folder-group-row">
+                <button type="button" class="sidebar-folder-toggle" class:sidebar-folder-toggle-expanded={expandedFolderGroups[item.type]} onclick={(event) => toggleFolderGroup(event, item.type)} aria-label={$_(item.label)} aria-expanded={expandedFolderGroups[item.type] ?? false}>
+                  <Icon icon={expandedFolderGroups[item.type] ? 'mdi:chevron-down' : 'mdi:chevron-right'} class="h-4 w-4" />
+                </button>
+                <button type="button" class="sidebar-primary-link sidebar-folder-group-link" class:sidebar-primary-link-selected={isPrimaryFolderSelected(item.type)} onclick={() => selectPrimaryFolder(item.type)}>
+                  <Icon icon={item.icon} class="h-6 w-6" />
+                  <span data-sidebar-label>{$_(item.label)}</span>
+                </button>
+              </div>
+              {#if expandedFolderGroups[item.type]}
+                <div class="sidebar-folder-account-list">
+                  {#each getFolderGroupAccounts(item.type) as entry (entry.account.id)}
+                    {@const avatarPhoto = contactPhotos.get(entry.account.email)}
+                    <button type="button" class="sidebar-folder-account" onclick={() => selectFolderGroupAccount(entry.account.id, item.type)}>
+                      <Avatar email={entry.account.email} name={entry.account.name} size={16} photoData={avatarPhoto?.data} photoMediaType={avatarPhoto?.mediaType} />
+                      <span class="truncate">{entry.account.email || entry.account.name}</span>
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/each}
+        {/if}
+
+        <button type="button" class="sidebar-more-button" onclick={openAllFolders}>
+          <Icon icon="mdi:dots-horizontal" class="h-6 w-6" />
+          <span data-sidebar-label>{$_('sidebar.more')}</span>
+        </button>
+        <button type="button" class="sidebar-collapse-nav-button" onclick={onToggleCollapsed} title={collapsed ? $_('sidebar.expand') : $_('sidebar.collapse')} aria-label={collapsed ? $_('sidebar.expand') : $_('sidebar.collapse')}>
+          <Icon icon={collapsed ? 'mdi:chevron-double-right' : 'mdi:chevron-double-left'} class="h-5 w-5" />
+          <span data-sidebar-label>{collapsed ? $_('sidebar.expand') : $_('sidebar.collapse')}</span>
+        </button>
+      </nav>
     {/if}
   </div>
 
-  <!-- Footer: Sync Status + Settings. Chrome (padding/border/min-height)
-       lives in kit `SidebarFooter` so mail, calendar, and contacts all
-       render the same strip height. Mail's progress bar overlay + 2-line
-       leading content (account name + status label) pass through
-       SidebarFooter's overlay/leading snippets unchanged. -->
-  <SidebarFooter>
-    {#snippet overlay()}
-      {#if syncStatus.percentage !== null}
-        <div class="absolute top-0 left-0 right-0 h-1 bg-muted overflow-hidden">
-          <div
-            class="h-full bg-primary transition-all duration-300 ease-out"
-            style="width: {syncStatus.percentage}%"
-          ></div>
-        </div>
-      {/if}
-    {/snippet}
-    {#snippet leading()}
-      <button
-        class="flex-1 min-w-0 flex items-end gap-2 hover:text-foreground transition-colors text-left"
-        onclick={accountStore.isAnySyncing ? cancelSync : syncAllAccounts}
-        title={$_(accountStore.isAnySyncing ? 'sidebar.clickToCancel' : 'sidebar.syncAllAccounts')}
-      >
-        <Icon
-          icon="mdi:sync"
-          class="w-4 h-4 flex-shrink-0 {accountStore.isAnySyncing ? 'animate-spin' : ''}"
-        />
-        <div class="flex-1 min-w-0">
-          {#if syncStatus.accountName}
-            <div class="truncate text-foreground font-medium leading-tight mb-0.5">{syncStatus.accountName}</div>
-          {/if}
-          <span class="block leading-tight">{syncStatus.label}</span>
-        </div>
-      </button>
-    {/snippet}
-    {#snippet trailing()}
-      <button
-        class="p-1 hover:text-foreground hover:bg-muted rounded transition-colors relative"
-        onclick={() => showSettingsDialog = true}
-        title={$_('sidebar.settings')}
-      >
-        <Icon icon="mdi:cog" class="w-4 h-4" />
-        {#if contactSourcesStore.hasErrors}
-          <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-destructive rounded-full border border-background"></span>
-        {/if}
-      </button>
-    {/snippet}
-  </SidebarFooter>
+  <button class="sidebar-settings-entry" type="button" data-sidebar-settings onclick={() => (showSettingsDialog = true)} title={$_('sidebar.settings')}>
+    {#if settingsAccount}
+      <Avatar email={settingsAccount.email} name={settingsAccount.name} size={28} photoData={settingsPhoto?.data} photoMediaType={settingsPhoto?.mediaType} />
+    {:else}
+      <Icon icon="mdi:cog-outline" class="h-6 w-6" />
+    {/if}
+    <span data-sidebar-label>{$_('sidebar.settings')}</span>
+    {#if contactSourcesStore.hasErrors}<span class="sidebar-settings-error"></span>{/if}
+  </button>
+
+  {#if showAllFolders}
+    <aside class="sidebar-all-folders-panel" aria-label={$_('sidebar.allFolders')}>
+      <header class="sidebar-all-folders-header">
+        <h2>{$_('sidebar.allFolders')}</h2>
+        <button type="button" class="sidebar-toolbar-button" onclick={() => (showAllFolders = false)} aria-label={$_('aria.dismiss')}>
+          <Icon icon="mdi:close" class="h-5 w-5" />
+        </button>
+      </header>
+      <div class="sidebar-all-folders-scroll scrollbar-thin">
+        {#each accountStore.accounts as accWithFolders (accWithFolders.account.id)}
+          <AccountSection
+            account={accWithFolders.account}
+            folders={accWithFolders.folders}
+            loading={accWithFolders.loading}
+            syncing={accWithFolders.syncing}
+            error={accWithFolders.error}
+            selectedFolderId={accountStore.selectedFolder?.folderId ?? ''}
+            {selectionSource}
+            isHeaderFocused={focusedAccountId === accWithFolders.account.id}
+            isExpanded={expandedAccounts[accWithFolders.account.id] ?? true}
+            syncError={accountStore.getSyncError(accWithFolders.account.id)}
+            {collapsedFolders}
+            {onMessagesMoved}
+            onFolderSelect={handleFolderSelect}
+            onToggleExpanded={() => toggleAccountExpanded(accWithFolders.account.id)}
+            onToggleFolderCollapse={toggleFolderCollapsed}
+            onEdit={() => openEditAccount(accWithFolders.account)}
+            onDelete={() => openDeleteAccount(accWithFolders.account)}
+            onSync={() => accountStore.syncAccount(accWithFolders.account.id)}
+          />
+        {/each}
+        <button type="button" class="sidebar-all-folders-add" onclick={openAddAccount}>
+          <Icon icon="mdi:plus" class="h-5 w-5" /> {$_('sidebar.addAccount')}
+        </button>
+      </div>
+    </aside>
+  {/if}
 </div>
 
 <!-- Account Dialog -->

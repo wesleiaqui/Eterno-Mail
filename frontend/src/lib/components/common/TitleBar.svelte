@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '@iconify/svelte'
+  import logo from '../../../assets/images/logo-universal.png'
   import { _ } from '$lib/i18n'
   import { WindowMinimise, WindowToggleMaximise, Quit } from '../../../../wailsjs/runtime/runtime'
 
@@ -34,8 +35,8 @@
 <header class="h-10 flex items-center justify-between bg-muted/50 border-b border-border select-none shrink-0">
   <!-- Drag region - left side with app title -->
   <div class="flex-1 flex items-center gap-2 px-3 h-full" style="--wails-draggable: drag">
-    <Icon icon="mdi:email-fast-outline" class="w-5 h-5 text-primary" />
-    <span class="text-sm font-medium text-foreground">Aerion</span>
+    <img src={logo} alt="" class="w-5 h-5 rounded object-contain" />
+    <span class="text-sm font-medium text-foreground">Eterno Mail</span>
   </div>
 
   <!-- Mac-style traffic light controls -->

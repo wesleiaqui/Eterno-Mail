@@ -73,6 +73,11 @@
     const option = syncPeriodOptions.find(opt => opt.value === numValue)
     return option ? $_(option.labelKey) : `${value} days`
   }
+
+  const isGoogleOAuthAccount = $derived(
+    authType === 'oauth2' &&
+    (_editAccount.imapHost ?? '').toLowerCase().includes('gmail')
+  )
 </script>
 
 <div class="space-y-6">
@@ -209,6 +214,12 @@
           <p class="text-xs text-muted-foreground">
             {$_('account.reauthorizeHelp')}
           </p>
+        {/if}
+        {#if isGoogleOAuthAccount}
+          <div class="flex gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+            <Icon icon="mdi:account-circle-outline" class="h-4 w-4 shrink-0 text-primary" />
+            <p>{$_('account.googleProfilePhotoReauthorizeHelp')}</p>
+          </div>
         {/if}
       </div>
     {:else}

@@ -33,6 +33,7 @@ func GoogleProvider() ProviderConfig {
 			"https://www.googleapis.com/auth/contacts.other.readonly", // Other contacts (for autocomplete)
 			"https://www.googleapis.com/auth/contacts.readonly",       // Full contacts read access (for sync)
 			"https://www.googleapis.com/auth/userinfo.email",          // Get user's email address
+			"https://www.googleapis.com/auth/userinfo.profile",        // Read the signed-in user's profile photo
 			"openid", // OpenID Connect
 		},
 		ClientID:     GoogleClientID,

@@ -21,6 +21,7 @@ type ProcessedBody struct {
 	BodyText       string
 	Snippet        string
 	HasAttachments bool
+	InboxCategory  string
 	Attachments    []*message.Attachment  // Extracted during parsing (no re-parse needed)
 	RawBytes       []byte                 // For on-demand attachment content fetch
 	SMIMEResult    *smime.SignatureResult  // S/MIME verification result
@@ -94,6 +95,11 @@ func (e *Engine) FetchMessageBody(ctx context.Context, accountID, messageID stri
 	// Update message in store
 	if err := e.messageStore.UpdateBody(messageID, result.BodyHTML, result.BodyText, result.Snippet, result.HasAttachments); err != nil {
 		return nil, fmt.Errorf("failed to update message body: %w", err)
+	}
+	if result.InboxCategory != "" {
+		if err := e.messageStore.UpdateInboxCategory(messageID, result.InboxCategory); err != nil {
+			e.log.Debug().Err(err).Str("messageID", messageID).Msg("Failed to update inbox category from body")
+		}
 	}
 
 	// Store attachments if present
@@ -273,6 +279,7 @@ func (e *Engine) fetchMessageBodiesBatch(ctx context.Context, client *imapclient
 			BodyText:       parsed.BodyText,
 			Snippet:        snippet,
 			HasAttachments: parsed.HasAttachments,
+			InboxCategory:  classifyBodyCategory(parsed.BodyText, bodyHTML),
 			Attachments:    parsed.Attachments,
 			RawBytes:       rawBytes,
 			SMIMEResult:    parsed.SMIMEResult,
@@ -775,6 +782,7 @@ func (e *Engine) FetchBodiesInBackground(ctx context.Context, accountID, folderI
 					BodyText:       pb.BodyText,
 					Snippet:        pb.Snippet,
 					HasAttachments: pb.HasAttachments,
+					InboxCategory:  pb.InboxCategory,
 					SMIMERawBody:   pb.SMIMERawBody,
 					SMIMEEncrypted: pb.SMIMEEncrypted,
 					PGPRawBody:     pb.PGPRawBody,
@@ -984,4 +992,3 @@ func (e *Engine) buildMessageFromStreamedData(accountID, folderID string, uid im
 
 	return m
 }
-

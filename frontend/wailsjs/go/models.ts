@@ -775,6 +775,7 @@ export namespace appstate {
 	    selectedConversationFolderId: string;
 	    sidebarWidth: number;
 	    listWidth: number;
+	    sidebarCollapsed: boolean;
 	    expandedAccounts: Record<string, boolean>;
 	    unifiedInboxExpanded: boolean;
 	    collapsedFolders: Record<string, boolean>;
@@ -795,6 +796,7 @@ export namespace appstate {
 	        this.selectedConversationFolderId = source["selectedConversationFolderId"];
 	        this.sidebarWidth = source["sidebarWidth"];
 	        this.listWidth = source["listWidth"];
+	        this.sidebarCollapsed = source["sidebarCollapsed"];
 	        this.expandedAccounts = source["expandedAccounts"];
 	        this.unifiedInboxExpanded = source["unifiedInboxExpanded"];
 	        this.collapsedFolders = source["collapsedFolders"];
@@ -1930,6 +1932,7 @@ export namespace message {
 	    ccList?: string;
 	    bccList?: string;
 	    replyTo?: string;
+	    inboxCategory?: string;
 	    // Go type: time
 	    date: any;
 	    snippet?: string;
@@ -1980,6 +1983,7 @@ export namespace message {
 	        this.ccList = source["ccList"];
 	        this.bccList = source["bccList"];
 	        this.replyTo = source["replyTo"];
+	        this.inboxCategory = source["inboxCategory"];
 	        this.date = this.convertValues(source["date"], null);
 	        this.snippet = source["snippet"];
 	        this.isRead = source["isRead"];
@@ -2039,6 +2043,7 @@ export namespace message {
 	    participants: Address[];
 	    messageIds: string[];
 	    isEncrypted: boolean;
+	    inboxCategory?: string;
 	    messages?: Message[];
 	    accountId?: string;
 	    accountName?: string;
@@ -2062,6 +2067,7 @@ export namespace message {
 	        this.participants = this.convertValues(source["participants"], Address);
 	        this.messageIds = source["messageIds"];
 	        this.isEncrypted = source["isEncrypted"];
+	        this.inboxCategory = source["inboxCategory"];
 	        this.messages = this.convertValues(source["messages"], Message);
 	        this.accountId = source["accountId"];
 	        this.accountName = source["accountName"];
@@ -2100,6 +2106,7 @@ export namespace message {
 	    participants: Address[];
 	    messageIds: string[];
 	    isEncrypted: boolean;
+	    inboxCategory?: string;
 	    messages?: Message[];
 	    accountId?: string;
 	    accountName?: string;
@@ -2128,6 +2135,7 @@ export namespace message {
 	        this.participants = this.convertValues(source["participants"], Address);
 	        this.messageIds = source["messageIds"];
 	        this.isEncrypted = source["isEncrypted"];
+	        this.inboxCategory = source["inboxCategory"];
 	        this.messages = this.convertValues(source["messages"], Message);
 	        this.accountId = source["accountId"];
 	        this.accountName = source["accountName"];
@@ -2402,6 +2410,27 @@ export namespace pgp {
 		    }
 		    return a;
 		}
+	}
+
+}
+
+export namespace senderlogo {
+	
+	export class SenderLogo {
+	    domain: string;
+	    data: string;
+	    mediaType: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SenderLogo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.domain = source["domain"];
+	        this.data = source["data"];
+	        this.mediaType = source["mediaType"];
+	    }
 	}
 
 }

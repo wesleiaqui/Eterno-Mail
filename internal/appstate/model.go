@@ -14,8 +14,9 @@ type UIState struct {
 	SelectedConversationFolderID  string `json:"selectedConversationFolderId"`  // Real folder ID
 
 	// Pane widths
-	SidebarWidth int `json:"sidebarWidth"`
-	ListWidth    int `json:"listWidth"`
+	SidebarWidth     int  `json:"sidebarWidth"`
+	ListWidth        int  `json:"listWidth"`
+	SidebarCollapsed bool `json:"sidebarCollapsed"`
 
 	// Sidebar section expand/collapse states
 	ExpandedAccounts     map[string]bool `json:"expandedAccounts"`     // accountID -> isExpanded (default: true)

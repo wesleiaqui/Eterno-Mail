@@ -15,7 +15,7 @@ Use this checklist to ensure your submission is complete:
 - [ ] **Register extension locales** — for every extension you translated, added a `register()` line in that extension's own `extensions/<name>/frontend/i18n/index.ts`
 - [ ] **Supported locales** — added entry to `supportedLocales` array in `frontend/src/lib/i18n/index.ts`
 - [ ] **date-fns locale** — added `case` in `frontend/src/lib/i18n/dateFnsLocale.ts`
-- [ ] **AppStream metainfo** — added `xml:lang` entries in `build/flatpak/io.github.hkdb.Aerion.metainfo.xml`
+- [ ] **AppStream metainfo** — added `xml:lang` entries in `build/flatpak/io.github.hkdb.Eterno Mail.metainfo.xml`
 - [ ] **Desktop entry** — added `[locale]` suffixed keys in `build/linux/aerion.desktop`
 - [ ] **Checks pass** — `npm run check`, `npm run build`, and `go test ./...` all pass
 - [ ] **Live tested** — app launched with `make dev`, language switched, all strings verified (including any enabled extensions' UI)
@@ -64,9 +64,9 @@ Include in your PR:
 
 ---
 
-## Adding a New Language to Aerion
+## Adding a New Language to Eterno Mail
 
-The following sections walk through adding a new language to Aerion's frontend. The i18n system uses `svelte-i18n` with JSON locale files and lazy loading — only the active locale is loaded at runtime.
+The following sections walk through adding a new language to Eterno Mail's frontend. The i18n system uses `svelte-i18n` with JSON locale files and lazy loading — only the active locale is loaded at runtime.
 
 ## Prerequisites
 
@@ -185,7 +185,7 @@ For most languages, no changes are needed here.
 
 These files are shown in Linux app stores and desktop environments. They need translated entries for your language.
 
-#### A. AppStream Metainfo (`build/flatpak/io.github.hkdb.Aerion.metainfo.xml`)
+#### A. AppStream Metainfo (`build/flatpak/io.github.hkdb.Eterno Mail.metainfo.xml`)
 
 This file is displayed in software centers (Flathub, GNOME Software). Add `xml:lang` variants for the following elements, placed directly after each English element:
 
@@ -248,14 +248,14 @@ Then run the app, open Settings > General, and select the new language from the 
 | `frontend/src/lib/i18n/index.ts` | Add `register()` for the core locale + `supportedLocales` entry. (Extensions self-register via Vite glob — no edit needed here for extension locales.) |
 | `extensions/<name>/frontend/i18n/index.ts` | Add `register()` line for your locale (per extension translated) |
 | `frontend/src/lib/i18n/dateFnsLocale.ts` | Add `case` for date-fns locale |
-| `build/flatpak/io.github.hkdb.Aerion.metainfo.xml` | Add `xml:lang` entries for app store listing |
+| `build/flatpak/io.github.hkdb.Eterno Mail.metainfo.xml` | Add `xml:lang` entries for app store listing |
 | `build/linux/aerion.desktop` | Add `[locale]` suffixed keys for desktop integration |
 
 No backend changes are needed. The language setting is stored via the existing `GetLanguage`/`SetLanguage` Wails bindings in `app/settings.go`.
 
 ## Extension translations
 
-Aerion's extensions (Contacts today; Calendar and others over time) own their UI strings separately from the core mail locale files. This keeps each extension self-contained and lets translators pick up an extension independently of the core file.
+Eterno Mail's extensions (Contacts today; Calendar and others over time) own their UI strings separately from the core mail locale files. This keeps each extension self-contained and lets translators pick up an extension independently of the core file.
 
 ### Layout per extension
 

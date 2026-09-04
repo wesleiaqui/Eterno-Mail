@@ -28,6 +28,9 @@ type Message struct {
 	CcList    string    `json:"ccList,omitempty"`  // JSON array
 	BccList   string    `json:"bccList,omitempty"` // JSON array
 	ReplyTo   string    `json:"replyTo,omitempty"`
+	// InboxCategory is inferred from standards-based mail headers at sync time.
+	// Empty means the message predates header classification or had no signal.
+	InboxCategory string `json:"inboxCategory,omitempty"`
 	Date      time.Time `json:"date"`
 
 	// Preview
@@ -132,6 +135,7 @@ type Conversation struct {
 	Participants   []Address  `json:"participants"`
 	MessageIDs     []string   `json:"messageIds"`         // Message IDs for context menu actions
 	IsEncrypted    bool       `json:"isEncrypted"`        // Any message in thread is encrypted (S/MIME or PGP)
+	InboxCategory  string     `json:"inboxCategory,omitempty"`
 	Messages       []*Message `json:"messages,omitempty"` // Only populated when fetching full conversation
 
 	// For unified inbox view - populated when querying across accounts

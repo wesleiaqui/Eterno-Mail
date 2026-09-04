@@ -22,9 +22,1070 @@
     transition: background-color 0.2s ease, color 0.2s ease;
   }
 
+  [data-theme="dark"] .bg-background {
+    background-color: #1b1b1f;
+  }
+
+  [data-theme="dark"] .bg-muted,
+  [data-theme="dark"] .bg-card {
+    background-color: #202024;
+  }
+
+  [data-theme="dark"] .text-muted-foreground {
+    color: #a0a0a5;
+  }
+
+  [data-theme="dark"] .spark-sidebar-host {
+    background: #141417;
+    border-color: #29292f;
+  }
+
+  [data-theme="dark"] .spark-sidebar {
+    background: #15161b;
+    color: #c6cad3;
+  }
+
+  [data-theme="dark"] .spark-sidebar > div:first-child {
+    padding: 0.75rem 0.5rem 0.875rem;
+    border-color: #2a2c34;
+  }
+
+  [data-theme="dark"] .spark-sidebar .sidebar-content {
+    padding-top: 0.75rem;
+    background: linear-gradient(180deg, #15161b 0%, #121318 100%);
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed > div:first-child button:first-child {
+    min-width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 0.75rem;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 0.22);
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed > div:first-child button:first-child span,
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-label] {
+    display: none;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed > div:first-child {
+    padding: 0.5rem;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed .sidebar-header-actions {
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed .sidebar-header-actions > button {
+    width: 40px;
+    height: 40px;
+    flex: none;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item] {
+    justify-content: center;
+    gap: 0;
+    margin-inline: 0.375rem;
+    padding: 0.625rem;
+    border-radius: 0.625rem;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item][data-folder-id] {
+    min-height: 40px;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item][class*="bg-primary"] {
+    background-color: #0f6cbd;
+    color: #fff;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item]:hover {
+    background-color: #202024;
+  }
+
+  /* Compact rail: remove tree indentation and reserve one centered cell per
+     navigation item so chevrons, labels, and badges cannot shift the icon. */
+  [data-theme="dark"] .spark-sidebar-collapsed .sidebar-content {
+    padding: 0.875rem 0.375rem;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed .sidebar-content > div,
+  [data-theme="dark"] .spark-sidebar-collapsed .sidebar-content .mb-2,
+  [data-theme="dark"] .spark-sidebar-collapsed .sidebar-content .ml-4 {
+    margin: 0;
+    display: contents;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item] {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    margin: 0.3rem auto;
+    padding: 0;
+    border-radius: 0.625rem;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item] > svg {
+    flex: none;
+    width: 20px;
+    height: 20px;
+  }
+
+  /* A compact rail is a shortcut surface, not a squeezed folder tree. Keep
+     the current inbox (and any selected folder) available; the full tree is
+     still one click away through the expand control. */
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="account-header"],
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="unified-account"],
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="folder"]:not([data-folder-type="inbox"]):not([data-selected="true"]),
+  [data-theme="dark"] .spark-sidebar-collapsed .sidebar-add-account {
+    display: none;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="folder"][data-folder-type="inbox"],
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="folder"][data-selected="true"],
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="unified"] {
+    display: flex;
+    width: 40px;
+    height: 40px;
+    margin: 0.35rem auto;
+    border: 1px solid transparent;
+    background: #20232b;
+    color: #bfc5cf;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="folder"][data-selected="true"],
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="unified"].bg-primary\/10 {
+    background: #164d7b;
+    border-color: #2772a9;
+    color: #fff;
+    box-shadow: 0 5px 14px rgb(0 0 0 / 0.2);
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item] > [role="button"],
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="unified"] > button:first-child,
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="account-header"] > svg:first-of-type {
+    display: none;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-badge] {
+    position: absolute;
+    right: -0.25rem;
+    bottom: -0.15rem;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0.1rem 0.25rem;
+    border-radius: 9999px;
+    background: #0f6cbd;
+    color: #fff;
+    font-size: 0.65rem;
+    line-height: 1;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-spacer] {
+    display: none;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="unified"] > button:nth-child(2),
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="unified-account"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-item="unified-account"] > span:not([data-sidebar-label]) {
+    display: block;
+    flex: none;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed .group > button.absolute,
+  [data-theme="dark"] .spark-sidebar-collapsed .group > div[role="menu"] {
+    display: none;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed .sidebar-add-account {
+    padding: 0;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed .sidebar-add-account > button {
+    width: 40px;
+    height: 40px;
+    margin: 0.25rem auto;
+    padding: 0;
+    justify-content: center;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed .sidebar-add-account > button > svg {
+    width: 20px;
+    height: 20px;
+    flex: none;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed > div:last-child {
+    min-height: 48px;
+    padding: 0.5rem;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed > div:last-child > div:first-child {
+    display: none;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed > div:last-child > div:last-child {
+    margin-inline: auto;
+  }
+
+  [data-theme="dark"] .spark-sidebar-collapsed [data-sidebar-settings] {
+    display: flex;
+    position: relative;
+    z-index: 1;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+  }
+
+  [data-theme="dark"] .spark-list-header,
+  [data-theme="dark"] .spark-viewer-toolbar {
+    background: #1b1b1f;
+    border-color: #29292f;
+  }
+
+  [data-theme="dark"] .spark-list-header h2 {
+    font-size: 1.05rem;
+    letter-spacing: 0;
+  }
+
+  [data-theme="dark"] .spark-list-unread {
+    display: none;
+  }
+
+  [data-theme="dark"] [data-conversation-row] {
+    min-height: 0;
+    border-color: #29292f;
+  }
+
+  [data-theme="dark"] [data-conversation-row]:hover {
+    background-color: #202024;
+  }
+
+  [data-theme="dark"] [data-conversation-row].bg-primary\/20 {
+    background-color: #1c3654;
+  }
+
+  [data-theme="dark"] .spark-viewer-toolbar button:hover {
+    background-color: #202024;
+  }
+
+  /* Spark-inspired mail workspace with compact header bands. */
+  [data-theme="dark"] .spark-mail-list-pane,
+  [data-theme="dark"] .spark-viewer-pane {
+    background: #202126;
+    border-color: #30323a;
+  }
+
+  [data-theme="dark"] .spark-message-list {
+    background: #202126;
+  }
+
+  [data-theme="dark"] .spark-list-header {
+    min-height: 76px;
+    padding: 0.75rem 1.35rem 0.7rem;
+    background: linear-gradient(180deg, #24262d 0%, #202126 88%);
+    border-bottom: 1px solid rgb(255 255 255 / 0.045);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.09);
+  }
+
+  [data-theme="dark"] .spark-list-header h2 {
+    font-size: 1.18rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+
+  [data-theme="dark"] .spark-list-header button {
+    border: 1px solid transparent;
+  }
+
+  [data-theme="dark"] .spark-list-header button:hover {
+    background: #2b2e36;
+    border-color: #3a3e48;
+  }
+
+  [data-theme="dark"] .message-list-scroll {
+    /* The outer element owns scrolling, so its native scrollbar remains at
+       the pane edge while the visual card below keeps its own inset. */
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+[data-theme="dark"] .message-list-card {
+    min-height: calc(100% - 1.375rem);
+    margin: 0.5rem 0.75rem 0.875rem;
+    padding: 0.375rem;
+    background: linear-gradient(145deg, #292c34, #24262c);
+    border: 1px solid #3d414b;
+    border-radius: 1.125rem;
+    box-shadow: inset 0 1px rgb(255 255 255 / 0.045), 0 14px 30px rgb(0 0 0 / 0.13);
+  }
+
+  /* Category cards are already individually framed; a second enclosing card
+     would make the inbox look heavy and waste horizontal space. */
+  [data-theme="dark"] .message-list-card.inbox-category-list {
+    min-height: 0;
+    margin: 0.3rem 0.45rem 0.75rem;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Chronological is deliberately a plain timeline. Unlike categories, its
+     period labels are enough structure and should not sit in a second card. */
+  [data-theme="dark"] .message-list-card.inbox-chronological-list {
+    min-height: 0;
+    margin: 0.35rem 0.35rem 0.75rem;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  [data-theme="dark"] .message-list-scroll [data-conversation-row] {
+    margin: 1px 0;
+    border: 1px solid transparent !important;
+    border-radius: 0.75rem;
+    transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease !important;
+  }
+
+  [data-theme="dark"] .message-list-scroll [data-conversation-row]:hover {
+    background: linear-gradient(90deg, #30333c, #2c2f36) !important;
+    border-color: #444954 !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+  }
+
+  [data-theme="dark"] .message-list-scroll [data-conversation-row].bg-primary\/20 {
+    background: linear-gradient(100deg, #1d4d78, #1d3d61) !important;
+    border-color: #4b87b7 !important;
+    box-shadow: inset 3px 0 0 #62b6ff, inset 0 1px rgb(255 255 255 / 0.07), 0 6px 18px rgb(0 0 0 / 0.17);
+  }
+
+  [data-theme="dark"] .spark-viewer-toolbar {
+    min-height: 70px;
+    padding: 0.75rem 1.5rem;
+    background: #202126;
+    border-bottom-color: #30323a;
+  }
+
+  [data-theme="dark"] .spark-viewer-toolbar button {
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border-radius: 0.75rem;
+  }
+
+  [data-theme="dark"] .conversation-viewer-content {
+    background: #202126;
+  }
+
+  [data-theme="dark"] .conversation-viewer-content > div:last-child > div:first-child {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0.75rem 1.25rem;
+  }
+
+  [data-theme="dark"] .spark-viewer-scroll {
+    padding: 0;
+  }
+
+  [data-theme="dark"] .spark-conversation-subject {
+    padding: 0.35rem 0.25rem 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.28rem;
+    letter-spacing: -0.025em;
+  }
+
+  [data-theme="dark"] .spark-message-card {
+    background: #27292f;
+    border-color: #3a3d45;
+    border-radius: 1.25rem;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.12);
+  }
+
+  [data-theme="dark"] .spark-message-card-header {
+    padding: 1.1rem 1.25rem;
+    background: #292b31;
+    border-bottom: 1px solid #393c44;
+  }
+
+  [data-theme="dark"] .spark-message-card .ml-13 {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+
   #app {
     height: 100%;
   }
+}
+
+/* The compact rail is structural, but the original rules below were scoped
+   only to the built-in `dark` theme. Apply the same safe layout to every
+   resolved dark theme; System in light mode is deliberately unaffected. */
+:root.dark .spark-sidebar-collapsed {
+  overflow: hidden;
+}
+
+:root.dark .spark-sidebar-collapsed [data-sidebar-label],
+:root.dark .spark-sidebar-collapsed [data-sidebar-spacer],
+:root.dark .spark-sidebar-collapsed > div:last-child > div:first-child,
+:root.dark .spark-sidebar-collapsed [data-sidebar-item="account-header"],
+:root.dark .spark-sidebar-collapsed [data-sidebar-item="unified-account"],
+:root.dark .spark-sidebar-collapsed [data-sidebar-item="folder"]:not([data-folder-type="inbox"]):not([data-selected="true"]),
+:root.dark .spark-sidebar-collapsed .sidebar-add-account {
+  display: none;
+}
+
+:root.dark .spark-sidebar-collapsed .sidebar-content {
+  padding: 0.875rem 0.375rem;
+  overflow-x: hidden;
+}
+
+:root.dark .spark-sidebar-collapsed [data-sidebar-item="folder"][data-folder-type="inbox"],
+:root.dark .spark-sidebar-collapsed [data-sidebar-item="folder"][data-selected="true"],
+:root.dark .spark-sidebar-collapsed [data-sidebar-item="unified"] {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  margin: 0.35rem auto;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Full sidebar: a quiet navigation surface like the reference, with roomy
+   rows and a restrained active state instead of stacked boxed controls. */
+.spark-sidebar:not(.spark-sidebar-collapsed) {
+  min-width: 0;
+}
+
+.spark-sidebar:not(.spark-sidebar-collapsed) > div:first-child {
+  padding: 0.85rem 1rem 0.65rem;
+}
+
+.spark-sidebar:not(.spark-sidebar-collapsed) .sidebar-header-actions {
+  justify-content: flex-end;
+}
+
+.spark-sidebar:not(.spark-sidebar-collapsed) .sidebar-header-actions > button:first-child {
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 0.7rem;
+}
+
+.spark-sidebar:not(.spark-sidebar-collapsed) .sidebar-header-actions > button:first-child [data-sidebar-label] {
+  display: none;
+}
+
+.spark-sidebar:not(.spark-sidebar-collapsed) .sidebar-content {
+  padding: 0.45rem 0.75rem 0.85rem;
+}
+
+.spark-sidebar:not(.spark-sidebar-collapsed) [data-sidebar-item] {
+  min-height: 2.65rem;
+  border-radius: 0.7rem;
+}
+
+.spark-sidebar:not(.spark-sidebar-collapsed) [data-sidebar-item="unified"] {
+  min-height: 2.85rem;
+  padding-inline: 0.7rem;
+}
+
+.spark-sidebar:not(.spark-sidebar-collapsed) [data-sidebar-item="unified"].bg-primary\/10,
+.spark-sidebar:not(.spark-sidebar-collapsed) [data-sidebar-item="folder"].bg-primary\/10 {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.spark-sidebar:not(.spark-sidebar-collapsed) [data-sidebar-item="unified"].bg-primary\/10 .text-muted-foreground,
+.spark-sidebar:not(.spark-sidebar-collapsed) [data-sidebar-item="folder"].bg-primary\/10 .text-muted-foreground {
+  color: hsl(var(--primary-foreground) / 0.78);
+}
+
+.spark-sidebar:not(.spark-sidebar-collapsed) [data-sidebar-item="unified-account"] {
+  min-height: 2.85rem;
+  padding-inline: 0.45rem;
+}
+
+/* Rebuilt mail navigation — primary destinations on the left, with the full
+   account tree available in a purposeful second panel instead of permanently
+   crowding the sidebar. */
+.spark-sidebar-rebuilt {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.sidebar-rebuilt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.65rem;
+  padding: 0.3rem 0.75rem;
+}
+
+.sidebar-toolbar-button {
+  display: inline-flex;
+  width: 1.9rem;
+  height: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6rem;
+  color: hsl(var(--muted-foreground));
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.sidebar-toolbar-button:hover,
+.sidebar-toolbar-button-active {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.sidebar-rebuilt-content {
+  padding: 0.1rem 0.7rem 0.65rem !important;
+}
+
+.spark-sidebar-rebuilt:not(.spark-sidebar-collapsed) .sidebar-rebuilt-content {
+  /* The thumb must stay outside the account labels instead of overlaying the
+     last characters when a group is expanded. */
+  padding-right: 0.95rem !important;
+  scrollbar-gutter: stable;
+}
+
+.sidebar-primary-navigation {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.sidebar-primary-link,
+.sidebar-more-button,
+.sidebar-settings-entry,
+.sidebar-collapse-nav-button {
+  display: flex;
+  width: 100%;
+  min-height: 2.35rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.38rem 0.55rem;
+  border-radius: 0.62rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.92rem;
+  line-height: 1.1rem;
+  text-align: left;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.sidebar-primary-link:hover,
+.sidebar-more-button:hover,
+.sidebar-settings-entry:hover,
+.sidebar-collapse-nav-button:hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.sidebar-primary-link-selected {
+  background: hsl(var(--primary) / 0.13);
+  color: hsl(var(--primary));
+}
+
+.sidebar-folder-group {
+  width: 100%;
+}
+
+.sidebar-folder-group-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0;
+}
+
+.sidebar-folder-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 0.85rem;
+  min-width: 0.85rem;
+  min-height: 2.35rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.45rem;
+  color: hsl(var(--muted-foreground) / 0.75);
+  cursor: pointer;
+}
+
+/* Keep the chevron visually small while giving it a comfortable horizontal
+   hit target. This pseudo-element is transparent and does not affect layout. */
+.sidebar-folder-toggle::before {
+  position: absolute;
+  inset: 0 -0.5rem;
+  content: '';
+}
+
+.sidebar-folder-toggle svg {
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-folder-toggle:hover {
+  color: hsl(var(--foreground));
+  background: transparent;
+}
+
+/* The inbox disclosure follows the same rule as folder disclosures: a large
+   transparent hit target, with no hover pill competing with the row itself. */
+.sidebar-inbox-toggle {
+  position: relative;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.sidebar-inbox-toggle::before {
+  position: absolute;
+  inset: -0.5rem;
+  content: '';
+}
+
+.sidebar-inbox-toggle svg {
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-inbox-toggle:hover {
+  background: transparent !important;
+}
+
+.sidebar-folder-group-link {
+  width: auto;
+  flex: 1 1 auto;
+  padding-left: 0.35rem;
+}
+
+.sidebar-folder-account-list {
+  display: grid;
+  gap: 0.08rem;
+  /* Match the account rows directly below Caixa de entrada. The disclosure
+     arrow belongs to the folder row, not to its account list. */
+  margin: 0.08rem 0 0.28rem 0.8rem;
+}
+
+.sidebar-folder-account {
+  display: flex;
+  width: 100%;
+  min-height: 1.72rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.1rem 0.26rem;
+  border-radius: 0.55rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.7rem;
+  text-align: left;
+}
+
+.sidebar-folder-account:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+}
+
+.sidebar-primary-chevron {
+  width: 0.55rem;
+  margin-right: -0.25rem;
+  color: hsl(var(--muted-foreground) / 0.7);
+}
+
+.sidebar-primary-separator {
+  height: 0.8rem;
+}
+
+.sidebar-primary-heading {
+  margin: 0.8rem 0 0.28rem;
+  padding: 0 0.3rem;
+  color: hsl(var(--muted-foreground) / 0.72);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.sidebar-more-button {
+  margin-top: 0.35rem;
+  background: hsl(var(--muted));
+}
+
+.sidebar-collapse-nav-button {
+  margin-top: 0.18rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.sidebar-unified-section {
+  margin: 0.12rem 0 0.3rem;
+}
+
+.sidebar-inbox-entry {
+  min-height: 2.4rem;
+  padding: 0.38rem 0.55rem;
+  color: hsl(var(--foreground));
+  font-size: 0.92rem;
+}
+
+.sidebar-inbox-entry.bg-primary\/10 {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.sidebar-inbox-accounts {
+  display: grid;
+  gap: 0.1rem;
+  margin: 0.18rem 0 0.38rem 0.8rem;
+}
+
+.sidebar-inbox-account {
+  min-height: 1.72rem;
+  padding: 0.1rem 0.26rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.7rem;
+}
+
+.sidebar-inbox-account.bg-primary\/10 {
+  background: hsl(var(--primary) / 0.13);
+  color: hsl(var(--primary));
+}
+
+.sidebar-settings-entry {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 2.45rem;
+  margin: 0.45rem 0.7rem 0.6rem;
+  width: calc(100% - 2rem);
+  color: hsl(var(--muted-foreground));
+}
+
+.sidebar-settings-error {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-left: auto;
+  border-radius: 999px;
+  background: hsl(var(--destructive));
+}
+
+.sidebar-all-folders-panel {
+  position: absolute;
+  inset: 0 auto 0 100%;
+  z-index: 30;
+  display: flex;
+  width: min(22.5rem, calc(100vw - 3.5rem));
+  flex-direction: column;
+  border-left: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  box-shadow: 14px 0 28px rgb(0 0 0 / 0.18);
+}
+
+.sidebar-all-folders-header {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 1rem 0.35rem;
+}
+
+.sidebar-all-folders-header h2 {
+  color: hsl(var(--muted-foreground) / 0.75);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.sidebar-all-folders-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 0.15rem 0.75rem 0.7rem;
+}
+
+.sidebar-all-folders-scroll [data-sidebar-item="account-header"] {
+  padding-inline: 0.65rem;
+  border-radius: 0.65rem;
+}
+
+.sidebar-all-folders-add {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+  padding: 0.7rem;
+  border-radius: 0.65rem;
+  color: hsl(var(--primary));
+  font-size: 0.9rem;
+}
+
+.sidebar-all-folders-add:hover {
+  background: hsl(var(--muted));
+}
+
+[data-theme="dark"] .spark-sidebar-rebuilt,
+:root.dark .spark-sidebar-rebuilt {
+  background: #202124;
+}
+
+:root.dark .sidebar-all-folders-panel {
+  background: #292c31;
+  border-color: #353942;
+}
+
+:root.dark .sidebar-primary-link,
+:root.dark .sidebar-more-button,
+:root.dark .sidebar-settings-entry,
+:root.dark .sidebar-collapse-nav-button,
+:root.dark .sidebar-inbox-account {
+  color: #b6bfce;
+}
+
+:root.dark .sidebar-primary-link:hover,
+:root.dark .sidebar-more-button:hover,
+:root.dark .sidebar-settings-entry:hover,
+:root.dark .sidebar-collapse-nav-button:hover {
+  background: #383a3e;
+  color: #f2f5fa;
+}
+
+:root.dark .sidebar-inbox-entry.bg-primary\/10 {
+  background: #0c64dc;
+}
+
+/* Compact version of the rebuilt navigation. The earlier compact rules target
+   the legacy folder tree, so this view needs its own intentional icon rail. */
+.spark-sidebar-rebuilt.spark-sidebar-collapsed {
+  overflow: hidden;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar {
+  min-height: auto;
+  padding: 0.22rem 0.5rem 0.16rem;
+  justify-content: center;
+}
+
+/* The desktop toolbar keeps a flexible spacer between its actions. Once the
+   rail hides those actions, that spacer must disappear as well; otherwise it
+   pushes Refresh off the shared icon axis. */
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar > .flex-1 {
+  display: none;
+}
+
+/* Overrides the old dark-rail selector that gives its first button 40px. */
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar > .sidebar-toolbar-button,
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar > .sidebar-toolbar-button:first-child {
+  width: 2.2rem;
+  min-width: 2.2rem;
+  height: 2.2rem;
+  flex: 0 0 2.2rem;
+  box-sizing: border-box;
+  padding: 0;
+  border-radius: 0.45rem;
+  box-shadow: none;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar > .sidebar-toolbar-button svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar > .sidebar-toolbar-button:not(:first-child) {
+  display: none;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-content {
+  padding: 0.2rem 0.5rem 0.65rem !important;
+  overflow-x: hidden;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-primary-navigation {
+  align-items: center;
+  gap: 0.72rem;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-primary-link,
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-more-button,
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-collapse-nav-button {
+  width: 2.1rem;
+  min-height: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 2.1rem;
+  align-self: center;
+  box-sizing: border-box;
+  justify-content: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border-radius: 0.7rem;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-folder-group {
+  width: 100%;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-folder-group-row {
+  justify-content: center;
+  gap: 0.12rem;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-folder-toggle {
+  display: none;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-folder-group-link {
+  width: 2.1rem;
+  flex: 0 0 2.1rem;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-folder-account-list {
+  display: none;
+}
+
+/* Archive, blocked and snoozed are available through More. Keeping them out
+   of the compact rail leaves that surface for the daily mail destinations. */
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-secondary-folder-group {
+  display: none;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-primary-link [data-sidebar-label],
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-more-button [data-sidebar-label],
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-collapse-nav-button [data-sidebar-label],
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-primary-heading,
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-primary-chevron {
+  display: none;
+}
+
+/* Legacy icon utilities can restore an inline SVG after a hot reload. */
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-primary-link > svg.sidebar-primary-chevron {
+  display: none !important;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-primary-separator {
+  height: 1.1rem;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-unified-section {
+  width: 2.1rem;
+  flex: 0 0 2.1rem;
+  align-self: center;
+  margin: 0;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-inbox-accounts {
+  display: none;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-inbox-rail-button {
+  position: relative;
+  display: flex;
+  width: 2.1rem;
+  min-width: 2.1rem;
+  height: 2.1rem;
+  min-height: 2.1rem;
+  flex: 0 0 2.1rem;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0.7rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-inbox-rail-button:hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-inbox-rail-button-selected {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-inbox-entry {
+  position: relative;
+  width: 2.1rem;
+  min-height: 2.1rem;
+  height: 2.1rem;
+  box-sizing: border-box;
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-inbox-entry > button:first-child {
+  display: none;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-inbox-entry > button:last-child {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-width: 0;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-inbox-entry [data-sidebar-badge],
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-inbox-rail-button [data-sidebar-badge] {
+  position: absolute;
+  right: -0.32rem;
+  bottom: -0.28rem;
+  z-index: 1;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-inbox-entry [data-sidebar-label] {
+  display: none;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-settings-entry {
+  width: 2.1rem;
+  min-height: 2.1rem;
+  height: 2.1rem;
+  margin: 0.4rem auto 0.55rem;
+  padding: 0;
+  justify-content: center;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-settings-entry [data-sidebar-label],
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-settings-error,
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-all-folders-panel {
+  display: none;
+}
+
+/* Win over the generic legacy sidebar spacing for the new navigation. */
+.spark-sidebar-rebuilt:not(.spark-sidebar-collapsed) .sidebar-inbox-entry {
+  min-height: 2.4rem;
+}
+
+.spark-sidebar-rebuilt:not(.spark-sidebar-collapsed) .sidebar-inbox-account {
+  min-height: 1.72rem;
+}
+
+.spark-sidebar-rebuilt .sidebar-primary-link > svg:not(.sidebar-primary-chevron),
+.spark-sidebar-rebuilt .sidebar-more-button > svg {
+  width: 1.2rem;
+  height: 1.2rem;
 }
 
 /* Custom scrollbar */
@@ -32,9 +1093,19 @@
   scrollbar-width: thin;
 }
 
+.message-list-scroll {
+  /* Let the browser reserve exactly the scrollbar width. This avoids the
+     oversized empty lane created by a second, manual gutter. */
+  /* WebKit places a vertical scrollbar on the inline end for LTR content.
+     Set it explicitly so it stays on the right side of the message list. */
+  direction: ltr;
+  scrollbar-gutter: stable;
+  scrollbar-color: #858990 transparent;
+}
+
 .scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
@@ -42,12 +1113,16 @@
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.2);
+  background: #858990;
+  border: 2px solid transparent;
+  background-clip: padding-box;
   border-radius: 9999px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.4);
+  background: #a4a7ad;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 /* Disable text selection on UI elements */
@@ -289,4 +1364,351 @@ mark {
   text-decoration: underline wavy #ef4444;
   text-decoration-skip-ink: none;
   text-underline-offset: 2px;
+}
+
+/* Inbox category view: intentionally quiet, with the category doing the
+   grouping work instead of giving every message another visual container. */
+.inbox-display-category {
+  margin: 0.5rem 0.25rem;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  border-radius: 1.15rem;
+  background: hsl(var(--card) / 0.42);
+}
+
+.inbox-category-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.72rem 0.9rem 0.58rem;
+  text-align: left;
+  transition: background-color 140ms ease;
+}
+
+.inbox-category-header:hover {
+  background: hsl(var(--muted) / 0.42);
+}
+
+.inbox-category-header:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: -2px;
+}
+
+.inbox-category-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: hsl(var(--muted-foreground));
+}
+
+.inbox-category-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  color: hsl(var(--muted-foreground));
+}
+
+.inbox-category-items {
+  padding: 0 0.2rem 0.28rem;
+}
+
+/* A quiet chronological timeline: no card border, no calendar icon and no
+   collapse control. Period headings make scanning old mail much faster. */
+.inbox-display-chronological {
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.inbox-chronological-heading {
+  margin: 1.15rem 0.8rem 0.45rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.93rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+
+.inbox-display-chronological:first-child .inbox-chronological-heading {
+  margin-top: 0.7rem;
+}
+
+.inbox-chronological-items {
+  padding: 0;
+}
+
+[data-theme="dark"] .inbox-display-chronological [data-conversation-row] {
+  margin: 0;
+  border-radius: 0.65rem;
+}
+
+.inbox-display-category[data-category="people"] .inbox-category-icon {
+  color: #48a5ff;
+}
+
+.inbox-display-category[data-category="notifications"] .inbox-category-icon {
+  color: #48d468;
+}
+
+.inbox-display-category[data-category="commercial"] .inbox-category-icon {
+  color: #f3af45;
+}
+
+.inbox-display-category[data-category="news"] .inbox-category-icon {
+  color: #be7af5;
+}
+
+.inbox-display-category[data-category="read"] .inbox-category-icon {
+  color: hsl(var(--muted-foreground));
+}
+
+[data-theme="dark"] .inbox-display-category {
+  border-color: #3a3d45;
+  background: #282a30;
+  box-shadow: inset 0 1px rgb(255 255 255 / 0.025);
+}
+
+[data-theme="dark"] .inbox-category-header:hover {
+  background: #2d3037;
+}
+
+[data-theme="dark"] .inbox-category-toggle {
+  border-color: #596171;
+  color: #9ba5b5;
+}
+
+/* Settings workspace: a calm, app-like navigation rail instead of a dense
+   horizontal tab strip. */
+.settings-workspace {
+  display: flex;
+  min-height: 430px;
+  gap: 1.25rem;
+}
+
+.settings-navigation {
+  display: flex;
+  width: 11.75rem;
+  height: auto;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.2rem;
+  padding: 0.35rem;
+}
+
+.settings-navigation-item {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 0.65rem;
+  padding: 0.6rem 0.7rem;
+}
+
+.settings-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.inbox-settings-hero-icon,
+.inbox-settings-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.7rem;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.12);
+}
+
+.inbox-settings-hero-icon {
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
+.inbox-settings-icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.inbox-settings-icon-people {
+  color: #48a5ff;
+  background: rgb(72 165 255 / 0.12);
+}
+
+.inbox-settings-card {
+  padding: 1rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  background: hsl(var(--card) / 0.5);
+}
+
+.inbox-settings-card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+
+.inbox-settings-card-heading h3,
+.inbox-setting-row h4 {
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.inbox-settings-card-heading p,
+.inbox-setting-row p {
+  margin: 0.18rem 0 0;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.inbox-view-option {
+  display: flex;
+  min-height: 4.7rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.7rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  text-align: left;
+  font-size: 0.78rem;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.inbox-view-option:hover {
+  border-color: hsl(var(--primary) / 0.55);
+  background: hsl(var(--muted) / 0.45);
+  color: hsl(var(--foreground));
+}
+
+.inbox-view-option-active {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.25);
+}
+
+.inbox-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-top: 0.15rem;
+  margin-top: 0.85rem;
+}
+
+.inbox-setting-row select {
+  width: 9.5rem;
+  flex: 0 0 auto;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.65rem;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-size: 0.82rem;
+}
+
+.inbox-account-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.45rem 0.25rem;
+  border-radius: 0.65rem;
+}
+
+.inbox-account-row:hover {
+  background: hsl(var(--muted) / 0.35);
+}
+
+.inbox-card-link {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.68rem 0.55rem;
+  border-radius: 0.75rem;
+  transition: background-color 140ms ease;
+}
+
+.inbox-card-link:hover {
+  background: hsl(var(--muted) / 0.45);
+}
+
+.inbox-card-link[data-card="people"] .inbox-settings-icon { color: #48a5ff; background: rgb(72 165 255 / 0.12); }
+.inbox-card-link[data-card="notifications"] .inbox-settings-icon { color: #48d468; background: rgb(72 212 104 / 0.12); }
+.inbox-card-link[data-card="news"] .inbox-settings-icon { color: #be7af5; background: rgb(190 122 245 / 0.12); }
+
+.inbox-settings-back {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.inbox-settings-back:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+}
+
+.inbox-card-detail {
+  max-width: 41rem;
+  padding: 1.15rem 0.15rem;
+}
+
+.inbox-card-detail .inbox-setting-row {
+  margin-top: 0;
+  padding-bottom: 1.2rem;
+}
+
+[data-theme="dark"] .settings-navigation {
+  background: #25272d;
+}
+
+[data-theme="dark"] .settings-navigation-item[data-state="active"] {
+  color: #d6e7f8;
+  background: #1c4269;
+  box-shadow: inset 0 0 0 1px #315d86;
+}
+
+[data-theme="dark"] .inbox-settings-card {
+  border-color: #3a3d45;
+  background: #27292f;
+  box-shadow: inset 0 1px rgb(255 255 255 / 0.025);
+}
+
+@media (max-width: 720px) {
+  .settings-workspace {
+    display: block;
+  }
+
+  .settings-navigation {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .settings-navigation-item {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  .settings-content {
+    height: 380px;
+    margin-top: 1rem;
+  }
 }

@@ -131,6 +131,8 @@
         : 'text-foreground hover:bg-muted/50'} {isDragOver ? 'ring-2 ring-primary ring-inset' : ''}"
       data-sidebar-item="folder"
       data-folder-id={tree.folder.id}
+      data-folder-type={tree.folder.type}
+      data-selected={isFolderSelected(tree.folder.id) ? 'true' : undefined}
       data-has-children={hasChildren ? 'true' : undefined}
       onclick={() => onFolderSelect?.(tree.folder!)}
       ondragenter={handleDragEnter}
@@ -142,7 +144,7 @@
         icon={getFolderIcon(tree.folder.type)}
         class="w-4 h-4 flex-shrink-0"
       />
-      <span class="truncate text-left">{tree.folder.name}</span>
+      <span data-sidebar-label class="truncate text-left">{tree.folder.type === 'inbox' ? $_('sidebar.inbox') : tree.folder.name}</span>
       {#if hasChildren}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <span
@@ -160,9 +162,10 @@
           />
         </span>
       {/if}
-      <span class="flex-1"></span>
+      <span data-sidebar-spacer class="flex-1"></span>
       {#if tree.folder.unreadCount > 0}
         <span
+          data-sidebar-badge
           class="px-1.5 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground"
         >
           {tree.folder.unreadCount}

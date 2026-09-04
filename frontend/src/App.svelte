@@ -3,6 +3,7 @@
   import './lib/iconify-offline'
 
   import { onMount, untrack } from 'svelte'
+  import Icon from '@iconify/svelte'
   import TitleBar from './lib/components/common/TitleBar.svelte'
   import Sidebar from './lib/components/sidebar/Sidebar.svelte'
   import MessageList from './lib/components/list/MessageList.svelte'
@@ -26,7 +27,7 @@
   import { loadSettings, getThemeMode, getShowTitleBar, getNativeTitleBar, getComposerMode, getMailtoMode } from '$lib/stores/settings.svelte'
   import { loadImageAllowlist } from '$lib/stores/imageAllowlist.svelte'
   import { initTheme, applyThemeFromMode, handleSystemThemeEvent, handleMediaQueryChange } from '$lib/stores/theme.svelte'
-  import { loadUIState, saveUIState, paneConstraints, getActiveExtension, setActiveExtension } from '$lib/stores/uiState.svelte'
+  import { loadUIState, saveUIState, paneConstraints, getActiveExtension, setActiveExtension, isSidebarCollapsed, setSidebarCollapsed } from '$lib/stores/uiState.svelte'
   import { setPendingDeepLink } from '$lib/stores/extensionDeepLink.svelte'
   import {
     type FocusablePane,
@@ -451,6 +452,7 @@
     // Restore pane widths (already validated/clamped by loadUIState)
     sidebarWidth = uiState.sidebarWidth
     listWidth = uiState.listWidth
+    sidebarCollapsed = isSidebarCollapsed()
 
     // Restore folder selection if valid
     if (uiState.selectedAccountId && uiState.selectedFolderId) {
@@ -788,8 +790,18 @@
   }
 
   // Pane sizing state
-  let sidebarWidth = $state(240)
-  let listWidth = $state(420)
+  let sidebarWidth = $state(360)
+  let listWidth = $state(360)
+  let sidebarCollapsed = $state(true)
+
+  function toggleSidebarCollapsed() {
+    sidebarCollapsed = !sidebarCollapsed
+    // Keep the roomy navigation width when returning from the compact rail.
+    // The rail itself is constrained to 56px by the layout style below.
+    if (!sidebarCollapsed) sidebarWidth = Math.max(sidebarWidth, 360)
+    setSidebarCollapsed(sidebarCollapsed)
+    saveUIState({ sidebarWidth })
+  }
 
   // Resizing state
   let isResizingSidebar = $state(false)
@@ -1584,8 +1596,8 @@
     <div style:display={getActiveExtension() === 'mail' ? 'contents' : 'none'}>
     <!-- Sidebar (Folder List) -->
     <aside
-      class="{getLayoutMode() === 'narrow' ? `responsive-sidebar-overlay w-72 border-r border-border bg-background ${getResponsiveView() === 'sidebar' ? 'responsive-sidebar-visible' : ''}` : 'flex-shrink-0 border-r border-border bg-muted/30'}"
-      style="{getLayoutMode() === 'full' ? `width: ${sidebarWidth}px` : ''}"
+      class="spark-sidebar-host {getLayoutMode() === 'narrow' ? `responsive-sidebar-overlay w-72 border-r border-border bg-background ${getResponsiveView() === 'sidebar' ? 'responsive-sidebar-visible' : ''}` : 'flex-shrink-0 border-r border-border bg-muted/30'}"
+      style="{getLayoutMode() === 'full' ? `width: ${sidebarCollapsed ? 56 : sidebarWidth}px` : ''}"
       role="presentation"
       onclick={() => handlePaneClick('sidebar')}
     >
@@ -1603,6 +1615,8 @@
         isFlashing={isPaneFlashing('sidebar')}
         showBackButton={getLayoutMode() === 'narrow'}
         onBack={hideSidebar}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={toggleSidebarCollapsed}
       />
     </aside>
 
@@ -1619,7 +1633,7 @@
     {/if}
 
     <!-- Sidebar Resize Handle -->
-    {#if getLayoutMode() === 'full'}
+    {#if getLayoutMode() === 'full' && !sidebarCollapsed}
     <button
       type="button"
       class="w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors border-0 p-0 {isResizingSidebar
@@ -1633,7 +1647,7 @@
     <!-- Message List -->
     <section
       bind:this={messageListContainerRef}
-      class="{isResponsive() ? 'flex-1 min-w-0 border-r border-border bg-background' : 'flex-shrink-0 border-r border-border bg-background'}"
+      class="spark-mail-list-pane {isResponsive() ? 'flex-1 min-w-0 border-r border-border bg-background' : 'flex-shrink-0 border-r border-border bg-background'}"
       style="{getLayoutMode() === 'full' ? `width: ${listWidth}px` : ''}"
       role="presentation"
       data-pane="messageList"
@@ -1670,7 +1684,7 @@
 
     <!-- Conversation Viewer -->
     <main
-      class="{viewerIsOverlay ? `responsive-viewer-overlay bg-background ${viewerIsVisible ? 'responsive-viewer-visible' : ''}` : 'flex-1 min-w-0 bg-background'}"
+      class="spark-viewer-pane {viewerIsOverlay ? `responsive-viewer-overlay bg-background ${viewerIsVisible ? 'responsive-viewer-visible' : ''}` : 'flex-1 min-w-0 bg-background'}"
       role="presentation"
       data-pane="viewer"
       onclick={() => handlePaneClick('viewer')}

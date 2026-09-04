@@ -31,6 +31,7 @@
   import { consumePendingDeepLink } from '$lib/stores/extensionDeepLink.svelte'
   import { KEY } from '$extensions/calendar/frontend/keyboard/shortcuts'
   import { toasts } from '$lib/stores/toast'
+  import { setActiveExtension } from '$lib/stores/uiState.svelte'
   // @ts-ignore - wailsjs bindings
   import { EventsOn } from '$wailsjs/runtime/runtime.js'
 
@@ -177,7 +178,7 @@
 </script>
 
 <PaneLayout>
-  <CalendarSidebar onOpenSettings={openSettings} />
+  <CalendarSidebar onOpenSettings={openSettings} onReturnToMail={() => setActiveExtension('mail')} />
   <div class="flex-1 flex flex-col min-w-0 bg-background">
     <ViewSwitcher />
     {#if calendarView.viewKind === 'month'}<MonthView />{/if}
@@ -209,4 +210,3 @@
   defaultStart={calendarView.composerDefaultStart}
   onSaved={refreshAfterSave}
 />
-

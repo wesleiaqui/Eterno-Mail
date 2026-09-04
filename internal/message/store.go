@@ -1,6 +1,7 @@
 package message
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -110,6 +111,9 @@ func (s *Store) ListByFolder(folderID string, offset, limit int) ([]*MessageHead
 // ListConversationsUnifiedInbox returns conversations from all inbox folders across all accounts
 // This is used for the unified inbox view
 func (s *Store) ListConversationsUnifiedInbox(offset, limit int, sortOrder, filter string) ([]*Conversation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
 	// Determine sort direction
 	orderClause := "ORDER BY latest_date DESC"
 	if sortOrder == "oldest" {
@@ -129,6 +133,7 @@ func (s *Store) ListConversationsUnifiedInbox(offset, limit int, sortOrder, filt
 			MAX(m.date) as latest_date,
 			GROUP_CONCAT(m.id) as message_ids,
 			MAX(CASE WHEN m.smime_encrypted = 1 OR m.pgp_encrypted = 1 THEN 1 ELSE 0 END) as is_encrypted,
+			MAX(m.inbox_category) as inbox_category,
 			a.id as account_id,
 			a.name as account_name,
 			a.color as account_color,
@@ -143,7 +148,7 @@ func (s *Store) ListConversationsUnifiedInbox(offset, limit int, sortOrder, filt
 		LIMIT ? OFFSET ?
 	`
 
-	rows, err := s.db.Query(query, limit, offset)
+	rows, err := s.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query unified inbox conversations: %w", err)
 	}
@@ -168,6 +173,7 @@ func (s *Store) ListConversationsUnifiedInbox(offset, limit int, sortOrder, filt
 			&latestDateStr,
 			&messageIDsStr,
 			&c.IsEncrypted,
+			&c.InboxCategory,
 			&c.AccountID,
 			&c.AccountName,
 			&c.AccountColor,
@@ -204,6 +210,9 @@ func (s *Store) ListConversationsUnifiedInbox(offset, limit int, sortOrder, filt
 
 // CountConversationsUnifiedInbox returns the total count of conversations across all inbox folders
 func (s *Store) CountConversationsUnifiedInbox(filter string) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
 	filterCond := filterWhereClause(filter, "m.")
 	wherePart := ""
 	if filterCond != "" {
@@ -218,7 +227,7 @@ func (s *Store) CountConversationsUnifiedInbox(filter string) (int, error) {
 	` + wherePart
 
 	var count int
-	err := s.db.QueryRow(query).Scan(&count)
+	err := s.db.QueryRowContext(ctx, query).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count unified inbox conversations: %w", err)
 	}
@@ -572,18 +581,18 @@ func (s *Store) Create(m *Message) error {
 	query := `
 		INSERT INTO messages (
 			id, account_id, folder_id, uid, message_id, in_reply_to, references_list, thread_id,
-			subject, from_name, from_email, to_list, cc_list, bcc_list, reply_to, date,
+			subject, from_name, from_email, to_list, cc_list, bcc_list, reply_to, inbox_category, date,
 			snippet, is_read, is_starred, is_answered, is_forwarded, is_draft, is_deleted,
 			size, has_attachments, body_text, body_html, body_fetched,
 			read_receipt_to, read_receipt_handled, received_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	_, err := s.db.Exec(query,
 		m.ID, m.AccountID, m.FolderID, m.UID,
 		nullString(m.MessageID), nullString(m.InReplyTo), nullString(m.References), nullString(m.ThreadID),
 		m.Subject, m.FromName, m.FromEmail,
-		nullString(m.ToList), nullString(m.CcList), nullString(m.BccList), nullString(m.ReplyTo),
+		nullString(m.ToList), nullString(m.CcList), nullString(m.BccList), nullString(m.ReplyTo), nullString(m.InboxCategory),
 		m.Date, nullString(m.Snippet),
 		m.IsRead, m.IsStarred, m.IsAnswered, m.IsForwarded, m.IsDraft, m.IsDeleted,
 		m.Size, m.HasAttachments,
@@ -612,24 +621,27 @@ func (s *Store) Upsert(m *Message) error {
 	query := `
 		INSERT INTO messages (
 			id, account_id, folder_id, uid, message_id, in_reply_to, references_list, thread_id,
-			subject, from_name, from_email, to_list, cc_list, bcc_list, reply_to, date,
+			subject, from_name, from_email, to_list, cc_list, bcc_list, reply_to, inbox_category, date,
 			snippet, is_read, is_starred, is_answered, is_forwarded, is_draft, is_deleted,
 			size, has_attachments, body_text, body_html, body_fetched,
 			read_receipt_to, read_receipt_handled, received_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(folder_id, uid) DO UPDATE SET
 			id=excluded.id, account_id=excluded.account_id,
 			message_id=excluded.message_id, in_reply_to=excluded.in_reply_to,
 			references_list=excluded.references_list, thread_id=excluded.thread_id,
 			subject=excluded.subject, from_name=excluded.from_name, from_email=excluded.from_email,
 			to_list=excluded.to_list, cc_list=excluded.cc_list, bcc_list=excluded.bcc_list,
-			reply_to=excluded.reply_to, date=excluded.date,
+			reply_to=excluded.reply_to, inbox_category=excluded.inbox_category, date=excluded.date,
 			snippet=excluded.snippet, is_read=excluded.is_read, is_starred=excluded.is_starred,
 			is_answered=excluded.is_answered, is_forwarded=excluded.is_forwarded,
 			is_draft=excluded.is_draft, is_deleted=excluded.is_deleted,
 			size=excluded.size, has_attachments=excluded.has_attachments,
-			body_text=excluded.body_text, body_html=excluded.body_html,
-			body_fetched=excluded.body_fetched,
+			-- A header-only refresh (used to classify older messages) must not
+			-- discard an already downloaded body.
+			body_text=CASE WHEN excluded.body_fetched = 1 THEN excluded.body_text ELSE messages.body_text END,
+			body_html=CASE WHEN excluded.body_fetched = 1 THEN excluded.body_html ELSE messages.body_html END,
+			body_fetched=CASE WHEN excluded.body_fetched = 1 THEN 1 ELSE messages.body_fetched END,
 			read_receipt_to=excluded.read_receipt_to, read_receipt_handled=excluded.read_receipt_handled,
 			received_at=excluded.received_at
 	`
@@ -638,7 +650,7 @@ func (s *Store) Upsert(m *Message) error {
 		m.ID, m.AccountID, m.FolderID, m.UID,
 		nullString(m.MessageID), nullString(m.InReplyTo), nullString(m.References), nullString(m.ThreadID),
 		m.Subject, m.FromName, m.FromEmail,
-		nullString(m.ToList), nullString(m.CcList), nullString(m.BccList), nullString(m.ReplyTo),
+		nullString(m.ToList), nullString(m.CcList), nullString(m.BccList), nullString(m.ReplyTo), nullString(m.InboxCategory),
 		m.Date, nullString(m.Snippet),
 		m.IsRead, m.IsStarred, m.IsAnswered, m.IsForwarded, m.IsDraft, m.IsDeleted,
 		m.Size, m.HasAttachments,
@@ -854,6 +866,31 @@ func (s *Store) GetAllUIDs(folderID string) ([]uint32, error) {
 	return uids, nil
 }
 
+// GetUnclassifiedUIDs returns existing messages that predate header-based
+// inbox classification. A bounded batch keeps the migration work invisible to
+// normal syncs; successive syncs finish the backlog.
+func (s *Store) GetUnclassifiedUIDs(folderID string, limit int) ([]uint32, error) {
+	rows, err := s.db.Query(`
+		SELECT uid FROM messages
+		WHERE folder_id = ? AND uid > 0 AND inbox_category = ''
+		ORDER BY date DESC LIMIT ?
+	`, folderID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query unclassified UIDs: %w", err)
+	}
+	defer rows.Close()
+
+	var uids []uint32
+	for rows.Next() {
+		var uid uint32
+		if err := rows.Scan(&uid); err != nil {
+			return nil, fmt.Errorf("failed to scan unclassified UID: %w", err)
+		}
+		uids = append(uids, uid)
+	}
+	return uids, rows.Err()
+}
+
 // GetHighestUID returns the highest UID in a folder
 func (s *Store) GetHighestUID(folderID string) (uint32, error) {
 	var uid sql.NullInt64
@@ -877,6 +914,42 @@ func (s *Store) UpdateBody(messageID, bodyHTML, bodyText, snippet string, hasAtt
 	_, err := s.db.Exec(query, nullString(bodyHTML), nullString(bodyText), nullString(snippet), hasAttachments, messageID)
 	if err != nil {
 		return fmt.Errorf("failed to update body: %w", err)
+	}
+	return nil
+}
+
+// UpdateInboxCategory upgrades an unclassified/personal message when a strong
+// body compliance footer is discovered. Header-derived categories win.
+func (s *Store) UpdateInboxCategory(messageID, category string) error {
+	_, err := s.db.Exec(`
+		UPDATE messages SET inbox_category = ?
+		WHERE id = ? AND inbox_category IN ('', 'people')
+	`, category, messageID)
+	if err != nil {
+		return fmt.Errorf("failed to update inbox category: %w", err)
+	}
+	return nil
+}
+
+// BackfillCommercialCategoriesFromBodies recognises compliance footers in
+// already-downloaded messages. It makes the new classifier useful immediately
+// after upgrade, rather than only for messages fetched in the future.
+func (s *Store) BackfillCommercialCategoriesFromBodies() error {
+	_, err := s.db.Exec(`
+		UPDATE messages SET inbox_category = 'commercial'
+		WHERE inbox_category IN ('', 'people') AND (
+			LOWER(COALESCE(body_text, '') || '\n' || COALESCE(body_html, '')) LIKE '%email preferences%'
+			OR LOWER(COALESCE(body_text, '') || '\n' || COALESCE(body_html, '')) LIKE '%manage your preferences%'
+			OR LOWER(COALESCE(body_text, '') || '\n' || COALESCE(body_html, '')) LIKE '%unsubscribe%'
+			OR LOWER(COALESCE(body_text, '') || '\n' || COALESCE(body_html, '')) LIKE '%contact us%'
+			OR LOWER(COALESCE(body_text, '') || '\n' || COALESCE(body_html, '')) LIKE '%you are receiving this email because%'
+			OR LOWER(COALESCE(body_text, '') || '\n' || COALESCE(body_html, '')) LIKE '%termo de uso%'
+			OR LOWER(COALESCE(body_text, '') || '\n' || COALESCE(body_html, '')) LIKE '%aviso de privacidade%'
+			OR LOWER(COALESCE(body_text, '') || '\n' || COALESCE(body_html, '')) LIKE '%você está recebendo esse e-mail porque%'
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("backfill commercial categories from bodies: %w", err)
 	}
 	return nil
 }
@@ -1127,6 +1200,7 @@ type BodyUpdate struct {
 	BodyText           string
 	Snippet            string
 	HasAttachments     bool
+	InboxCategory      string
 	SMIMEStatus        string
 	SMIMESignerEmail   string
 	SMIMESignerSubject string
@@ -1152,6 +1226,7 @@ func (s *Store) UpdateBodiesBatch(updates []BodyUpdate) error {
 		UPDATE messages
 		SET body_html = ?, body_text = ?, snippet = ?, body_fetched = 1,
 		    has_attachments = ?,
+		    inbox_category = CASE WHEN ? <> '' AND inbox_category IN ('', 'people') THEN ? ELSE inbox_category END,
 		    smime_status = ?, smime_signer_email = ?, smime_signer_subject = ?,
 		    smime_raw_body = ?, smime_encrypted = ?,
 		    pgp_raw_body = ?, pgp_encrypted = ?
@@ -1174,6 +1249,7 @@ func (s *Store) UpdateBodiesBatch(updates []BodyUpdate) error {
 		_, err := stmt.Exec(
 			nullString(u.BodyHTML), nullString(u.BodyText), nullString(u.Snippet),
 			u.HasAttachments,
+			u.InboxCategory, u.InboxCategory,
 			nullString(u.SMIMEStatus), nullString(u.SMIMESignerEmail), nullString(u.SMIMESignerSubject),
 			smimeRawBody, u.SMIMEEncrypted,
 			pgpRawBody, u.PGPEncrypted,
@@ -1268,6 +1344,9 @@ func parseTimeString(s string) time.Time {
 // ListConversationsByFolder returns conversations (grouped by thread) for a folder with pagination
 // sortOrder can be "newest" (default) or "oldest"
 func (s *Store) ListConversationsByFolder(folderID string, offset, limit int, sortOrder, filter string) ([]*Conversation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
 	// Determine sort direction
 	orderClause := "ORDER BY latest_date DESC"
 	if sortOrder == "oldest" {
@@ -1282,7 +1361,7 @@ func (s *Store) ListConversationsByFolder(folderID string, offset, limit int, so
 	// through to the existing sender-based behavior, so the list never
 	// breaks on a metadata hiccup.
 	var folderType string
-	_ = s.db.QueryRow("SELECT folder_type FROM folders WHERE id = ?", folderID).Scan(&folderType)
+	_ = s.db.QueryRowContext(ctx, "SELECT folder_type FROM folders WHERE id = ?", folderID).Scan(&folderType)
 	useToList := folderType == "sent" || folderType == "drafts"
 
 	// participantsExpr is byte-identical to the historical query for
@@ -1309,6 +1388,7 @@ func (s *Store) ListConversationsByFolder(folderID string, offset, limit int, so
 			MAX(date) as latest_date,
 			GROUP_CONCAT(id) as message_ids,
 			MAX(CASE WHEN smime_encrypted = 1 OR pgp_encrypted = 1 THEN 1 ELSE 0 END) as is_encrypted,
+			MAX(inbox_category) as inbox_category,
 			%s as participants_json
 		FROM messages
 		WHERE folder_id = ?
@@ -1318,7 +1398,7 @@ func (s *Store) ListConversationsByFolder(folderID string, offset, limit int, so
 		LIMIT ? OFFSET ?
 	`, participantsExpr)
 
-	rows, err := s.db.Query(query, folderID, limit, offset)
+	rows, err := s.db.QueryContext(ctx, query, folderID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query conversations: %w", err)
 	}
@@ -1343,6 +1423,7 @@ func (s *Store) ListConversationsByFolder(folderID string, offset, limit int, so
 			&latestDateStr,
 			&messageIDsStr,
 			&c.IsEncrypted,
+			&c.InboxCategory,
 			&participantsJSON,
 		)
 		if err != nil {
@@ -1437,6 +1518,9 @@ func parseAggregatedToListJSON(s string) []Address {
 
 // CountConversationsByFolder returns the count of conversations in a folder
 func (s *Store) CountConversationsByFolder(folderID, filter string) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
 	query := `
 		SELECT COUNT(DISTINCT COALESCE(thread_id, id))
 		FROM messages
@@ -1444,7 +1528,7 @@ func (s *Store) CountConversationsByFolder(folderID, filter string) (int, error)
 	` + filterWhereClause(filter, "")
 
 	var count int
-	err := s.db.QueryRow(query, folderID).Scan(&count)
+	err := s.db.QueryRowContext(ctx, query, folderID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count conversations: %w", err)
 	}
@@ -2008,7 +2092,11 @@ func (s *Store) DeleteTempUIDs(folderID string) error {
 }
 
 // GetIDsByMessageIDs finds local DB message IDs by RFC822 Message-ID header and folder.
-// Only returns messages with positive UIDs (excludes temp rows from in-flight moves).
+//
+// A local move marks the row with a negative UID until the destination folder
+// is synchronized. Undo must include those temporary rows: otherwise clicking
+// Undo immediately after moving a message cannot find the message it just
+// moved.
 func (s *Store) GetIDsByMessageIDs(accountID, folderID string, rfc822MessageIDs []string) ([]string, error) {
 	if len(rfc822MessageIDs) == 0 {
 		return nil, nil
@@ -2022,7 +2110,7 @@ func (s *Store) GetIDsByMessageIDs(accountID, folderID string, rfc822MessageIDs 
 	}
 
 	query := fmt.Sprintf(
-		"SELECT id FROM messages WHERE account_id = ? AND folder_id = ? AND uid > 0 AND message_id IN (%s)",
+		"SELECT id FROM messages WHERE account_id = ? AND folder_id = ? AND message_id IN (%s)",
 		strings.Join(placeholders, ", "),
 	)
 
@@ -2536,4 +2624,3 @@ func highlightMatches(text, query string) string {
 
 	return highlighted
 }
-

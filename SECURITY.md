@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-We take the security of Aerion seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+We take the security of Eterno Mail seriously. If you believe you have found a security vulnerability, please report it to us as described below.
 
 ### How to Report
 
@@ -38,7 +38,7 @@ Please include the following information in your report:
 
 ### OAuth Credentials
 
-If you are compiling Aerion from source:
+If you are compiling Eterno Mail from source:
 
 1. **Never commit OAuth credentials** to version control
 2. Use the `.env.example` file as a template and create your own `.env` file
@@ -48,7 +48,7 @@ If you are compiling Aerion from source:
 
 ### Email Security
 
-- Aerion stores emails locally on your device
+- Eterno Mail stores emails locally on your device
 - Use strong passwords for your email accounts
 - Enable 2FA/MFA on your email accounts where possible
 - For Gmail/Google Workspace: Use App-Specific Passwords or OAuth
@@ -61,7 +61,7 @@ If you are compiling Aerion from source:
 
 ## Security Features
 
-Aerion includes the following security measures:
+Eterno Mail includes the following security measures:
 
 - **HTML Sanitization**: All HTML email content is sanitized before display to prevent XSS attacks
 - **OAuth 2.0**: Secure authentication for Gmail and other OAuth-supporting providers
@@ -70,5 +70,5 @@ Aerion includes the following security measures:
 
 ## Known Limitations
 
-- Aerion is currently in early stage active development
+- Eterno Mail is currently in early stage active development
 - Use at your own risk for sensitive communications

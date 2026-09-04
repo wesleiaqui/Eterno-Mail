@@ -1,6 +1,6 @@
-# Aerion Keyboard Shortcuts
+# Eterno Mail Keyboard Shortcuts
 
-Complete reference of all keyboard shortcuts in Aerion.
+Complete reference of all keyboard shortcuts in Eterno Mail.
 
 ## Global Shortcuts
 

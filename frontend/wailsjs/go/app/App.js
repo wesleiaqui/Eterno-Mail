@@ -378,6 +378,10 @@ export function GetAccountFoldersForMapping(arg1) {
   return window['go']['app']['App']['GetAccountFoldersForMapping'](arg1);
 }
 
+export function GetAccountProfilePhotos(arg1) {
+  return window['go']['app']['App']['GetAccountProfilePhotos'](arg1);
+}
+
 export function GetAccounts() {
   return window['go']['app']['App']['GetAccounts']();
 }
@@ -646,6 +650,10 @@ export function GetSearchCountUnifiedInbox(arg1, arg2) {
   return window['go']['app']['App']['GetSearchCountUnifiedInbox'](arg1, arg2);
 }
 
+export function GetSenderLogos(arg1) {
+  return window['go']['app']['App']['GetSenderLogos'](arg1);
+}
+
 export function GetShowMessageListCircles() {
   return window['go']['app']['App']['GetShowMessageListCircles']();
 }
@@ -736,6 +744,10 @@ export function HasSMIMECertificate(arg1) {
 
 export function IMAPSearchFolder(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['IMAPSearchFolder'](arg1, arg2, arg3, arg4);
+}
+
+export function IMAPSearchUnifiedInbox(arg1, arg2) {
+  return window['go']['app']['App']['IMAPSearchUnifiedInbox'](arg1, arg2);
 }
 
 export function IgnoreReadReceipt(arg1, arg2) {
@@ -980,6 +992,10 @@ export function RefreshWindowConstraints() {
 
 export function RemoveAccount(arg1) {
   return window['go']['app']['App']['RemoveAccount'](arg1);
+}
+
+export function RemoveFromInbox(arg1) {
+  return window['go']['app']['App']['RemoveFromInbox'](arg1);
 }
 
 export function RemoveImageAllowlist(arg1) {

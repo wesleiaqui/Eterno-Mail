@@ -4,11 +4,11 @@
 
 ## Acceptance of Terms
 
-By downloading, installing, or using Aerion ("the Application"), you agree to be bound by these Terms of Use ("Terms"). If you do not agree to these Terms, do not use the Application.
+By downloading, installing, or using Eterno Mail ("the Application"), you agree to be bound by these Terms of Use ("Terms"). If you do not agree to these Terms, do not use the Application.
 
 ## Description of Service
 
-Aerion is an open-source desktop email client. The official Aerion website and online documentation is hosted at [https://aerion.3df.io](https://aerion.3df.io). Aerion allows you to:
+Eterno Mail is an open-source desktop email client. The official Eterno Mail website and online documentation is hosted at [https://aerion.3df.io](https://aerion.3df.io). Eterno Mail allows you to:
 
 - Connect to email accounts via IMAP/SMTP
 - Send and receive emails
@@ -16,11 +16,11 @@ Aerion is an open-source desktop email client. The official Aerion website and o
 - Sync contacts from CardDAV, Google, and Microsoft services
 - Use OAuth authentication for Gmail and Outlook
 
-Aerion is a local application that runs on your computer. We do not provide any cloud services, email hosting, or server infrastructure.
+Eterno Mail is a local application that runs on your computer. We do not provide any cloud services, email hosting, or server infrastructure.
 
 ## Open Source License
 
-Aerion is licensed under the Apache License 2.0. You can:
+Eterno Mail is licensed under the Apache License 2.0. You can:
 
 - Use the software for any purpose
 - Distribute copies of the software
@@ -34,14 +34,14 @@ Subject to the conditions of the Apache License 2.0, including preservation of c
 You are responsible for:
 
 1. **Account Security** - Maintaining the security of your email account credentials
-2. **Device Security** - Securing the device on which Aerion is installed
+2. **Device Security** - Securing the device on which Eterno Mail is installed
 3. **Legal Compliance** - Using the Application in compliance with applicable laws
 4. **Email Provider Terms** - Complying with your email provider's terms of service
 5. **Backup** - Maintaining backups of important data
 
 ## Acceptable Use
 
-You agree not to use Aerion to:
+You agree not to use Eterno Mail to:
 
 - Send spam, malware, or phishing emails
 - Violate any applicable laws or regulations
@@ -61,7 +61,7 @@ To the fullest extent permitted by law, we disclaim all warranties, including bu
 - Accuracy or reliability of the Application
 - That the Application will be uninterrupted, secure, or error-free
 
-**Aerion is pre-release software currently in active development. Features may change, and bugs may exist. Use at your own risk.**
+**Eterno Mail is pre-release software currently in active development. Features may change, and bugs may exist. Use at your own risk.**
 
 ## Limitation of Liability
 
@@ -80,7 +80,7 @@ To the fullest extent permitted by law, we disclaim all warranties, including bu
 
 ## Indemnification
 
-You agree to indemnify, defend, and hold harmless the developers, contributors, and sponsors of Aerion from any claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) arising from:
+You agree to indemnify, defend, and hold harmless the developers, contributors, and sponsors of Eterno Mail from any claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) arising from:
 
 - Your use of the Application
 - Your violation of these Terms
@@ -89,7 +89,7 @@ You agree to indemnify, defend, and hold harmless the developers, contributors, 
 
 ## Third-Party Services
 
-Aerion integrates with third-party services including:
+Eterno Mail integrates with third-party services including:
 
 - Email providers (via IMAP/SMTP)
 - Google APIs
@@ -100,7 +100,7 @@ Your use of these services is subject to their respective terms of service and p
 
 ## Modifications to the Application
 
-As an open-source project, Aerion is continuously evolving. We may:
+As an open-source project, Eterno Mail is continuously evolving. We may:
 
 - Add, modify, or remove features at any time
 - Release updates that change functionality
@@ -118,7 +118,7 @@ If any provision of these Terms is found to be unenforceable, the remaining prov
 
 ## Entire Agreement
 
-These Terms constitute the entire agreement between you and the developers of Aerion regarding the use of the Application, superseding any prior agreements.
+These Terms constitute the entire agreement between you and the developers of Eterno Mail regarding the use of the Application, superseding any prior agreements.
 
 ## Contact Us
 

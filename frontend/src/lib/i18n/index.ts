@@ -4,6 +4,7 @@ import { register, init, waitLocale, locale, _ } from 'svelte-i18n'
 // locales via Vite glob auto-discovery in initI18n() — see below.
 // en must be first — it's the fallback/default.
 register('en', () => import('./locales/en.json'))
+register('pt-BR', () => import('./locales/pt-BR.json'))
 register('cs', () => import('./locales/cs.json'))
 register('de', () => import('./locales/de.json'))
 register('fr', () => import('./locales/fr.json'))
@@ -28,6 +29,7 @@ const extensionI18nModules = import.meta.glob<{
 // en must be first — it's the fallback/default.
 export const supportedLocales = [
   { code: 'en', name: 'English' },
+  { code: 'pt-BR', name: 'Portugues (Brasil)' },
   { code: 'cs', name: 'Čeština' },
   { code: 'de', name: 'Deutsch' },
   { code: 'fr', name: 'Français' },

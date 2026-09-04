@@ -10,9 +10,12 @@
 // @ts-ignore - wailsjs bindings
 import { GetContactPhotos } from '../../../wailsjs/go/app/App.js'
 // @ts-ignore - wailsjs bindings
+import { GetAccountProfilePhotos } from '../../../wailsjs/go/app/App.js'
+// @ts-ignore - wailsjs bindings
 import { EventsOn } from '../../../wailsjs/runtime/runtime'
 
 type Photo = { data: string; mediaType: string }
+type PhotoResult = Photo & { email: string }
 
 // Reactive cache: reassigned on each merge so row reads re-render when photos
 // arrive. `null` = looked up, no inline photo. Missing key = not yet fetched.
@@ -65,11 +68,23 @@ async function ensure(emails: string[]): Promise<void> {
   for (const e of missing) inflight.add(e)
   try {
     const results = (await GetContactPhotos(missing)) || []
+    // A mail account's own Google profile is not necessarily a contact, so
+    // fetch those account avatars separately. This is best-effort: normal
+    // contact photos must still work for non-OAuth and offline accounts.
+    let accountProfiles: PhotoResult[] = []
+    try {
+      accountProfiles = (await GetAccountProfilePhotos(missing)) || []
+    } catch (err) {
+      console.debug('Failed to fetch account profile photos:', err)
+    }
     // Seed every requested email as a miss, then overwrite the ones that
     // returned a photo — so misses are cached and won't be re-queried.
     const updates: Record<string, Photo | null> = {}
     for (const e of missing) updates[e] = null
     for (const r of results) {
+      if (r?.email) updates[norm(r.email)] = { data: r.data, mediaType: r.mediaType }
+    }
+    for (const r of accountProfiles) {
       if (r?.email) updates[norm(r.email)] = { data: r.data, mediaType: r.mediaType }
     }
     cache = { ...cache, ...updates }

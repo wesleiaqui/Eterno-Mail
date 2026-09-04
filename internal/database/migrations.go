@@ -1337,4 +1337,40 @@ var migrations = []Migration{
 			ALTER TABLE accounts ADD COLUMN imap_auth_mechanism TEXT NOT NULL DEFAULT 'auto';
 		`,
 	},
+	{
+		Version: 43,
+		SQL: `
+			-- Classification inferred from RFC 5322/IMAP headers during sync.  Only
+			-- the resulting category is retained: list-management and automation
+			-- headers themselves are not copied into the local database.
+			ALTER TABLE messages ADD COLUMN inbox_category TEXT NOT NULL DEFAULT '';
+			CREATE INDEX IF NOT EXISTS idx_messages_inbox_category ON messages(folder_id, inbox_category);
+		`,
+	},
+	{
+		Version: 44,
+		SQL: `
+			-- Cosmetic cache for sender brand logos. Empty data/media_type is a
+			-- negative cache entry, preventing repeated lookups for domains that
+			-- do not publish BIMI or a usable favicon.
+			CREATE TABLE IF NOT EXISTS sender_logo_cache (
+				domain TEXT PRIMARY KEY,
+				data TEXT NOT NULL DEFAULT '',
+				media_type TEXT NOT NULL DEFAULT '',
+				fetched_at INTEGER NOT NULL
+			);
+			CREATE INDEX IF NOT EXISTS idx_sender_logo_cache_fetched_at
+				ON sender_logo_cache(fetched_at);
+		`,
+	},
+	{
+		Version: 45,
+		SQL: `
+			-- v44 could not distinguish an actual missing logo from a timeout or
+			-- rate limit, so its negative entries may be false. Clear them once
+			-- before adding the short-lived transient-negative classification.
+			ALTER TABLE sender_logo_cache ADD COLUMN failure_type TEXT NOT NULL DEFAULT '';
+			DELETE FROM sender_logo_cache WHERE data = '' AND media_type = '';
+		`,
+	},
 }

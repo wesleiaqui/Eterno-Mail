@@ -22,6 +22,12 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// appIcon is passed to GTK directly so Linux uses the current branded icon
+// for the running window instead of a stale icon cached for the desktop entry.
+// The matching desktop entry is io.github.hkdb.EternoMail.desktop.
+//go:embed build/appicon.png
+var appIcon []byte
+
 // Command-line flags
 var (
 	debugMode   = flag.Bool("debug", false, "Enable debug logging")
@@ -125,7 +131,7 @@ func runMainMode(mailtoData *app.MailtoData, rawMailtoArg string) {
 
 	// Create application with options
 	err = wails.Run(&options.App{
-		Title:                    "Aerion",
+		Title:                    "Eterno Mail",
 		Width:                    1280,
 		Height:                   800,
 		MinWidth:                 360,
@@ -146,7 +152,8 @@ func runMainMode(mailtoData *app.MailtoData, rawMailtoArg string) {
 		},
 		Linux: &linux.Options{
 			WebviewGpuPolicy: linux.WebviewGpuPolicyOnDemand,
-			ProgramName:      "io.github.hkdb.Aerion",
+			ProgramName:      "io.github.hkdb.EternoMail",
+			Icon:             appIcon,
 		},
 	})
 
@@ -235,7 +242,8 @@ func runComposerMode() {
 		},
 		Linux: &linux.Options{
 			WebviewGpuPolicy: linux.WebviewGpuPolicyOnDemand,
-			ProgramName:      "io.github.hkdb.Aerion",
+			ProgramName:      "io.github.hkdb.EternoMail",
+			Icon:             appIcon,
 		},
 	})
 

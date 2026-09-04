@@ -1,7 +1,7 @@
-![Logo](frontend/src/assets/images/logo-universal.png)
+<img src="brand/icon.png" alt="Eterno Mail logo" width="160">
 
-# Aerion - An Open Source Lightweight E-Mail Client
-Maintained by: @hkdb
+# Eterno Mail - An Open Source Lightweight E-Mail Client
+Reformulated by Weslei.
 
 ![screenshot](docs/ss.png)
 
@@ -9,17 +9,7 @@ Maintained by: @hkdb
 ### ❓ Why?
 ---
 
-Windows has Outlook
-
-Mac has Mail
-
-Linux has.....
- - Thunderbird - Clunky and too much legacy structure
- - Geary - Crippled by Gnome Online Accounts and search is unreliable
- - Mailspring - Electron...
- - Evolution - ... 1999
-
-All are not necessarily always light on resource consumption...
+I was looking for an email app similar to Spark, but I could not find one that felt right for me, so I built Eterno Mail to get the job done. It obviously does not have even 10% of Spark's features, but I enjoy the focused set of features it offers.
 
 
 ### 👁️‍🗨️ Summary
@@ -98,7 +88,7 @@ This application was built with [Wails](https://wails.io) + [Svelte](https://sve
 
 Transparency Disclaimer: This project leaveraged Claude models heavily to implement.
 
-Aerion is CASA Tier 2 Certified by Google's preferred [authorized assessor](https://appdefensealliance.dev/casa/casa-assessors): [TAC Security](https://tacsecurity.com/)
+Eterno Mail is CASA Tier 2 Certified by Google's preferred [authorized assessor](https://appdefensealliance.dev/casa/casa-assessors): [TAC Security](https://tacsecurity.com/)
 
 
 ### 🗞 News & Announcments
@@ -138,7 +128,7 @@ Potential features in the future:
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/3dfosi)
 
-Google verification requires apps like Aerion to recertify for CASA Tier 2 every year which cost US$540 this year. This cost was sponsored one time by [3DF](https://3df.io). Starting next year, we will have to depend on community or corporate sponsorship. If you want your "Buy Me a Coffee" donation to go specifically and only towards the annual CASA Tier 2 certification, in the "Say something nice..." field of the Buy Me A Coffee donation page, put, "For CASA" as the first line. You can leave the rest of the field empty or put whatever message you want to send us in the lines after.
+Google verification requires apps like Eterno Mail to recertify for CASA Tier 2 every year which cost US$540 this year. This cost was sponsored one time by [3DF](https://3df.io). Starting next year, we will have to depend on community or corporate sponsorship. If you want your "Buy Me a Coffee" donation to go specifically and only towards the annual CASA Tier 2 certification, in the "Say something nice..." field of the Buy Me A Coffee donation page, put, "For CASA" as the first line. You can leave the rest of the field empty or put whatever message you want to send us in the lines after.
 
 
 ### 🔨 Contributing
@@ -150,7 +140,7 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md)
 ### 🙏 Issue Contributors
 ---
 
-Aerion is largely driven by community feedback. Big thanks to the following non-exhaustive list of contributors who submitted issues which led to meaningful improvements we all now enjoy. This project would not be the same without them!
+Eterno Mail is largely driven by community feedback. Big thanks to the following non-exhaustive list of contributors who submitted issues which led to meaningful improvements we all now enjoy. This project would not be the same without them!
 
 <table>
   <tr>
@@ -718,7 +708,7 @@ Aerion is largely driven by community feedback. Big thanks to the following non-
 
 ### 🌐 Translation Contributors
 
-Special thanks to translation contributors for making Aerion more accessible:
+Special thanks to translation contributors for making Eterno Mail more accessible:
 
 
 <table align="left">

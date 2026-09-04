@@ -189,7 +189,7 @@
 **v0.1.39 - 04-27-2026**
 ---
 
-As of 2026-04-26, Aerion is CASA Tier 2 certified and verified by Google so oAuth2 sign-ins will no longer be blocked.
+As of 2026-04-26, Eterno Mail is CASA Tier 2 certified and verified by Google so oAuth2 sign-ins will no longer be blocked.
 
 v0.1.39 is a major milestone that includes some remaining originally planned basic features and a substantial amount of bug fixes/refinements focused on making existing features and functions much more reliable/stable. It will serve as a solid foundation for us to continue the further development of this mail client.
 
@@ -411,7 +411,7 @@ v0.1.39 is a major milestone that includes some remaining originally planned bas
 - Fixed Trash folder detection to include Bin
 - Cleaned up and reorganized sync engine code to be more maintainable
 
-**Note:** Not submitting this release to Flathub until [this issue](https://github.com/flathub/io.github.hkdb.Aerion/issues/6) is resolved.
+**Note:** Not submitting this release to Flathub until [this issue](https://github.com/flathub/io.github.hkdb.Eterno Mail/issues/6) is resolved.
 
 
 **v0.1.24 - 02-18-2026**
@@ -509,7 +509,7 @@ v0.1.39 is a major milestone that includes some remaining originally planned bas
 
 - Refactored Linux notifications to use org.freedesktop.portal.Desktop
 - Kept DBUS direct notifications if launched with --dbus-notify
-- Added trigger to refocus to Aerion if notification is clicked
+- Added trigger to refocus to Eterno Mail if notification is clicked
 - Added `install.sh` and `uninstall.sh` to Linux binary release
 - Distribute binary tarballs with assets instead of just binary for Linux
 - Fixed flatpak app ID

@@ -16,6 +16,7 @@
   import GeneralTab from './GeneralTab.svelte'
   import ComposerTab from './ComposerTab.svelte'
   import ImagesTab from './ImagesTab.svelte'
+  import InboxTab from './InboxTab.svelte'
   import AccountsTab from './AccountsTab.svelte'
   import ContactsTab from './ContactsTab.svelte'
   import ExtensionsTab from './ExtensionsTab.svelte'
@@ -264,7 +265,7 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>
-  <Dialog.Content class="max-w-3xl" preventCloseAutoFocus onInteractOutside={(e) => e.preventDefault()}>
+  <Dialog.Content class="max-w-5xl" preventCloseAutoFocus onInteractOutside={(e) => e.preventDefault()}>
     <Dialog.Header>
       <Dialog.Title>{$_('settings.title')}</Dialog.Title>
       <Dialog.Description>
@@ -277,39 +278,43 @@
         <Icon icon="mdi:loading" class="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     {:else}
-      <Tabs.Root bind:value={activeTab} class="w-full">
-        <Tabs.List class="grid w-full grid-cols-7">
-          <Tabs.Trigger value="general" class="flex items-center gap-2">
+      <Tabs.Root bind:value={activeTab} class="settings-workspace">
+        <Tabs.List class="settings-navigation">
+          <Tabs.Trigger value="general" class="settings-navigation-item">
             <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:settings-2" width="16" height="16" /></span>
             {$_('settings.general')}
           </Tabs.Trigger>
-          <Tabs.Trigger value="composer" class="flex items-center gap-2">
-            <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:square-pen" width="46" height="46" /></span>
+          <Tabs.Trigger value="composer" class="settings-navigation-item">
+            <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:square-pen" width="16" height="16" /></span>
             {$_('settings.composer')}
           </Tabs.Trigger>
-          <Tabs.Trigger value="images" class="flex items-center gap-2">
+          <Tabs.Trigger value="images" class="settings-navigation-item">
             <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:image" width="16" height="16" /></span>
             {$_('settings.images')}
           </Tabs.Trigger>
-          <Tabs.Trigger value="accounts" class="flex items-center gap-2">
+          <Tabs.Trigger value="accounts" class="settings-navigation-item">
             <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:mails" width="16" height="16" /></span>
             {$_('settings.accounts')}
           </Tabs.Trigger>
-          <Tabs.Trigger value="contacts" class="flex items-center gap-2">
+          <Tabs.Trigger value="contacts" class="settings-navigation-item">
             <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:contact" width="16" height="16" /></span>
             {$_('settings.contacts')}
           </Tabs.Trigger>
-          <Tabs.Trigger value="extensions" class="flex items-center gap-2">
+          <Tabs.Trigger value="inbox" class="settings-navigation-item">
+            <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:inbox" width="16" height="16" /></span>
+            Caixa de entrada
+          </Tabs.Trigger>
+          <Tabs.Trigger value="extensions" class="settings-navigation-item">
             <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:puzzle" width="16" height="16" /></span>
             {$_('settings.extensions')}
           </Tabs.Trigger>
-          <Tabs.Trigger value="about" class="flex items-center gap-2">
+          <Tabs.Trigger value="about" class="settings-navigation-item">
             <span class="inline-flex w-4 h-4 items-center justify-center shrink-0"><Icon icon="lucide:info" width="16" height="16" /></span>
             {$_('settings.about')}
           </Tabs.Trigger>
         </Tabs.List>
 
-        <div class="mt-4 h-[350px] overflow-y-auto pl-1 pr-3">
+        <div class="settings-content h-[430px] overflow-y-auto pl-1 pr-4">
           <Tabs.Content value="general" class="mt-0">
             <GeneralTab
               bind:markAsReadDelaySeconds
@@ -369,6 +374,10 @@
 
           <Tabs.Content value="contacts" class="mt-0">
             <ContactsTab />
+          </Tabs.Content>
+
+          <Tabs.Content value="inbox" class="mt-0">
+            <InboxTab />
           </Tabs.Content>
 
           <Tabs.Content value="extensions" class="mt-0">

@@ -169,7 +169,10 @@
 
   function buildIframeContent(html: string, applyDarken: boolean): string {
     const processedHtml = processHtml(html, imagesBlocked)
-    const imgSrc = imagesBlocked ? "'self' data:" : '* data:'
+    // Link icons use the same favicon provider already used by sender
+    // avatars. They are intentionally allowed even when marketing images in
+    // the email stay blocked; the provider only receives the link's domain.
+    const imgSrc = imagesBlocked ? "'self' data: https://www.google.com" : '* data:'
 
     // Double-invert: page-level invert + image-level re-invert keeps photos
     // looking normal while flipping text, backgrounds, and CSS-defined colors.
@@ -206,6 +209,28 @@
             img.onload = sendHeight;
             img.onerror = sendHeight;
           }
+        });
+      }
+
+      function decorateTextLinks() {
+        var decorated = 0;
+        document.querySelectorAll('a[href]').forEach(function(link) {
+          if (decorated >= 12 || link.dataset.eternoFavicon || link.querySelector('img, svg')) return;
+          var url;
+          try { url = new URL(link.href); } catch (_err) { return; }
+          if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+          if (!link.textContent || !link.textContent.trim()) return;
+
+          var icon = document.createElement('img');
+          icon.className = 'eterno-link-favicon';
+          icon.alt = '';
+          icon.setAttribute('aria-hidden', 'true');
+          icon.setAttribute('data-no-invert', '');
+          icon.src = 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(url.hostname) + '&sz=32';
+          icon.onerror = function() { icon.remove(); sendHeight(); };
+          link.insertBefore(icon, link.firstChild);
+          link.dataset.eternoFavicon = 'true';
+          decorated++;
         });
       }
       
@@ -252,6 +277,7 @@
       });
 
       window.addEventListener('load', function() {
+        decorateTextLinks();
         attachImageHandlers();
         sendHeight();
         window.parent.postMessage({ type: 'iframe-ready' }, '*');
@@ -375,6 +401,7 @@
     html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; /* Chrome/Safari/WebKit */ }
     body { padding: 16px; }
     img { max-width: 100%; height: auto; }
+    img.eterno-link-favicon { display: inline-block; width: 1em; height: 1em; min-width: 0; min-height: 0; margin: 0 0.26em 0 0; vertical-align: -0.14em; object-fit: contain; }
     /* Ensure empty paragraphs (blank lines) render with visible height */
     p:empty { min-height: 1em; }
     p:has(> br:only-child) { min-height: 1em; }

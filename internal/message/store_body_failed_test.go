@@ -115,3 +115,39 @@ func TestMarkBodyFailed_ExcludesFromQueue(t *testing.T) {
 		t.Errorf("MarkBodyFailed([]): %v", err)
 	}
 }
+
+func TestGetIDsByMessageIDs_IncludesPendingMove(t *testing.T) {
+	s, accountID, sourceFolderID := newBodyFailedTestStore(t)
+	const destinationFolderID = "folder-2"
+
+	if _, err := s.db.Exec(
+		`INSERT INTO folders (id, account_id, name, path, folder_type)
+		 VALUES (?, ?, ?, ?, ?)`,
+		destinationFolderID, accountID, "Archive", "Archive", "archive",
+	); err != nil {
+		t.Fatalf("seed destination folder: %v", err)
+	}
+
+	msg := &Message{
+		ID:        "message-1",
+		AccountID: accountID,
+		FolderID:  sourceFolderID,
+		MessageID: "<message-1@example.com>",
+		UID:       1,
+		Date:      time.Now().UTC(),
+	}
+	if err := s.Create(msg); err != nil {
+		t.Fatalf("Create message: %v", err)
+	}
+	if err := s.MoveMessages([]string{msg.ID}, destinationFolderID); err != nil {
+		t.Fatalf("MoveMessages: %v", err)
+	}
+
+	ids, err := s.GetIDsByMessageIDs(accountID, destinationFolderID, []string{msg.MessageID})
+	if err != nil {
+		t.Fatalf("GetIDsByMessageIDs: %v", err)
+	}
+	if !containsID(ids, msg.ID) {
+		t.Fatalf("expected pending moved message %q, got %v", msg.ID, ids)
+	}
+}

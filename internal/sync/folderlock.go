@@ -9,7 +9,7 @@ import (
 // overlapping on one folder corrupt state three ways: duplicate attachment
 // rows (plain INSERT, body_fetched=1 set in a separate transaction),
 // body_fetched resets via the header Upsert's ON CONFLICT clause, and
-// last-writer-wins rollback of the UIDNext/HighestModSeq watermarks. The
+// last-writer-wins rollback of the UIDNext/FlagsSyncModSeq watermarks. The
 // caller-side tracking maps (app syncContexts, scheduler syncing) are
 // mutually blind and two engine call sites are tracked by neither, so the
 // serialization lives here at the single choke point.

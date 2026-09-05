@@ -169,6 +169,34 @@ func TestFailedMigrationDoesNotRecordVersion(t *testing.T) {
 	}
 }
 
+func TestMigrationV47AddsZeroFlagsSyncWatermark(t *testing.T) {
+	db := openUnmigratedTestDB(t)
+	applyMigrationsThrough(t, db, 46)
+	if _, err := db.Exec(`
+		INSERT INTO accounts (id, name, email, imap_host, imap_port, smtp_host, smtp_port, auth_type, username)
+		VALUES ('account-1', 'Account', 'account-1@example.test', 'imap.example.test', 993, 'smtp.example.test', 587, 'password', 'account-1')
+	`); err != nil {
+		t.Fatalf("seed account before v47: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO folders (id, account_id, name, path, highest_mod_seq)
+		VALUES ('folder-1', 'account-1', 'Inbox', 'INBOX', 150)
+	`); err != nil {
+		t.Fatalf("seed folder before v47: %v", err)
+	}
+
+	if err := db.Migrate(); err != nil {
+		t.Fatalf("upgrade through v47: %v", err)
+	}
+	var observed, watermark int
+	if err := db.QueryRow(`SELECT highest_mod_seq, flags_sync_modseq FROM folders WHERE id = 'folder-1'`).Scan(&observed, &watermark); err != nil {
+		t.Fatalf("read v47 columns: %v", err)
+	}
+	if observed != 150 || watermark != 0 {
+		t.Fatalf("migration values = observed:%d watermark:%d, want observed:150 watermark:0", observed, watermark)
+	}
+}
+
 func firstSchemaDifference(want, got []string) string {
 	limit := len(want)
 	if len(got) < limit {

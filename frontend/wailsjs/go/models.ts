@@ -1777,6 +1777,7 @@ export namespace folder {
 	    uidValidity: number;
 	    uidNext: number;
 	    highestModSeq: number;
+	    flagsSyncModSeq: number;
 	    totalCount: number;
 	    unreadCount: number;
 	    // Go type: time
@@ -1798,6 +1799,7 @@ export namespace folder {
 	        this.uidValidity = source["uidValidity"];
 	        this.uidNext = source["uidNext"];
 	        this.highestModSeq = source["highestModSeq"];
+	        this.flagsSyncModSeq = source["flagsSyncModSeq"];
 	        this.totalCount = source["totalCount"];
 	        this.unreadCount = source["unreadCount"];
 	        this.lastSync = this.convertValues(source["lastSync"], null);

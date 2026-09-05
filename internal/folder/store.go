@@ -29,7 +29,7 @@ func NewStore(db *database.DB) *Store {
 func (s *Store) List(accountID string) ([]*Folder, error) {
 	query := `
 		SELECT id, account_id, name, path, folder_type, parent_id,
-		       uid_validity, uid_next, highest_mod_seq,
+		       uid_validity, uid_next, highest_mod_seq, flags_sync_modseq,
 		       total_count, unread_count, last_sync, subscribed
 		FROM folders
 		WHERE account_id = ?
@@ -48,11 +48,11 @@ func (s *Store) List(accountID string) ([]*Folder, error) {
 		var parentID sql.NullString
 		var lastSync sql.NullTime
 		var uidValidity, uidNext sql.NullInt64
-		var highestModSeq sql.NullInt64
+		var highestModSeq, flagsSyncModSeq sql.NullInt64
 
 		err := rows.Scan(
 			&f.ID, &f.AccountID, &f.Name, &f.Path, &f.Type, &parentID,
-			&uidValidity, &uidNext, &highestModSeq,
+			&uidValidity, &uidNext, &highestModSeq, &flagsSyncModSeq,
 			&f.TotalCount, &f.UnreadCount, &lastSync, &f.Subscribed,
 		)
 		if err != nil {
@@ -74,6 +74,9 @@ func (s *Store) List(accountID string) ([]*Folder, error) {
 		if highestModSeq.Valid {
 			f.HighestModSeq = uint64(highestModSeq.Int64)
 		}
+		if flagsSyncModSeq.Valid {
+			f.FlagsSyncModSeq = uint64(flagsSyncModSeq.Int64)
+		}
 
 		folders = append(folders, f)
 	}
@@ -85,7 +88,7 @@ func (s *Store) List(accountID string) ([]*Folder, error) {
 func (s *Store) Get(id string) (*Folder, error) {
 	query := `
 		SELECT id, account_id, name, path, folder_type, parent_id,
-		       uid_validity, uid_next, highest_mod_seq,
+		       uid_validity, uid_next, highest_mod_seq, flags_sync_modseq,
 		       total_count, unread_count, last_sync, subscribed
 		FROM folders
 		WHERE id = ?
@@ -95,11 +98,11 @@ func (s *Store) Get(id string) (*Folder, error) {
 	var parentID sql.NullString
 	var lastSync sql.NullTime
 	var uidValidity, uidNext sql.NullInt64
-	var highestModSeq sql.NullInt64
+	var highestModSeq, flagsSyncModSeq sql.NullInt64
 
 	err := s.db.QueryRow(query, id).Scan(
 		&f.ID, &f.AccountID, &f.Name, &f.Path, &f.Type, &parentID,
-		&uidValidity, &uidNext, &highestModSeq,
+		&uidValidity, &uidNext, &highestModSeq, &flagsSyncModSeq,
 		&f.TotalCount, &f.UnreadCount, &lastSync, &f.Subscribed,
 	)
 	if err == sql.ErrNoRows {
@@ -123,6 +126,9 @@ func (s *Store) Get(id string) (*Folder, error) {
 	}
 	if highestModSeq.Valid {
 		f.HighestModSeq = uint64(highestModSeq.Int64)
+	}
+	if flagsSyncModSeq.Valid {
+		f.FlagsSyncModSeq = uint64(flagsSyncModSeq.Int64)
 	}
 
 	return f, nil
@@ -132,7 +138,7 @@ func (s *Store) Get(id string) (*Folder, error) {
 func (s *Store) GetByPath(accountID, path string) (*Folder, error) {
 	query := `
 		SELECT id, account_id, name, path, folder_type, parent_id,
-		       uid_validity, uid_next, highest_mod_seq,
+		       uid_validity, uid_next, highest_mod_seq, flags_sync_modseq,
 		       total_count, unread_count, last_sync, subscribed
 		FROM folders
 		WHERE account_id = ? AND path = ?
@@ -142,11 +148,11 @@ func (s *Store) GetByPath(accountID, path string) (*Folder, error) {
 	var parentID sql.NullString
 	var lastSync sql.NullTime
 	var uidValidity, uidNext sql.NullInt64
-	var highestModSeq sql.NullInt64
+	var highestModSeq, flagsSyncModSeq sql.NullInt64
 
 	err := s.db.QueryRow(query, accountID, path).Scan(
 		&f.ID, &f.AccountID, &f.Name, &f.Path, &f.Type, &parentID,
-		&uidValidity, &uidNext, &highestModSeq,
+		&uidValidity, &uidNext, &highestModSeq, &flagsSyncModSeq,
 		&f.TotalCount, &f.UnreadCount, &lastSync, &f.Subscribed,
 	)
 	if err == sql.ErrNoRows {
@@ -170,6 +176,9 @@ func (s *Store) GetByPath(accountID, path string) (*Folder, error) {
 	}
 	if highestModSeq.Valid {
 		f.HighestModSeq = uint64(highestModSeq.Int64)
+	}
+	if flagsSyncModSeq.Valid {
+		f.FlagsSyncModSeq = uint64(flagsSyncModSeq.Int64)
 	}
 
 	return f, nil
@@ -183,9 +192,9 @@ func (s *Store) Create(f *Folder) error {
 
 	query := `
 		INSERT INTO folders (id, account_id, name, path, folder_type, parent_id,
-		                     uid_validity, uid_next, highest_mod_seq,
+		                     uid_validity, uid_next, highest_mod_seq, flags_sync_modseq,
 		                     total_count, unread_count, last_sync, subscribed)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	var parentID interface{}
@@ -200,7 +209,7 @@ func (s *Store) Create(f *Folder) error {
 
 	_, err := s.db.Exec(query,
 		f.ID, f.AccountID, f.Name, f.Path, f.Type, parentID,
-		f.UIDValidity, f.UIDNext, f.HighestModSeq,
+		f.UIDValidity, f.UIDNext, f.HighestModSeq, f.FlagsSyncModSeq,
 		f.TotalCount, f.UnreadCount, lastSync, f.Subscribed,
 	)
 	if err != nil {
@@ -225,6 +234,7 @@ func (s *Store) Update(f *Folder) error {
 			uid_validity = ?,
 			uid_next = ?,
 			highest_mod_seq = ?,
+			flags_sync_modseq = ?,
 			total_count = ?,
 			unread_count = ?,
 			last_sync = ?,
@@ -244,7 +254,7 @@ func (s *Store) Update(f *Folder) error {
 
 	_, err := s.db.Exec(query,
 		f.Name, f.Type, parentID,
-		f.UIDValidity, f.UIDNext, f.HighestModSeq,
+		f.UIDValidity, f.UIDNext, f.HighestModSeq, f.FlagsSyncModSeq,
 		f.TotalCount, f.UnreadCount, lastSync, f.Subscribed,
 		f.ID,
 	)
@@ -315,6 +325,9 @@ func (s *Store) Upsert(f *Folder) error {
 	if existing != nil {
 		// Update existing
 		f.ID = existing.ID
+		// Upsert callers often construct a discovery snapshot. Preserve the
+		// watermark because only a completed flag reconciliation may advance it.
+		f.FlagsSyncModSeq = existing.FlagsSyncModSeq
 		return s.Update(f)
 	}
 
@@ -326,7 +339,7 @@ func (s *Store) Upsert(f *Folder) error {
 func (s *Store) GetByType(accountID string, folderType Type) (*Folder, error) {
 	query := `
 		SELECT id, account_id, name, path, folder_type, parent_id,
-		       uid_validity, uid_next, highest_mod_seq,
+		       uid_validity, uid_next, highest_mod_seq, flags_sync_modseq,
 		       total_count, unread_count, last_sync, subscribed
 		FROM folders
 		WHERE account_id = ? AND folder_type = ?
@@ -337,11 +350,11 @@ func (s *Store) GetByType(accountID string, folderType Type) (*Folder, error) {
 	var parentID sql.NullString
 	var lastSync sql.NullTime
 	var uidValidity, uidNext sql.NullInt64
-	var highestModSeq sql.NullInt64
+	var highestModSeq, flagsSyncModSeq sql.NullInt64
 
 	err := s.db.QueryRow(query, accountID, folderType).Scan(
 		&f.ID, &f.AccountID, &f.Name, &f.Path, &f.Type, &parentID,
-		&uidValidity, &uidNext, &highestModSeq,
+		&uidValidity, &uidNext, &highestModSeq, &flagsSyncModSeq,
 		&f.TotalCount, &f.UnreadCount, &lastSync, &f.Subscribed,
 	)
 	if err == sql.ErrNoRows {
@@ -366,6 +379,9 @@ func (s *Store) GetByType(accountID string, folderType Type) (*Folder, error) {
 	if highestModSeq.Valid {
 		f.HighestModSeq = uint64(highestModSeq.Int64)
 	}
+	if flagsSyncModSeq.Valid {
+		f.FlagsSyncModSeq = uint64(flagsSyncModSeq.Int64)
+	}
 
 	return f, nil
 }
@@ -375,7 +391,7 @@ func (s *Store) GetByType(accountID string, folderType Type) (*Folder, error) {
 func (s *Store) ListSubscribed(accountID string) ([]*Folder, error) {
 	query := `
 		SELECT id, account_id, name, path, folder_type, parent_id,
-		       uid_validity, uid_next, highest_mod_seq,
+		       uid_validity, uid_next, highest_mod_seq, flags_sync_modseq,
 		       total_count, unread_count, last_sync, subscribed
 		FROM folders
 		WHERE account_id = ? AND (subscribed = 1 OR folder_type IN ('inbox', 'drafts', 'sent'))
@@ -394,11 +410,11 @@ func (s *Store) ListSubscribed(accountID string) ([]*Folder, error) {
 		var parentID sql.NullString
 		var lastSync sql.NullTime
 		var uidValidity, uidNext sql.NullInt64
-		var highestModSeq sql.NullInt64
+		var highestModSeq, flagsSyncModSeq sql.NullInt64
 
 		err := rows.Scan(
 			&f.ID, &f.AccountID, &f.Name, &f.Path, &f.Type, &parentID,
-			&uidValidity, &uidNext, &highestModSeq,
+			&uidValidity, &uidNext, &highestModSeq, &flagsSyncModSeq,
 			&f.TotalCount, &f.UnreadCount, &lastSync, &f.Subscribed,
 		)
 		if err != nil {
@@ -419,6 +435,9 @@ func (s *Store) ListSubscribed(accountID string) ([]*Folder, error) {
 		}
 		if highestModSeq.Valid {
 			f.HighestModSeq = uint64(highestModSeq.Int64)
+		}
+		if flagsSyncModSeq.Valid {
+			f.FlagsSyncModSeq = uint64(flagsSyncModSeq.Int64)
 		}
 
 		folders = append(folders, f)

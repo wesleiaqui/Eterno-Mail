@@ -33,6 +33,10 @@ type Folder struct {
 	UIDValidity   uint32 `json:"uidValidity"`
 	UIDNext       uint32 `json:"uidNext"`
 	HighestModSeq uint64 `json:"highestModSeq"`
+	// FlagsSyncModSeq is the highest MODSEQ whose flags were successfully
+	// reconciled into local storage. Unlike HighestModSeq, folder discovery
+	// and STATUS observations must never advance this watermark.
+	FlagsSyncModSeq uint64 `json:"flagsSyncModSeq"`
 
 	// Counts
 	TotalCount  int `json:"totalCount"`

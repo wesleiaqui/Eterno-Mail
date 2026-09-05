@@ -38,10 +38,11 @@ func TestCreateAndGet(t *testing.T) {
 	store := NewStore(db)
 
 	f := &Folder{
-		AccountID: "acc1",
-		Name:      "Inbox",
-		Path:      "INBOX",
-		Type:      TypeInbox,
+		AccountID:       "acc1",
+		Name:            "Inbox",
+		Path:            "INBOX",
+		Type:            TypeInbox,
+		FlagsSyncModSeq: 77,
 	}
 
 	if err := store.Create(f); err != nil {
@@ -67,6 +68,9 @@ func TestCreateAndGet(t *testing.T) {
 	if got.Type != TypeInbox {
 		t.Errorf("type: got %q, want %q", got.Type, TypeInbox)
 	}
+	if got.FlagsSyncModSeq != 77 {
+		t.Errorf("flagsSyncModSeq: got %d, want 77", got.FlagsSyncModSeq)
+	}
 	if got.AccountID != "acc1" {
 		t.Errorf("accountID: got %q, want %q", got.AccountID, "acc1")
 	}
@@ -78,10 +82,11 @@ func TestGetByPath(t *testing.T) {
 	store := NewStore(db)
 
 	f := &Folder{
-		AccountID: "acc1",
-		Name:      "Inbox",
-		Path:      "INBOX",
-		Type:      TypeInbox,
+		AccountID:       "acc1",
+		Name:            "Inbox",
+		Path:            "INBOX",
+		Type:            TypeInbox,
+		FlagsSyncModSeq: 77,
 	}
 	if err := store.Create(f); err != nil {
 		t.Fatalf("unexpected error on create: %v", err)
@@ -169,10 +174,11 @@ func TestUpdateSyncState(t *testing.T) {
 	store := NewStore(db)
 
 	f := &Folder{
-		AccountID: "acc1",
-		Name:      "Inbox",
-		Path:      "INBOX",
-		Type:      TypeInbox,
+		AccountID:       "acc1",
+		Name:            "Inbox",
+		Path:            "INBOX",
+		Type:            TypeInbox,
+		FlagsSyncModSeq: 77,
 	}
 	if err := store.Create(f); err != nil {
 		t.Fatalf("unexpected error on create: %v", err)
@@ -194,6 +200,9 @@ func TestUpdateSyncState(t *testing.T) {
 	}
 	if got.HighestModSeq != 300 {
 		t.Errorf("highestModSeq: got %d, want 300", got.HighestModSeq)
+	}
+	if got.FlagsSyncModSeq != 77 {
+		t.Errorf("flagsSyncModSeq: got %d, want 77 (STATUS must not advance it)", got.FlagsSyncModSeq)
 	}
 	if got.TotalCount != 50 {
 		t.Errorf("totalCount: got %d, want 50", got.TotalCount)
@@ -239,6 +248,41 @@ func TestHighestModSeqPersistsAfterReopen(t *testing.T) {
 	}
 	if got == nil || got.HighestModSeq != 300 {
 		t.Fatalf("HighestModSeq after reopen = %#v, want 300", got)
+	}
+}
+
+func TestObservedModSeqUpdatePreservesFlagsSyncWatermark(t *testing.T) {
+	db := openTestDB(t)
+	createTestAccount(t, db, "acc1")
+	store := NewStore(db)
+	f := &Folder{
+		AccountID:       "acc1",
+		Name:            "Inbox",
+		Path:            "INBOX",
+		Type:            TypeInbox,
+		HighestModSeq:   100,
+		FlagsSyncModSeq: 100,
+	}
+	if err := store.Create(f); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	// This mirrors SyncFolders: it may observe a newer mailbox MODSEQ while
+	// preserving the separate watermark established by a completed flag sync.
+	f.HighestModSeq = 150
+	if err := store.Update(f); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	got, err := store.Get(f.ID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.HighestModSeq != 150 {
+		t.Errorf("HighestModSeq = %d, want 150", got.HighestModSeq)
+	}
+	if got.FlagsSyncModSeq != 100 {
+		t.Errorf("FlagsSyncModSeq = %d, want 100", got.FlagsSyncModSeq)
 	}
 }
 

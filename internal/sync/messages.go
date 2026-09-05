@@ -17,6 +17,23 @@ import (
 	"github.com/hkdb/aerion/internal/message"
 )
 
+// messageSyncTimings records aggregate wall-clock time for one header sync.
+// It deliberately contains no per-message detail: the fields are only used by
+// the completion log to identify the expensive phase of a no-change sync.
+type messageSyncTimings struct {
+	acquire       time.Duration
+	status        time.Duration
+	selectMailbox time.Duration
+	localUIDs     time.Duration
+	search        time.Duration
+	compare       time.Duration
+	flags         time.Duration
+	fetchHeaders  time.Duration
+	headerPersist time.Duration
+	persist       time.Duration
+	cleanup       time.Duration
+}
+
 // SyncMessages synchronizes messages for a folder with incremental sync support.
 // syncPeriodDays determines how far back to sync (0 = all messages).
 // Messages are fetched in two phases: headers first (fast), then bodies (background).
@@ -33,6 +50,7 @@ import (
 // reconciliation. Deletion detection (the UID diff below) is unaffected either way.
 func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, syncPeriodDays int, preferIncremental bool) error {
 	startedAt := time.Now()
+	timings := messageSyncTimings{}
 	// Check context at start
 	if ctx.Err() != nil {
 		return ctx.Err()
@@ -65,7 +83,9 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 		Msg("Syncing messages (incremental)")
 
 	// Get a connection from the pool
+	acquireStarted := time.Now()
 	conn, err := e.pool.GetConnection(ctx, accountID)
+	timings.acquire = time.Since(acquireStarted)
 	if err != nil {
 		return fmt.Errorf("failed to get connection: %w", err)
 	}
@@ -80,14 +100,18 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	// sidebar "random big number"). We do NOT grab a second pooled connection
 	// here: doing so under a bounded pool can deadlock concurrent folder syncs.
 	// The value is also sanity-checked below (unseen can never exceed total).
+	statusStarted := time.Now()
 	mailboxStatus, statusErr := conn.Client().GetMailboxStatus(ctx, f.Path)
+	timings.status = time.Since(statusStarted)
 	if statusErr != nil {
 		e.log.Warn().Err(statusErr).Str("folder", f.Path).Msg("Failed to get mailbox status for unseen count")
 		mailboxStatus = nil
 	}
 
 	// Select the mailbox
+	selectStarted := time.Now()
 	mailbox, err := conn.Client().SelectMailbox(ctx, f.Path)
+	timings.selectMailbox = time.Since(selectStarted)
 	if err != nil {
 		return fmt.Errorf("failed to select mailbox: %w", err)
 	}
@@ -95,7 +119,7 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	// CONDSTORE baseline for this cycle's flag-sync decision. Captured BEFORE
 	// any mutation of f, so a UIDValidity reset below clears it explicitly.
 	// See condstore.go (shouldUseCondStore / nextModSeq).
-	prevModSeq := f.HighestModSeq
+	prevModSeq := f.FlagsSyncModSeq
 	uidValidityChanged := false
 
 	// Check for UIDValidity change (mailbox recreated)
@@ -107,10 +131,14 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 			Msg("UIDValidity changed, full resync required")
 
 		// Delete all local messages and resync
+		cleanupStarted := time.Now()
 		if err := e.messageStore.DeleteByFolder(folderID); err != nil {
+			timings.cleanup += time.Since(cleanupStarted)
 			return fmt.Errorf("failed to delete messages: %w", err)
 		}
+		timings.cleanup += time.Since(cleanupStarted)
 		f.UIDValidity = mailbox.UIDValidity
+		f.FlagsSyncModSeq = 0
 		// The old modseq refers to a different universe of UIDs after a
 		// mailbox recreation; treat this cycle as first-sync.
 		uidValidityChanged = true
@@ -127,7 +155,9 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 			Msg("Using date-based sync filter")
 
 		// Delete local messages older than sync period
+		cleanupStarted := time.Now()
 		deleted, err := e.messageStore.DeleteOlderThan(accountID, sinceDate)
+		timings.cleanup += time.Since(cleanupStarted)
 		if err != nil {
 			e.log.Warn().Err(err).Msg("Failed to delete old messages")
 		} else if deleted > 0 {
@@ -136,7 +166,9 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	}
 
 	// Get local message UIDs
+	localUIDsStarted := time.Now()
 	localUIDs, err := e.messageStore.GetAllUIDs(folderID)
+	timings.localUIDs = time.Since(localUIDsStarted)
 	if err != nil {
 		return fmt.Errorf("failed to get local UIDs: %w", err)
 	}
@@ -155,12 +187,14 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	e.emitProgress(accountID, folderID, 0, 0, "messages")
 
 	// Fetch UIDs from server (filtered by date if syncPeriodDays > 0)
+	searchStarted := time.Now()
 	var remoteUIDs []uint32
 	if syncPeriodDays > 0 {
 		remoteUIDs, err = e.fetchUIDsSince(ctx, conn.Client().RawClient(), sinceDate)
 	} else {
 		remoteUIDs, err = e.fetchAllUIDs(ctx, conn.Client().RawClient())
 	}
+	timings.search = time.Since(searchStarted)
 	if err != nil {
 		e.log.Error().Err(err).Str("folder", f.Path).Msg("Failed to fetch UIDs from server - aborting sync to prevent data loss")
 		return fmt.Errorf("failed to fetch UIDs: %w", err)
@@ -189,6 +223,7 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 		return nil
 	}
 
+	compareStarted := time.Now()
 	remoteUIDSet := make(map[uint32]bool)
 	for _, uid := range remoteUIDs {
 		remoteUIDSet[uid] = true
@@ -220,6 +255,7 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 			deletedUIDs = append(deletedUIDs, uid)
 		}
 	}
+	timings.compare = time.Since(compareStarted)
 
 	// SAFEGUARD: Warn if we're about to delete a large percentage of messages
 	// This could indicate a problem with the sync rather than actual deletions
@@ -239,6 +275,7 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	}
 
 	// Delete removed messages
+	cleanupStarted := time.Now()
 	for _, uid := range deletedUIDs {
 		// For Gmail: before deleting, check if the message exists in Trash or Spam.
 		// Gmail hides messages from all other IMAP views when Trash/Spam label is
@@ -261,6 +298,7 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 			e.log.Warn().Err(err).Uint32("uid", uid).Msg("Failed to delete message")
 		}
 	}
+	timings.cleanup += time.Since(cleanupStarted)
 
 	// Sync flags for existing messages (messages that exist both locally and on server)
 	var existingUIDs []uint32
@@ -270,11 +308,12 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 		}
 	}
 
-	// flagSyncOK gates whether the persisted HighestModSeq is allowed to
+	// flagSyncOK gates whether the persisted FlagsSyncModSeq is allowed to
 	// advance below. Stays true on success; flipped to false if the only
 	// available flag-sync path failed. See nextModSeq in condstore.go.
 	flagSyncOK := true
 	if len(existingUIDs) > 0 {
+		flagsStarted := time.Now()
 		flagSyncOK = e.runFlagSync(
 			ctx,
 			conn.Client().RawClient(),
@@ -286,6 +325,7 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 			conn.Client().SupportsCondStore(),
 			preferIncremental,
 		)
+		timings.flags = time.Since(flagsStarted)
 	}
 
 	// Fetch new messages with incremental approach (headers first)
@@ -323,7 +363,9 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 			// Fetch headers for this batch with retry on connection error
 			batchRetries := 0
 			for {
-				persisted, err := e.fetchMessageHeaders(ctx, conn.Client().RawClient(), accountID, folderID, batch)
+				headersStarted := time.Now()
+				persisted, err := e.fetchMessageHeaders(ctx, conn.Client().RawClient(), accountID, folderID, batch, &timings.headerPersist)
+				timings.fetchHeaders += time.Since(headersStarted)
 				if err == nil {
 					persistedNewMessages += persisted
 					break // Success
@@ -392,10 +434,17 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	now := time.Now()
 	f.UIDValidity = mailbox.UIDValidity
 	f.UIDNext = mailbox.UIDNext
-	// Pin modseq when flag sync didn't fully succeed — advancing the
-	// baseline after a partial failure silently skips whatever the failed
-	// cycle missed. See nextModSeq in condstore.go.
-	f.HighestModSeq = nextModSeq(flagSyncOK, mailbox.HighestModSeq, prevModSeq)
+	// Advance only the flag-sync watermark when reconciliation succeeded;
+	// advancing it after a partial failure would silently skip the missed
+	// changes on the next CHANGEDSINCE cycle. See nextModSeq in condstore.go.
+	// HighestModSeq is the latest value observed from SELECT. The independent
+	// FlagsSyncModSeq watermark advances only after runFlagSync persisted the
+	// reconciled flags successfully.
+	if mailbox.HighestModSeq != 0 {
+		f.HighestModSeq = mailbox.HighestModSeq
+	}
+	flagsSyncModSeqBefore := f.FlagsSyncModSeq
+	f.FlagsSyncModSeq = nextModSeq(flagSyncOK, mailbox.HighestModSeq, prevModSeq)
 	f.TotalCount = int(mailbox.Messages)
 	f.LastSync = &now
 
@@ -413,8 +462,15 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 		}
 	}
 
+	timings.persist += timings.headerPersist
+	persistStarted := time.Now()
 	if err := e.folderStore.Update(f); err != nil {
 		e.log.Warn().Err(err).Msg("Failed to update folder sync state")
+	}
+	timings.persist += time.Since(persistStarted)
+	fetchHeadersOnly := timings.fetchHeaders - timings.headerPersist
+	if fetchHeadersOnly < 0 {
+		fetchHeadersOnly = 0
 	}
 
 	e.log.Info().
@@ -424,6 +480,19 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 		Int("failed", len(newUIDs)-persistedNewMessages).
 		Int("new", persistedNewMessages).
 		Int("deleted", len(deletedUIDs)).
+		Int64("acquire_ms", timings.acquire.Milliseconds()).
+		Int64("status_ms", timings.status.Milliseconds()).
+		Int64("select_ms", timings.selectMailbox.Milliseconds()).
+		Int64("search_ms", timings.search.Milliseconds()).
+		Int64("local_uid_ms", timings.localUIDs.Milliseconds()).
+		Int64("compare_ms", timings.compare.Milliseconds()).
+		Int64("flags_ms", timings.flags.Milliseconds()).
+		Int64("fetch_headers_ms", fetchHeadersOnly.Milliseconds()).
+		Int64("persist_ms", timings.persist.Milliseconds()).
+		Int64("cleanup_ms", timings.cleanup.Milliseconds()).
+		Uint64("flags_sync_modseq_before", flagsSyncModSeqBefore).
+		Uint64("flags_sync_modseq_after", f.FlagsSyncModSeq).
+		Bool("watermark_advanced", f.FlagsSyncModSeq != flagsSyncModSeqBefore).
 		Dur("duration", time.Since(startedAt)).
 		Msg("Message sync complete (headers)")
 
@@ -485,6 +554,10 @@ func (e *Engine) SyncFolderFlags(ctx context.Context, accountID, folderID string
 	// rather than reconcile flags against a stale UID universe.
 	if f.UIDValidity != 0 && f.UIDValidity != mailbox.UIDValidity {
 		e.log.Info().Str("folder", f.Path).Msg("Flag-only sync: UIDValidity changed, deferring to full sync")
+		f.FlagsSyncModSeq = 0
+		if err := e.folderStore.Update(f); err != nil {
+			return fmt.Errorf("failed to reset flag-sync watermark after UIDValidity change: %w", err)
+		}
 		return nil
 	}
 
@@ -496,7 +569,7 @@ func (e *Engine) SyncFolderFlags(ctx context.Context, accountID, folderID string
 		return fmt.Errorf("failed to get local UIDs: %w", err)
 	}
 
-	prevModSeq := f.HighestModSeq
+	prevModSeq := f.FlagsSyncModSeq
 	flagSyncOK := true
 	if len(localUIDs) > 0 {
 		flagSyncOK = e.runFlagSync(
@@ -512,8 +585,12 @@ func (e *Engine) SyncFolderFlags(ctx context.Context, accountID, folderID string
 		)
 	}
 
-	// Advance the persisted modseq only when the flag sync succeeded.
-	f.HighestModSeq = nextModSeq(flagSyncOK, mailbox.HighestModSeq, prevModSeq)
+	// Advance the flag-sync watermark only when local flag persistence succeeded.
+	if mailbox.HighestModSeq != 0 {
+		f.HighestModSeq = mailbox.HighestModSeq
+	}
+	flagsSyncModSeqBefore := f.FlagsSyncModSeq
+	f.FlagsSyncModSeq = nextModSeq(flagSyncOK, mailbox.HighestModSeq, prevModSeq)
 
 	// Prefer the server's unseen count when plausible (unseen ≤ total), else the
 	// local count — same sanity guard as SyncMessages against a bogus STATUS.
@@ -530,6 +607,12 @@ func (e *Engine) SyncFolderFlags(ctx context.Context, accountID, folderID string
 	if err := e.folderStore.Update(f); err != nil {
 		return fmt.Errorf("failed to update folder: %w", err)
 	}
+	e.log.Debug().
+		Str("folder", f.Path).
+		Uint64("flags_sync_modseq_before", flagsSyncModSeqBefore).
+		Uint64("flags_sync_modseq_after", f.FlagsSyncModSeq).
+		Bool("watermark_advanced", f.FlagsSyncModSeq != flagsSyncModSeqBefore).
+		Msg("Flag-only sync watermark updated")
 
 	e.emitProgress(accountID, folderID, 1, 1, "headers")
 	return nil
@@ -635,7 +718,7 @@ func (e *Engine) syncMessageFlags(ctx context.Context, client *imapclient.Client
 		// Batch update all flags in a single transaction
 		if len(flagUpdates) > 0 {
 			if err := e.messageStore.UpdateFlagsByUIDBatch(folderID, flagUpdates); err != nil {
-				e.log.Warn().Err(err).Int("count", len(flagUpdates)).Msg("Failed to batch update message flags")
+				return fmt.Errorf("failed to batch update message flags: %w", err)
 			}
 		}
 	}
@@ -730,7 +813,7 @@ func (e *Engine) fetchAllUIDs(ctx context.Context, client *imapclient.Client) ([
 
 // fetchMessageHeaders fetches only headers (envelope, flags) for the given UIDs.
 // Messages are saved with BodyFetched=false, bodies to be fetched later.
-func (e *Engine) fetchMessageHeaders(ctx context.Context, client *imapclient.Client, accountID, folderID string, uids []uint32) (int, error) {
+func (e *Engine) fetchMessageHeaders(ctx context.Context, client *imapclient.Client, accountID, folderID string, uids []uint32, persistDuration *time.Duration) (int, error) {
 	if len(uids) == 0 {
 		return 0, nil
 	}
@@ -852,7 +935,10 @@ func (e *Engine) fetchMessageHeaders(ctx context.Context, client *imapclient.Cli
 		applyFlagsToMessage(m, flags)
 
 		// Save to store immediately (don't wait for all messages)
-		if err := e.messageStore.Upsert(m); err != nil {
+		persistStarted := time.Now()
+		err := e.messageStore.Upsert(m)
+		*persistDuration += time.Since(persistStarted)
+		if err != nil {
 			e.log.Warn().Err(err).
 				Str("account_id", accountID).
 				Str("folder_id", folderID).
@@ -904,14 +990,20 @@ func (e *Engine) fetchMessageHeaders(ctx context.Context, client *imapclient.Cli
 		threadID := e.computeThreadID(accountID, m)
 		if threadID != "" && threadID != m.ThreadID {
 			m.ThreadID = threadID
-			if err := e.messageStore.UpdateThreadID(m.ID, threadID); err != nil {
+			persistStarted := time.Now()
+			err := e.messageStore.UpdateThreadID(m.ID, threadID)
+			*persistDuration += time.Since(persistStarted)
+			if err != nil {
 				e.log.Warn().Err(err).Str("message_ref", logging.ShortHash(m.ID)).Msg("Failed to update thread ID")
 			}
 		}
 
 		// Reconcile threads: link this message with related messages
 		// This handles cases where replies were synced before the original message
-		if err := e.messageStore.ReconcileThreadsForNewMessage(accountID, m.ID, m.MessageID, m.ThreadID, m.InReplyTo); err != nil {
+		persistStarted := time.Now()
+		err := e.messageStore.ReconcileThreadsForNewMessage(accountID, m.ID, m.MessageID, m.ThreadID, m.InReplyTo)
+		*persistDuration += time.Since(persistStarted)
+		if err != nil {
 			e.log.Warn().Err(err).Str("message_ref", logging.ShortHash(m.ID)).Msg("Failed to reconcile threads")
 		}
 	}

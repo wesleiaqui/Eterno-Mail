@@ -15,11 +15,13 @@ package sync
 //   - messages.go       — keeps the existing full-sync fallback verbatim
 //   - condstore_test.go — unit tests for the pure helpers
 //
-// Correctness story lives in nextModSeq. Anywhere we advance the persisted
-// HighestModSeq after a flag sync that didn't succeed, the next sync silently
-// skips whatever changes we missed (it asks for "what changed since [the new
-// modseq]" — which excludes the ones we never saw). So the test for nextModSeq
-// nails that invariant: failure ⇒ pinned, success ⇒ advance.
+// Correctness story lives in nextModSeq. folders.HighestModSeq is the latest
+// MODSEQ observed by STATUS/SELECT and can be advanced by folder discovery.
+// Folder.FlagsSyncModSeq is separate: it advances only after local flags were
+// reconciled successfully. CHANGEDSINCE must always use that latter watermark;
+// otherwise a STATUS observation between syncs could silently skip unpersisted
+// changes. The test for nextModSeq nails the invariant: failure ⇒ pinned,
+// success ⇒ advance.
 
 import (
 	"context"
@@ -83,7 +85,8 @@ func condStoreFallbackReason(uidValidityChanged bool, prevModSeq, mailboxModSeq 
 	}
 }
 
-// nextModSeq returns the value to persist as the folder's new HighestModSeq.
+// nextModSeq returns the value to persist as the folder's new
+// FlagsSyncModSeq watermark.
 // This is the single load-bearing safety invariant of the whole CONDSTORE
 // fix: advancing the baseline after a flag sync that didn't succeed means
 // the next cycle's CHANGEDSINCE filter skips whatever the failed cycle
@@ -124,8 +127,8 @@ const (
 // sweep is forced every flagFullSweepEvery cycles.
 //
 // Returns flagSyncOK — true when the cycle's flag state can be trusted (so
-// HighestModSeq may advance via nextModSeq); false when the flag sync failed
-// and the persisted modseq must be pinned so the next cycle re-checks.
+// FlagsSyncModSeq may advance via nextModSeq); false when the flag sync failed
+// and the persisted watermark must be pinned so the next cycle re-checks.
 //
 // preferIncremental forces the CONDSTORE fast-path whenever CONDSTORE is usable,
 // bypassing the size threshold and periodic sweep. It's set by the IDLE
@@ -169,7 +172,11 @@ func (e *Engine) runFlagSync(
 			Str("folder", folderID).
 			Int("existing", len(existingUIDs)).
 			Bool("condstore_supported", supportsCondStore).
+			Str("mode", "full").
 			Str("reason", reason).
+			Uint64("flags_prev_modseq", prevModSeq).
+			Uint64("current_modseq", mailboxModSeq).
+			Bool("baseline_valid", prevModSeq != 0 && mailboxModSeq != 0 && supportsCondStore && !uidValidityChanged).
 			Msg("Flag sync: full reconciliation")
 		if err := e.syncMessageFlags(ctx, rawClient, folderID, existingUIDs); err != nil {
 			e.log.Warn().Err(err).Msg("Full flag reconciliation failed")
@@ -185,7 +192,12 @@ func (e *Engine) runFlagSync(
 			Str("folder", folderID).
 			Int("changed", changed).
 			Int("existing", len(existingUIDs)).
+			Str("mode", "incremental").
+			Str("reason", "condstore").
 			Uint64("sinceModSeq", prevModSeq).
+			Uint64("flags_prev_modseq", prevModSeq).
+			Uint64("current_modseq", mailboxModSeq).
+			Bool("baseline_valid", true).
 			Msg("Flag sync: incremental (CONDSTORE)")
 		return true
 	}

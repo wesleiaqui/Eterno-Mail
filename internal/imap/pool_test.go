@@ -20,7 +20,9 @@ type testIMAPServer struct {
 	listener net.Listener
 	accepted chan struct{}
 	gate     <-chan struct{}
+	noopGate <-chan struct{}
 	count    atomic.Int32
+	noops    atomic.Int32
 }
 
 func newTestIMAPServer(t *testing.T, gate <-chan struct{}) *testIMAPServer {
@@ -59,6 +61,12 @@ func (s *testIMAPServer) handle(conn net.Conn) {
 		fields := strings.Fields(scanner.Text())
 		if len(fields) < 2 {
 			continue
+		}
+		if strings.EqualFold(fields[1], "NOOP") {
+			s.noops.Add(1)
+			if s.noopGate != nil {
+				<-s.noopGate
+			}
 		}
 		if strings.EqualFold(fields[1], "LOGIN") && s.gate != nil {
 			<-s.gate
@@ -165,6 +173,140 @@ func TestPoolReusesReleasedConnection(t *testing.T) {
 	}
 	if got := server.count.Load(); got != 1 {
 		t.Fatalf("created %d connections, want 1", got)
+	}
+}
+
+func TestPoolSkipsHealthCheckForRecentlyValidatedConnection(t *testing.T) {
+	server := newTestIMAPServer(t, nil)
+	pool := NewPool(testPoolConfig(1), server.credentials)
+	defer pool.CloseAll()
+
+	conn, err := pool.GetConnection(context.Background(), "account")
+	if err != nil {
+		t.Fatalf("first GetConnection: %v", err)
+	}
+	pool.Release(conn)
+
+	reused, err := pool.GetConnection(context.Background(), "account")
+	if err != nil {
+		t.Fatalf("reused GetConnection: %v", err)
+	}
+	defer pool.Release(reused)
+	if reused != conn {
+		t.Fatal("reused connection differs from the original")
+	}
+	if got := server.noops.Load(); got != 0 {
+		t.Fatalf("NOOP count for recently validated connection = %d, want 0", got)
+	}
+}
+
+func TestPoolHealthCheckRunsAfterTTL(t *testing.T) {
+	server := newTestIMAPServer(t, nil)
+	pool := NewPool(testPoolConfig(1), server.credentials)
+	defer pool.CloseAll()
+
+	conn, err := pool.GetConnection(context.Background(), "account")
+	if err != nil {
+		t.Fatalf("first GetConnection: %v", err)
+	}
+	pool.Release(conn)
+	conn.mu.Lock()
+	conn.lastHealthCheck = time.Now().Add(-healthCheckTTL)
+	conn.mu.Unlock()
+
+	reused, err := pool.GetConnection(context.Background(), "account")
+	if err != nil {
+		t.Fatalf("reused GetConnection after TTL: %v", err)
+	}
+	defer pool.Release(reused)
+	if got := server.noops.Load(); got != 1 {
+		t.Fatalf("NOOP count after health-check TTL = %d, want 1", got)
+	}
+}
+
+func TestPoolDiscardsConnectionWhenExpiredHealthCheckFails(t *testing.T) {
+	server := newTestIMAPServer(t, nil)
+	pool := NewPool(testPoolConfig(1), server.credentials)
+	defer pool.CloseAll()
+
+	conn, err := pool.GetConnection(context.Background(), "account")
+	if err != nil {
+		t.Fatalf("first GetConnection: %v", err)
+	}
+	pool.Release(conn)
+	conn.mu.Lock()
+	conn.lastHealthCheck = time.Now().Add(-healthCheckTTL)
+	conn.mu.Unlock()
+	if err := conn.Client().ForceClose(); err != nil {
+		t.Fatalf("ForceClose: %v", err)
+	}
+
+	replacement, err := pool.GetConnection(context.Background(), "account")
+	if err != nil {
+		t.Fatalf("GetConnection after failed health check: %v", err)
+	}
+	defer pool.Release(replacement)
+	if replacement == conn {
+		t.Fatal("failed health check returned the closed connection")
+	}
+	if got := server.count.Load(); got != 2 {
+		t.Fatalf("created %d connections, want replacement connection", got)
+	}
+}
+
+func TestPoolSlowHealthCheckDoesNotBlockOtherReservedConnection(t *testing.T) {
+	server := newTestIMAPServer(t, nil)
+	pool := NewPool(testPoolConfig(2), server.credentials)
+	defer pool.CloseAll()
+
+	first, err := pool.GetConnection(context.Background(), "account")
+	if err != nil {
+		t.Fatalf("first GetConnection: %v", err)
+	}
+	second, err := pool.GetConnection(context.Background(), "account")
+	if err != nil {
+		t.Fatalf("second GetConnection: %v", err)
+	}
+	pool.Release(first)
+	pool.Release(second)
+	for _, conn := range []*PooledConnection{first, second} {
+		conn.mu.Lock()
+		conn.lastHealthCheck = time.Now().Add(-healthCheckTTL)
+		conn.mu.Unlock()
+	}
+
+	gate := make(chan struct{})
+	server.noopGate = gate
+	results := make(chan *PooledConnection, 2)
+	errs := make(chan error, 2)
+	acquire := func() {
+		conn, err := pool.GetConnection(context.Background(), "account")
+		errs <- err
+		results <- conn
+	}
+	go acquire()
+
+	waitForNoops := func(want int32) {
+		t.Helper()
+		deadline := time.Now().Add(time.Second)
+		for time.Now().Before(deadline) {
+			if server.noops.Load() >= want {
+				return
+			}
+			time.Sleep(time.Millisecond)
+		}
+		t.Fatalf("NOOP count = %d, want at least %d", server.noops.Load(), want)
+	}
+	waitForNoops(1)
+	go acquire()
+	waitForNoops(2)
+	close(gate)
+
+	for range 2 {
+		if err := <-errs; err != nil {
+			t.Fatalf("GetConnection: %v", err)
+		}
+		pool.Release(<-results)
 	}
 }
 

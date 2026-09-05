@@ -63,19 +63,29 @@ func DefaultPoolConfig() PoolConfig {
 
 // PooledConnection wraps a Client with pool metadata
 type PooledConnection struct {
-	client    *Client
-	accountID string
-	createdAt time.Time
-	lastUsed  time.Time
-	inUse     bool
-	mu        sync.Mutex
+	client          *Client
+	accountID       string
+	createdAt       time.Time
+	lastUsed        time.Time
+	lastHealthCheck time.Time
+	inUse           bool
+	mu              sync.Mutex
 }
+
+// healthCheckTTL is intentionally far shorter than the pool idle timeout. It
+// avoids duplicate NOOP round trips around a just-completed operation while
+// still periodically detecting a server-side closed connection before reuse.
+const healthCheckTTL = 15 * time.Second
 
 // IsHealthy checks if the connection is still usable (acquires lock)
 func (pc *PooledConnection) IsHealthy() bool {
 	pc.mu.Lock()
 	defer pc.mu.Unlock()
-	return pc.isHealthyLocked()
+	healthy := pc.isHealthyLocked()
+	if healthy {
+		pc.lastHealthCheck = time.Now()
+	}
+	return healthy
 }
 
 // isHealthyLocked checks health without acquiring lock (caller must hold lock).
@@ -132,13 +142,19 @@ func NewPool(config PoolConfig, getCredentials func(accountID string) (*ClientCo
 
 // GetConnection gets or creates a connection for an account
 func (p *Pool) GetConnection(ctx context.Context, accountID string) (*PooledConnection, error) {
+	acquireStarted := time.Now()
 	hasWaited := false
 	waitStarted := time.Now()
+	var poolWaitDuration time.Duration
+	var poolLockWait time.Duration
+	var connectionLockWait time.Duration
+	var healthCheckDuration time.Duration
 	recordWait := func() {
 		if !hasWaited {
 			return
 		}
 		waited := time.Since(waitStarted)
+		poolWaitDuration = waited
 		p.mu.Lock()
 		p.waitCounts[accountID]++
 		p.waitTotal[accountID] += waited
@@ -148,21 +164,77 @@ func (p *Pool) GetConnection(ctx context.Context, accountID string) (*PooledConn
 		p.mu.Unlock()
 	}
 	defer recordWait()
-	for {
-		p.mu.Lock()
 
-		// Try to find an available connection.
+	// validateReservedConnection runs after the connection was atomically
+	// reserved under p.mu. It must never be called while holding p.mu: NOOP is
+	// network I/O and one slow server response must not block other accounts or
+	// other idle connections in this pool.
+	validateReservedConnection := func(conn *PooledConnection, source string) (*PooledConnection, bool) {
+		connectionLockStarted := time.Now()
+		conn.mu.Lock()
+		connectionLockWait += time.Since(connectionLockStarted)
+
+		now := time.Now()
+		healthCheckRequired := conn.lastHealthCheck.IsZero() || now.Sub(conn.lastHealthCheck) >= healthCheckTTL
+		healthy := conn.client != nil && conn.client.client != nil
+		if healthCheckRequired && healthy {
+			healthCheckStarted := time.Now()
+			healthy = conn.isHealthyLocked()
+			healthCheckDuration += time.Since(healthCheckStarted)
+			if healthy {
+				conn.lastHealthCheck = time.Now()
+			}
+		}
+		conn.mu.Unlock()
+
+		if !healthy {
+			p.log.Debug().
+				Str("account", accountID).
+				Str("connection_source", source).
+				Bool("health_check_performed", healthCheckRequired).
+				Msg("Reserved IMAP connection is unhealthy, discarding")
+			p.Discard(conn)
+			return nil, false
+		}
+
+		p.log.Debug().
+			Str("account", accountID).
+			Str("connection_source", source).
+			Int64("pool_lock_wait_ms", poolLockWait.Milliseconds()).
+			Int64("connection_lock_wait_ms", connectionLockWait.Milliseconds()).
+			Int64("health_check_ms", healthCheckDuration.Milliseconds()).
+			Int64("pool_wait_ms", poolWaitDuration.Milliseconds()).
+			Int64("total_ms", time.Since(acquireStarted).Milliseconds()).
+			Bool("health_check_performed", healthCheckRequired).
+			Bool("health_check_skipped_recent", !healthCheckRequired).
+			Msg("IMAP connection acquired")
+		return conn, true
+	}
+
+	acquireLoop:
+	for {
+		poolLockStarted := time.Now()
+		p.mu.Lock()
+		poolLockWait += time.Since(poolLockStarted)
+
+		// Reserve an available connection while holding p.mu. The subsequent
+		// health check happens after p.mu is released.
 		if conns, ok := p.connections[accountID]; ok {
 			for _, conn := range conns {
+				connectionLockStarted := time.Now()
 				conn.mu.Lock()
-				if !conn.inUse && conn.isHealthyLocked() {
+				connectionLockWait += time.Since(connectionLockStarted)
+				if !conn.inUse {
 					conn.inUse = true
 					conn.lastUsed = time.Now()
 					conn.mu.Unlock()
 					p.mu.Unlock()
-
-					p.log.Debug().Str("account", accountID).Msg("Reusing existing connection")
-					return conn, nil
+					if acquired, ok := validateReservedConnection(conn, "reused"); ok {
+						return acquired, nil
+					}
+					// A failed health check discarded the reserved connection; retry
+					// the normal lookup/create path.
+					continue acquireLoop
 				}
 				conn.mu.Unlock()
 			}
@@ -188,11 +260,17 @@ func (p *Pool) GetConnection(ctx context.Context, accountID string) (*PooledConn
 		select {
 		case result := <-waiter:
 			timer.Stop()
+			poolWaitDuration = time.Since(waitStarted)
 			if result.closed {
 				return nil, fmt.Errorf("connection pool closed")
 			}
 			if result.conn != nil {
-				return result.conn, nil
+				if acquired, ok := validateReservedConnection(result.conn, "reused_after_wait"); ok {
+					return acquired, nil
+				}
+				// A waiter can receive a connection whose last health check expired
+				// while it was in use. Discard it on failure and retry normally.
+				continue acquireLoop
 			}
 			// A connection attempt failed and released a slot. Try again.
 		case <-ctx.Done():
@@ -223,6 +301,7 @@ func (p *Pool) removeWaiterLocked(accountID string, waiter chan poolWaitResult) 
 
 // createConnection creates a new connection for an account
 func (p *Pool) createConnection(ctx context.Context, accountID string) (*PooledConnection, error) {
+	creationStarted := time.Now()
 	conn, err := p.createConnectionWithRetry(ctx, accountID, 0)
 
 	p.mu.Lock()
@@ -242,21 +321,34 @@ func (p *Pool) createConnection(ctx context.Context, accountID string) (*PooledC
 		return nil, err
 	}
 
-	p.log.Info().Str("account", accountID).Msg("New connection created")
+	p.log.Info().
+		Str("account", accountID).
+		Str("connection_source", "created").
+		Int64("total_create_ms", time.Since(creationStarted).Milliseconds()).
+		Msg("New connection created")
 	return conn, nil
 }
 
 // createConnectionWithRetry creates a connection with retry logic for transient errors
 // like "max connections exceeded" (server still has ghost connections after network change).
 func (p *Pool) createConnectionWithRetry(ctx context.Context, accountID string, attempt int) (*PooledConnection, error) {
+	creationStarted := time.Now()
 	p.log.Debug().
 		Str("account", accountID).
+		Int("attempt", attempt+1).
 		Msg("Creating new connection")
 
 	// Get credentials for this account
+	credentialsStarted := time.Now()
 	config, err := p.getCredentials(accountID)
+	credentialsDuration := time.Since(credentialsStarted)
 	if err != nil {
-		p.log.Error().Err(err).Str("account", accountID).Msg("Failed to get credentials")
+		p.log.Error().
+			Err(err).
+			Str("account", accountID).
+			Int64("credentials_ms", credentialsDuration.Milliseconds()).
+			Int64("total_create_ms", time.Since(creationStarted).Milliseconds()).
+			Msg("Failed to get credentials")
 		return nil, fmt.Errorf("failed to get credentials: %w", err)
 	}
 
@@ -273,19 +365,40 @@ func (p *Pool) createConnectionWithRetry(ctx context.Context, accountID string, 
 	// Use a goroutine with context for connection timeout
 	done := make(chan error, 1)
 	go func() {
+		connectStarted := time.Now()
 		if err := client.Connect(); err != nil {
-			p.log.Error().Err(err).Str("account", accountID).Msg("IMAP Connect failed")
+			p.log.Error().
+				Err(err).
+				Str("account", accountID).
+				Int64("credentials_ms", credentialsDuration.Milliseconds()).
+				Int64("connect_ms", time.Since(connectStarted).Milliseconds()).
+				Int64("total_create_ms", time.Since(creationStarted).Milliseconds()).
+				Msg("IMAP Connect failed")
 			done <- err
 			return
 		}
 		p.log.Debug().Str("account", accountID).Msg("IMAP connected, logging in")
+		authStarted := time.Now()
 		if err := client.Login(); err != nil {
-			p.log.Error().Err(err).Str("account", accountID).Msg("IMAP Login failed")
+			p.log.Error().
+				Err(err).
+				Str("account", accountID).
+				Int64("credentials_ms", credentialsDuration.Milliseconds()).
+				Int64("connect_ms", authStarted.Sub(connectStarted).Milliseconds()).
+				Int64("auth_ms", time.Since(authStarted).Milliseconds()).
+				Int64("total_create_ms", time.Since(creationStarted).Milliseconds()).
+				Msg("IMAP Login failed")
 			client.ForceClose()
 			done <- err
 			return
 		}
-		p.log.Debug().Str("account", accountID).Msg("IMAP login successful")
+		p.log.Debug().
+			Str("account", accountID).
+			Int64("credentials_ms", credentialsDuration.Milliseconds()).
+			Int64("connect_ms", authStarted.Sub(connectStarted).Milliseconds()).
+			Int64("auth_ms", time.Since(authStarted).Milliseconds()).
+			Int64("total_create_ms", time.Since(creationStarted).Milliseconds()).
+			Msg("IMAP connection creation complete")
 		done <- nil
 	}()
 
@@ -315,11 +428,12 @@ func (p *Pool) createConnectionWithRetry(ctx context.Context, accountID string, 
 	}
 
 	conn := &PooledConnection{
-		client:    client,
-		accountID: accountID,
-		createdAt: time.Now(),
-		lastUsed:  time.Now(),
-		inUse:     true,
+		client:          client,
+		accountID:       accountID,
+		createdAt:       time.Now(),
+		lastUsed:        time.Now(),
+		lastHealthCheck: time.Now(), // Connect + Login just completed successfully.
+		inUse:           true,
 	}
 
 	return conn, nil
@@ -331,22 +445,29 @@ func (p *Pool) Release(conn *PooledConnection) {
 		return
 	}
 
+	releaseStarted := time.Now()
+	connectionLockStarted := time.Now()
 	conn.mu.Lock()
+	connectionLockWait := time.Since(connectionLockStarted)
 	conn.inUse = false
 	conn.lastUsed = time.Now()
-	healthy := conn.isHealthyLocked()
+	trackedClient := conn.client != nil && conn.client.client != nil
+	healthCheckSkippedRecent := !conn.lastHealthCheck.IsZero() && time.Since(conn.lastHealthCheck) < healthCheckTTL
 	conn.mu.Unlock()
 
+	poolLockStarted := time.Now()
 	p.mu.Lock()
+	poolLockWait := time.Since(poolLockStarted)
 	defer p.mu.Unlock()
 
-	// Verify the connection is still tracked by the pool and healthy before
-	// handing it to a waiter. After CloseAll (sleep), dead connections from
-	// deferred Release calls must not be given to waiters.
-	if !healthy {
+	// Release deliberately avoids a network round trip. A subsequent acquire
+	// validates stale connections outside p.mu; a recently created or checked
+	// connection remains valid for healthCheckTTL. We still reject locally
+	// closed clients so CloseAll/sleep cannot hand a nil client to a waiter.
+	if !trackedClient {
 		p.log.Debug().
 			Str("account", conn.accountID).
-			Msg("Released connection is unhealthy, discarding")
+			Msg("Released connection is locally closed, discarding")
 		return
 	}
 
@@ -381,6 +502,12 @@ func (p *Pool) Release(conn *PooledConnection) {
 
 	p.log.Debug().
 		Str("account", conn.accountID).
+		Int64("connection_lock_wait_ms", connectionLockWait.Milliseconds()).
+		Int64("health_check_ms", 0).
+		Int64("pool_lock_wait_ms", poolLockWait.Milliseconds()).
+		Int64("total_ms", time.Since(releaseStarted).Milliseconds()).
+		Bool("health_check_performed", false).
+		Bool("health_check_skipped_recent", healthCheckSkippedRecent).
 		Msg("Connection released to pool")
 }
 

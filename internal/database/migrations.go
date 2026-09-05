@@ -1383,4 +1383,15 @@ var migrations = []Migration{
 			DELETE FROM sender_logo_cache WHERE data = '' AND media_type = '';
 		`,
 	},
+	{
+		Version: 47,
+		SQL: `
+			-- Watermark for a completed local flag reconciliation. This is kept
+			-- separate from folders.highest_mod_seq, which is merely the latest
+			-- MODSEQ observed by folder discovery/STATUS and may advance before
+			-- local flags have been applied. Existing rows deliberately start at
+			-- zero so their first reconciliation establishes a trusted baseline.
+			ALTER TABLE folders ADD COLUMN flags_sync_modseq INTEGER NOT NULL DEFAULT 0;
+		`,
+	},
 }

@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -19,8 +20,25 @@ type folderStatusResult struct {
 	err     error
 }
 
-// Concurrency limit for parallel STATUS fetches
-const folderStatusWorkers = 5
+// folderStatusWorkers must not exceed the per-account IMAP pool maximum
+// (currently 3). Each worker holds one connection and reuses it for multiple
+// STATUS commands, avoiding an Acquire/Release cycle per mailbox.
+const folderStatusWorkers = 3
+
+type folderStatusMetrics struct {
+	requested    int
+	completed    int
+	failed       int
+	workers      int
+	acquireTotal time.Duration
+}
+
+type folderStatusJob struct {
+	index   int
+	mailbox *imapPkg.Mailbox
+}
+
+var errFolderStatusUnprocessed = errors.New("mailbox status was not processed")
 
 // SyncFolders synchronizes the folder list for an account
 func (e *Engine) SyncFolders(ctx context.Context, accountID string) error {
@@ -99,7 +117,7 @@ func (e *Engine) SyncFolders(ctx context.Context, accountID string) error {
 
 	// Fetch STATUS for all folders in parallel
 	statusStarted := time.Now()
-	results := e.fetchFolderStatusParallel(ctx, accountID, mailboxes)
+	results, statusMetrics := e.fetchFolderStatusWorkers(ctx, accountID, mailboxes)
 	statusDuration := time.Since(statusStarted)
 
 	// Sort results by path depth so parents are processed before children.
@@ -175,6 +193,20 @@ func (e *Engine) SyncFolders(ctx context.Context, accountID string) error {
 			}
 
 			if status != nil {
+				// A MODSEQ belongs to one UIDValidity generation. Folder discovery
+				// may observe a UIDValidity change before SyncMessages selects this
+				// folder, so clear the independent flag watermark here as well.
+				// Otherwise the next CHANGEDSINCE could use a baseline from the old
+				// UID universe.
+				if existing.UIDValidity != 0 && status.UIDValidity != 0 && existing.UIDValidity != status.UIDValidity {
+					e.log.Info().
+						Str("folder", mb.Name).
+						Uint32("previous_uidvalidity", existing.UIDValidity).
+						Uint32("current_uidvalidity", status.UIDValidity).
+						Uint64("flags_sync_modseq_before", existing.FlagsSyncModSeq).
+						Msg("Folder discovery: UIDValidity changed; resetting flag-sync watermark")
+					existing.FlagsSyncModSeq = 0
+				}
 				existing.UIDValidity = status.UIDValidity
 				existing.UIDNext = status.UIDNext
 				existing.HighestModSeq = status.HighestModSeq
@@ -235,6 +267,11 @@ func (e *Engine) SyncFolders(ctx context.Context, accountID string) error {
 	e.log.Info().
 		Str("account", accountID).
 		Int("folders", len(mailboxes)).
+		Int("status_requested", statusMetrics.requested).
+		Int("status_completed", statusMetrics.completed).
+		Int("status_failed", statusMetrics.failed).
+		Int("status_workers", statusMetrics.workers).
+		Dur("status_acquire_total", statusMetrics.acquireTotal).
 		Dur("list_acquire", listAcquireDuration).
 		Dur("list", listDuration).
 		Dur("subscribed_list", subscribedDuration).
@@ -306,51 +343,103 @@ func (e *Engine) persistAutoDetectedMappings(accountID string) {
 	e.log.Debug().Str("account", accountID).Msg("Auto-detected folder mappings persisted")
 }
 
-// fetchFolderStatusParallel fetches STATUS for multiple folders concurrently
+// fetchFolderStatusParallel is retained for focused callers/tests. SyncFolders
+// uses fetchFolderStatusWorkers to include aggregate metrics in its final log.
 func (e *Engine) fetchFolderStatusParallel(ctx context.Context, accountID string, mailboxes []*imapPkg.Mailbox) []folderStatusResult {
+	results, _ := e.fetchFolderStatusWorkers(ctx, accountID, mailboxes)
+	return results
+}
+
+// fetchFolderStatusWorkers sends exactly one STATUS command for every
+// selectable mailbox. It uses at most folderStatusWorkers persistent pool
+// connections; each worker acquires once, drains several jobs sequentially,
+// then releases once. Non-selectable LIST entries retain their position in the
+// result list but never receive STATUS.
+func (e *Engine) fetchFolderStatusWorkers(ctx context.Context, accountID string, mailboxes []*imapPkg.Mailbox) ([]folderStatusResult, folderStatusMetrics) {
 	results := make([]folderStatusResult, len(mailboxes))
+	jobs := make([]folderStatusJob, 0, len(mailboxes))
+	for i, mailbox := range mailboxes {
+		results[i] = folderStatusResult{mailbox: mailbox}
+		if mailbox == nil || !mailbox.IsSelectable() {
+			continue
+		}
+		// This is replaced by the single worker that consumes this job. If every
+		// worker fails to acquire a connection, it preserves the old behavior of
+		// treating this mailbox status as failed rather than silently using zeroes.
+		results[i].err = errFolderStatusUnprocessed
+		jobs = append(jobs, folderStatusJob{index: i, mailbox: mailbox})
+	}
 
-	// Use a semaphore to limit concurrency
-	sem := make(chan struct{}, folderStatusWorkers)
+	metrics := folderStatusMetrics{requested: len(jobs)}
+	if len(jobs) == 0 {
+		return results, metrics
+	}
+
+	metrics.workers = folderStatusWorkers
+	if len(jobs) < metrics.workers {
+		metrics.workers = len(jobs)
+	}
+
+	// A buffered, pre-filled channel means an acquisition failure cannot leave a
+	// producer blocked with no remaining worker. Other acquired workers continue
+	// draining the same queue; any unconsumed jobs retain the controlled error
+	// above and are counted as failures below.
+	jobCh := make(chan folderStatusJob, len(jobs))
+	for _, job := range jobs {
+		jobCh <- job
+	}
+	close(jobCh)
+
 	var wg gosync.WaitGroup
+	var mu gosync.Mutex
+	var acquireErr error
 
-	for i, mb := range mailboxes {
+	for i := 0; i < metrics.workers; i++ {
 		wg.Add(1)
-		go func(idx int, mailbox *imapPkg.Mailbox) {
+		go func() {
 			defer wg.Done()
-			if !mailbox.IsSelectable() {
-				// Keep structural LIST entries for hierarchy, but STATUS is invalid.
-				results[idx] = folderStatusResult{mailbox: mailbox}
-				return
-			}
-
-			// Acquire semaphore
-			select {
-			case sem <- struct{}{}:
-				defer func() { <-sem }()
-			case <-ctx.Done():
-				results[idx] = folderStatusResult{mailbox: mailbox, err: ctx.Err()}
-				return
-			}
-
-			// Get a connection for this STATUS request
+			acquireStarted := time.Now()
 			conn, err := e.pool.GetConnection(ctx, accountID)
+			mu.Lock()
+			metrics.acquireTotal += time.Since(acquireStarted)
+			mu.Unlock()
 			if err != nil {
-				results[idx] = folderStatusResult{mailbox: mailbox, err: err}
+				mu.Lock()
+				acquireErr = err
+				mu.Unlock()
 				return
 			}
 			defer e.pool.Release(conn)
 
-			// Fetch STATUS
-			status, err := conn.Client().GetMailboxStatus(ctx, mailbox.Name)
-			results[idx] = folderStatusResult{
-				mailbox: mailbox,
-				status:  status,
-				err:     err,
+			for job := range jobCh {
+				status, statusErr := conn.Client().GetMailboxStatus(ctx, job.mailbox.Name)
+				mu.Lock()
+				results[job.index] = folderStatusResult{
+					mailbox: job.mailbox,
+					status:  status,
+					err:     statusErr,
+				}
+				mu.Unlock()
 			}
-		}(i, mb)
+		}()
 	}
 
 	wg.Wait()
-	return results
+	for _, job := range jobs {
+		result := results[job.index]
+		if result.err == errFolderStatusUnprocessed {
+			if acquireErr != nil {
+				result.err = acquireErr
+			} else if ctx.Err() != nil {
+				result.err = ctx.Err()
+			}
+			results[job.index] = result
+		}
+		if result.err == nil && result.status != nil {
+			metrics.completed++
+		} else {
+			metrics.failed++
+		}
+	}
+	return results, metrics
 }

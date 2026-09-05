@@ -76,10 +76,12 @@ func (ops *composeOps) getValidOAuthToken(ctx context.Context, accountID string)
 		Msg("OAuth token expiring soon, refreshing")
 
 	// Refresh the token
+	refreshStarted := time.Now()
 	newTokenResp, err := ops.refreshOAuthToken(accountID, tokens)
 	if err != nil {
 		log.Error().Err(err).
 			Str("account_id", accountID).
+			Int64("oauth_refresh_ms", time.Since(refreshStarted).Milliseconds()).
 			Msg("OAuth token refresh failed")
 
 		// Emit event for frontend to prompt re-authorization
@@ -110,6 +112,7 @@ func (ops *composeOps) getValidOAuthToken(ctx context.Context, accountID string)
 	log.Info().
 		Str("account_id", accountID).
 		Time("new_expires_at", expiresAt).
+		Int64("oauth_refresh_ms", time.Since(refreshStarted).Milliseconds()).
 		Msg("OAuth token refreshed successfully")
 
 	return tokens, nil

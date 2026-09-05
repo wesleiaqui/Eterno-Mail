@@ -3,6 +3,15 @@
 # Eterno Mail - An Open Source Lightweight E-Mail Client
 Reformulated by Weslei.
 
+### 💰 Sponsorship
+---
+
+Donations help keep Eterno Mail updated and accelerate the development of new features for the application.
+
+[![Donate via Pixgg](https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https%3A%2F%2Fpixgg.com%2Fweslei)](https://pixgg.com/weslei)
+
+[https://pixgg.com/weslei](https://pixgg.com/weslei)
+
 > **Fork of the original project [Aerion](https://github.com/hkdb/aerion) (v0.3.3) by [hkdb / 3DF](https://3df.io).**
 > This fork keeps the original Go module (`github.com/hkdb/aerion`) for internal compatibility and preserves all upstream features, while adding the custom improvements documented below.
 
@@ -235,17 +244,6 @@ Potential features in the future:
 ---
 
 [CHANGELOG.md](CHANGELOG.md)
-
-
-### 💰 Sponsorship
----
-
-[3DF](https://3df.io) is sponsoring by way of dedicating its cloud infrastructure resources and the team's time to work on this. There's otherwise currently no sponsorship. If you like this project, please feel free to give us a star or buy us a coffee:
-
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/3dfosi)
-
-Google verification requires apps like Eterno Mail to recertify for CASA Tier 2 every year which cost US$540 this year. This cost was sponsored one time by [3DF](https://3df.io). Starting next year, we will have to depend on community or corporate sponsorship. If you want your "Buy Me a Coffee" donation to go specifically and only towards the annual CASA Tier 2 certification, in the "Say something nice..." field of the Buy Me A Coffee donation page, put, "For CASA" as the first line. You can leave the rest of the field empty or put whatever message you want to send us in the lines after.
-
 
 ### 🔨 Contributing
 ---

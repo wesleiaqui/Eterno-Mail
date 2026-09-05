@@ -27,7 +27,7 @@ RUN wget -qO- https://nodejs.org/dist/v20.11.0/node-v20.11.0-linux-x64.tar.xz | 
 ENV PATH="/usr/local/go/bin:/usr/local/node-v20.11.0-linux-x64/bin:${PATH}"
 
 # Install Wails CLI
-RUN go install github.com/wailsapp/wails/v2/cmd/wails@latest
+RUN go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
 ENV PATH="/root/go/bin:${PATH}"
 
 # Add Flathub repository

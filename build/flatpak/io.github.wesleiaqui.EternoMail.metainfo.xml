@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.hkdb.Aerion</id>
+  <id>io.github.wesleiaqui.EternoMail</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>Apache-2.0</project_license>
   <name>Eterno Mail</name>
@@ -21,41 +21,41 @@
       resource efficiency and a clean user experience.
     </p>
     <p xml:lang="cs">
-      Aerion je moderní, nenáročný e-mailový klient inspirovaný aplikací Geary, zaměřený na
+      Eterno Mail je moderní, nenáročný e-mailový klient inspirovaný aplikací Geary, zaměřený na
       efektivní využití systémových prostředků a čistý uživatelský zážitek.
     </p>
     <p xml:lang="de">
-      Aerion ist ein moderner, schlanker E-Mail-Client, inspiriert von Geary, mit Fokus auf
+      Eterno Mail ist ein moderner, schlanker E-Mail-Client, inspiriert von Geary, mit Fokus auf
       Ressourceneffizienz und eine übersichtliche Benutzeroberfläche.
     </p>
     <p xml:lang="fr">
-      Aerion est un client e-mail moderne et léger inspiré par Geary, axé sur 
+      Eterno Mail est un client e-mail moderne et léger inspiré par Geary, axé sur 
       l'efficacité des ressources et une expérience utilisateur épurée.
     </p>
     <p xml:lang="it">
-      Aerion è un client di posta elettronica moderno e leggero ispirato a Geary, focalizzato su
+      Eterno Mail è un client di posta elettronica moderno e leggero ispirato a Geary, focalizzato su
       efficienza delle risorse e un'esperienza utente pulita.
     </p>
     <p xml:lang="nb">
-      Aerion er en moderne og lettvekt e-postklient inspirert av Geary, fokusert på
+      Eterno Mail er en moderne og lettvekt e-postklient inspirert av Geary, fokusert på
       effektiv ressursbruk og en ren brukeropplevelse.
     </p>
     <p xml:lang="pl">
-      Aerion to nowoczesny, lekki klient poczty e-mail zainspirowany programem Geary, stawiający na
+      Eterno Mail to nowoczesny, lekki klient poczty e-mail zainspirowany programem Geary, stawiający na
       wydajne wykorzystanie zasobów oraz przejrzysty interfejs użytkownika.
     </p>
     <p xml:lang="vi">
-      Aerion là ứng dụng email hiện đại và nhẹ, được lấy cảm hứng từ Geary, tập trung vào
+      Eterno Mail là ứng dụng email hiện đại và nhẹ, được lấy cảm hứng từ Geary, tập trung vào
       hiệu quả sử dụng tài nguyên và trải nghiệm người dùng gọn gàng.
     </p>
     <p xml:lang="zh-CN">
-      Aerion 是一款以 Geary 为灵感，注重资源效率与简洁使用体验的现代化轻量级电子邮件客户端应用程序。
+      Eterno Mail 是一款以 Geary 为灵感，注重资源效率与简洁使用体验的现代化轻量级电子邮件客户端应用程序。
     </p>
     <p xml:lang="zh-HK">
-      Aerion 是一款以 Geary 為靈感，注重資源效率與簡潔使用體驗的現代化輕量級電子郵件客戶端應用程式。
+      Eterno Mail 是一款以 Geary 為靈感，注重資源效率與簡潔使用體驗的現代化輕量級電子郵件客戶端應用程式。
     </p>
     <p xml:lang="zh-TW">
-      Aerion 是一款以 Geary 為靈感，注重資源效率與簡潔使用體驗的現代化輕量級電子郵件客戶端應用程式。
+      Eterno Mail 是一款以 Geary 為靈感，注重資源效率與簡潔使用體驗的現代化輕量級電子郵件客戶端應用程式。
     </p>
 
     <p>Features:</p>
@@ -229,32 +229,32 @@
     </ul>
   </description>
 
-  <launchable type="desktop-id">io.github.hkdb.Aerion.desktop</launchable>
+  <launchable type="desktop-id">io.github.wesleiaqui.EternoMail.desktop</launchable>
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/hkdb/aerion/main/docs/ss.png</image>
-      <caption>Aerion main window showing inbox</caption>
-      <caption xml:lang="cs">Hlavní okno aplikace Aerion zobrazující schránku</caption>
-      <caption xml:lang="de">Das Hauptfenster von Aerion mit dem Posteingang</caption>
-      <caption xml:lang="fr">Fenêtre principale d'Aerion affichant la boîte de réception</caption>
-      <caption xml:lang="it">Finestra principale di Aerion mostrante la casella di posta</caption>
-      <caption xml:lang="nb">Aerion-vindu som viser innboks</caption>
-      <caption xml:lang="pl">Główne okno programu Aerion przedstawiające skrzynkę odbiorczą</caption>
-      <caption xml:lang="vi">Cửa sổ chính của Aerion hiển thị hộp thư đến</caption>
-      <caption xml:lang="zh-CN">Aerion 主窗口显示收件箱</caption>
-      <caption xml:lang="zh-HK">Aerion 主視窗顯示收件箱</caption>
-      <caption xml:lang="zh-TW">Aerion 主視窗顯示收件匣</caption>
+      <image>https://raw.githubusercontent.com/wesleiaqui/Eterno-Mail/main/docs/ss.png</image>
+      <caption>Eterno Mail main window showing inbox</caption>
+      <caption xml:lang="cs">Hlavní okno aplikace Eterno Mail zobrazující schránku</caption>
+      <caption xml:lang="de">Das Hauptfenster von Eterno Mail mit dem Posteingang</caption>
+      <caption xml:lang="fr">Fenêtre principale d'Eterno Mail affichant la boîte de réception</caption>
+      <caption xml:lang="it">Finestra principale di Eterno Mail mostrante la casella di posta</caption>
+      <caption xml:lang="nb">Eterno Mail-vindu som viser innboks</caption>
+      <caption xml:lang="pl">Główne okno programu Eterno Mail przedstawiające skrzynkę odbiorczą</caption>
+      <caption xml:lang="vi">Cửa sổ chính của Eterno Mail hiển thị hộp thư đến</caption>
+      <caption xml:lang="zh-CN">Eterno Mail 主窗口显示收件箱</caption>
+      <caption xml:lang="zh-HK">Eterno Mail 主視窗顯示收件箱</caption>
+      <caption xml:lang="zh-TW">Eterno Mail 主視窗顯示收件匣</caption>
     </screenshot>
   </screenshots>
 
-  <url type="homepage">https://aerion.3df.io</url>
-  <url type="bugtracker">https://github.com/hkdb/aerion/issues</url>
-  <url type="help">https://aerion.3df.io/docs/intro</url>
-  <url type="vcs-browser">https://github.com/hkdb/aerion</url>
+  <url type="homepage">https://github.com/wesleiaqui/Eterno-Mail</url>
+  <url type="bugtracker">https://github.com/wesleiaqui/Eterno-Mail/issues</url>
+  <url type="help">https://github.com/wesleiaqui/Eterno-Mail#readme</url>
+  <url type="vcs-browser">https://github.com/wesleiaqui/Eterno-Mail</url>
 
-  <developer id="io.3df">
-    <name>3DF</name>
+  <developer id="io.github.wesleiaqui">
+    <name>Weslei</name>
   </developer>
 
   <categories>
@@ -305,7 +305,7 @@
   </keywords>
 
   <provides>
-    <binary>aerion</binary>
+    <binary>eterno-mail</binary>
   </provides>
 
   <releases>
@@ -489,7 +489,7 @@
     </release>
     <release version="0.2.0" date="2026-04-29">
       <description>
-        <p>Note: As of 2026-04-26, Aerion is CASA Tier 2 certified and verified by Google so OAuth2 signin is no longer blocked.</p>
+        <p>Note: As of 2026-04-26, Eterno Mail is CASA Tier 2 certified and verified by Google so OAuth2 signin is no longer blocked.</p>
         <ul>
           <li>Refactored N+1 query on folder switch - #117</li>
           <li>Fixed IMAP server side search regression</li>
@@ -501,7 +501,7 @@
     <release version="0.1.39" date="2026-04-27">
       <description>
         
-        <p>As of 2026-04-26, Aerion is CASA Tier 2 certified and verified by Google so oAuth2 signin will no longer be blocked.</p>
+        <p>As of 2026-04-26, Eterno Mail is CASA Tier 2 certified and verified by Google so oAuth2 signin will no longer be blocked.</p>
 
         <p>v0.1.39 is a major milestone that includes some remaining originally planned basic features and a substantial amount of bug fixes/refinements focused on making existing features much more reliable/stable. It will serve as a solid foundation for us to continue the further development of this mail client.</p>
 
@@ -691,7 +691,7 @@
           <li>Refactored MessageList.svelte for better maintainability and performance</li>
           <li>Resuming Flathub submission</li>
         </ul>
-        <p>NOTE: A massive amount of features and fixes were in v0.1.25 - v0.1.27 which were not released in Flathub. Check the Release Page (https://github.com/hkdb/aerion/releases) to see these changes.</p>
+        <p>NOTE: A massive amount of features and fixes were in v0.1.25 - v0.1.27 which were not released in Flathub. Check the Release Page (https://github.com/wesleiaqui/Eterno-Mail/releases) to see these changes.</p>
       </description>
     </release>
     <release version="0.1.27" date="2026-02-23">
@@ -837,7 +837,7 @@
         <ul>
           <li>Refactored Linux notifications to use org.freedesktop.portal.Desktop</li>
           <li>Kept DBUS direct notifications if launched with --dbus-notify</li>
-          <li>Added trigger to refocus to Aerion if notification is clicked</li>
+          <li>Added trigger to refocus to Eterno Mail if notification is clicked</li>
           <li>Added install.sh and uninstall.sh to Linux binary release</li>
           <li>Distribute binary tarballs with assets instead of just binary for Linux</li>
           <li>Fixed flatpak app ID</li>

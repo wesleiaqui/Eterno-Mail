@@ -1,11 +1,13 @@
-app-id: io.github.hkdb.Aerion
+# Legacy local source experiment. It is intentionally not the Flathub manifest:
+# it downloads dependencies during build and installs Wails at @latest.
+app-id: io.github.wesleiaqui.EternoMail
 runtime: org.gnome.Platform
 runtime-version: '50'
 sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.golang
   - org.freedesktop.Sdk.Extension.node24
-command: aerion
+command: eterno-mail
 
 finish-args:
   # Network access for email sync
@@ -54,23 +56,23 @@ modules:
       # Note: OAuth credentials should be configured via Flathub secrets if needed
       - |
         export PATH=$PATH:/run/build/aerion/go/bin
-        /run/build/aerion/go/bin/wails build -tags webkit2_41,linux,production -o aerion
+        /run/build/aerion/go/bin/wails build -tags webkit2_41,linux,production -o eterno-mail
 
       # Install the binary
-      - install -Dm755 build/bin/aerion /app/bin/aerion
+      - install -Dm755 build/bin/eterno-mail /app/bin/eterno-mail
 
       # Install desktop file with correct app ID
-      - install -Dm644 build/linux/aerion.desktop /app/share/applications/io.github.hkdb.Aerion.desktop
+      - install -Dm644 build/linux/io.github.wesleiaqui.EternoMail.desktop /app/share/applications/io.github.wesleiaqui.EternoMail.desktop
 
       # Update desktop file Icon and Exec fields
-      - desktop-file-edit --set-key=Icon --set-value=io.github.hkdb.Aerion /app/share/applications/io.github.hkdb.Aerion.desktop
-      - desktop-file-edit --set-key=Exec --set-value=aerion /app/share/applications/io.github.hkdb.Aerion.desktop
+      - desktop-file-edit --set-key=Icon --set-value=io.github.wesleiaqui.EternoMail /app/share/applications/io.github.wesleiaqui.EternoMail.desktop
+      - desktop-file-edit --set-key=Exec --set-value=eterno-mail /app/share/applications/io.github.wesleiaqui.EternoMail.desktop
 
       # Install icon with correct app ID
-      - install -Dm644 build/appicon.png /app/share/icons/hicolor/256x256/apps/io.github.hkdb.Aerion.png
+      - install -Dm644 build/appicon.png /app/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.EternoMail.png
 
       # Install metainfo (AppStream metadata)
-      - install -Dm644 build/flatpak/io.github.hkdb.Aerion.metainfo.xml /app/share/metainfo/io.github.hkdb.Aerion.metainfo.xml
+      - install -Dm644 build/flatpak/io.github.wesleiaqui.EternoMail.metainfo.xml /app/share/metainfo/io.github.wesleiaqui.EternoMail.metainfo.xml
 
     sources:
       # Local source for development builds (make flatpak-dev)

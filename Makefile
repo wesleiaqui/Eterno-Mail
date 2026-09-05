@@ -189,12 +189,12 @@ endif
 
 ## Linux Installation
 
-# Install Aerion on Linux
+# Install Eterno Mail on Linux
 install-linux: build
-	@echo "Installing Aerion to $(DESTDIR)$(PREFIX)..."
-	install -Dm755 build/bin/aerion "$(DESTDIR)$(PREFIX)/bin/aerion"
-	install -Dm644 build/appicon.png "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.hkdb.EternoMail.png"
-	install -Dm644 build/linux/aerion.desktop "$(DESTDIR)$(PREFIX)/share/applications/io.github.hkdb.EternoMail.desktop"
+	@echo "Installing Eterno Mail to $(DESTDIR)$(PREFIX)..."
+	install -Dm755 build/bin/eterno-mail "$(DESTDIR)$(PREFIX)/bin/eterno-mail"
+	install -Dm644 build/appicon.png "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.EternoMail.png"
+	install -Dm644 build/linux/io.github.wesleiaqui.EternoMail.desktop "$(DESTDIR)$(PREFIX)/share/applications/io.github.wesleiaqui.EternoMail.desktop"
 	@echo "Updating icon cache..."
 	-gtk-update-icon-cache -f -t "$(DESTDIR)$(PREFIX)/share/icons/hicolor" 2>/dev/null || true
 	@echo ""
@@ -202,15 +202,18 @@ install-linux: build
 	@echo "You may need to log out and back in for the application to appear in your menu."
 	@echo ""
 	@echo "To set Eterno Mail as your default email client:"
-	@echo "  xdg-mime default io.github.hkdb.EternoMail.desktop x-scheme-handler/mailto"
+	@echo "  xdg-mime default io.github.wesleiaqui.EternoMail.desktop x-scheme-handler/mailto"
 
-# Uninstall Aerion from Linux
+# Uninstall Eterno Mail from Linux
 uninstall-linux:
-	@echo "Uninstalling Aerion from $(DESTDIR)$(PREFIX)..."
+	@echo "Uninstalling Eterno Mail from $(DESTDIR)$(PREFIX)..."
+	rm -f "$(DESTDIR)$(PREFIX)/bin/eterno-mail"
 	rm -f "$(DESTDIR)$(PREFIX)/bin/aerion"
+	rm -f "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.EternoMail.png"
 	rm -f "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.hkdb.EternoMail.png"
 	rm -f "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.hkdb.Aerion.png"
 	rm -f "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/aerion.png"  # Remove old name if it exists
+	rm -f "$(DESTDIR)$(PREFIX)/share/applications/io.github.wesleiaqui.EternoMail.desktop"
 	rm -f "$(DESTDIR)$(PREFIX)/share/applications/io.github.hkdb.EternoMail.desktop"
 	rm -f "$(DESTDIR)$(PREFIX)/share/applications/io.github.hkdb.Aerion.desktop"
 	rm -f "$(DESTDIR)$(PREFIX)/share/applications/aerion.desktop"  # Remove old name if it exists

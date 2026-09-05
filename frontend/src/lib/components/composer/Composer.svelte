@@ -2150,7 +2150,7 @@
       <AlertDialog.Description>
         <p class="mb-3">{$_('composer.flatpakDndDescription')}</p>
         <p class="mb-2">{$_('composer.flatpakDndGrantExample')}</p>
-        <code class="block bg-muted px-3 py-2 rounded text-sm font-mono mb-3 select-all overflow-x-auto">flatpak override --user --filesystem=home io.github.hkdb.Aerion</code>
+        <code class="block bg-muted px-3 py-2 rounded text-sm font-mono mb-3 select-all overflow-x-auto">flatpak override --user --filesystem=home io.github.wesleiaqui.EternoMail</code>
         <p class="mb-3 text-sm text-destructive">{$_('composer.flatpakDndSecurityWarning')}</p>
         <p class="text-sm text-muted-foreground">{$_('composer.flatpakDndAlternative')}</p>
       </AlertDialog.Description>

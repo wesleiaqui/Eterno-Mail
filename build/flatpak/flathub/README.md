@@ -1,10 +1,10 @@
 # Flathub Submission
 
-This directory contains the assets for submitting Aerion to Flathub using **pre-built binaries** (extra-data approach) after each Github release.
+This directory contains the assets for submitting Eterno Mail to Flathub using **pre-built binaries** (extra-data approach) after each GitHub release.
 
 ## Why Pre-Built Binaries?
 
-Aerion uses the extra-data approach (similar to Discord, Spotify) because OAuth credentials are embedded at build time in GitHub Actions. This allows users to have Gmail/Outlook OAuth working out-of-the-box without exposing secrets to Flathub's build infrastructure.
+Eterno Mail uses the extra-data approach (similar to Discord, Spotify) because OAuth credentials are embedded at build time in GitHub Actions. This allows users to have Gmail/Outlook OAuth working out-of-the-box without exposing secrets to Flathub's build infrastructure.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ Before submitting to Flathub:
    - `aerion-v0.1.13-linux-x86_64.tar.gz` (x86_64 binary with OAuth credentials)
    - `aerion-v0.1.13-linux-aarch64.tar.gz` (aarch64 binary with OAuth credentials)
 
-## Wait for Github Actions to build and update `build/flatpak/flathub/io.github.hkdb.Aerion.yml`
+## Wait for GitHub Actions to build and update `build/flatpak/flathub/io.github.wesleiaqui.EternoMail.yml`
 
 Github Actions will use the provided script to calculate SHA256 hashes and automatically update the manifest:
 
@@ -26,9 +26,9 @@ Github Actions will use the provided script to calculate SHA256 hashes and autom
 This will:
 - Download the release tarballs from GitHub
 - Calculate SHA256 hashes and file sizes
-- Automatically update `io.github.hkdb.Aerion.yml` with new values
+- Automatically update `io.github.wesleiaqui.EternoMail.yml` with new values
 - Create a backup of the original file
-- Commit the new `io.github.hkdb.Aerion.yml` with the commit message, "v0.1.15 - Flathub Submission"
+- Commit the new `io.github.wesleiaqui.EternoMail.yml` with the commit message, "v0.1.15 - Flathub Submission"
 
 ## Initial Flathub Submission (v0.1.14 - Ready Now!)
 
@@ -46,13 +46,13 @@ git clone --branch=new-pr git@github.com:YOUR_USERNAME/flathub.git
 cd flathub
 
 # Create your submission branch
-git checkout -b add-aerion new-pr
+git checkout -b add-eterno-mail new-pr
 ```
 
 ### Step 3: Copy Required Files to Forked Flathub Repo(5 files total)
 
 ```bash
-cd /path/to/aerion
+cd /path/to/Eterno-Mail
 git pull
 cd build/flatpak/flathub
 # Double check the new extradata file
@@ -64,8 +64,8 @@ cd build/flatpak/flathub
 ```bash
 cd /path/to/forked/flathub
 git add .
-git commit -m "Add io.github.hkdb.Aerion"
-git push origin add-aerion
+git commit -m "Add io.github.wesleiaqui.EternoMail"
+git push origin add-eterno-mail
 ```
 
 ### Step 5: Create Pull Request
@@ -74,8 +74,8 @@ On GitHub, create a pull request:
 - **Base repository**: `flathub/flathub`
 - **Base branch**: `new-pr` ← **CRITICAL!**
 - **Head repository**: `YOUR_USERNAME/flathub`
-- **Compare branch**: `add-aerion`
-- **Title**: `Add io.github.hkdb.Aerion`
+- **Compare branch**: `add-eterno-mail`
+- **Title**: `Add io.github.wesleiaqui.EternoMail`
 
 ### Step 6: Review Process
 
@@ -93,7 +93,7 @@ Comment `bot, build` to trigger a test build once reviewers are satisfied.
 ### Step 7: Approval & Repository Creation
 
 After approval:
-- Flathub creates `flathub/io.github.hkdb.Aerion` repository
+- Flathub creates `flathub/io.github.wesleiaqui.EternoMail` repository
 - You receive write access invitation (accept within 1 week)
 - Must have 2FA enabled on GitHub
 
@@ -108,10 +108,10 @@ After v0.1.14 is on Flathub, for subsequent releases (v0.1.15, v0.1.16, etc.):
 git pull
 
 # 3. Release to Flathub repository (using release.sh helper script)
-./release.sh /path/to/flathub/io.github.hkdb.Aerion
+./release.sh /path/to/flathub/io.github.wesleiaqui.EternoMail
 # Script automatically copies: manifest, metainfo, desktop, icon, and flathub.json
 
-cd /path/to/flathub/io.github.hkdb.Aerion
+cd /path/to/flathub/io.github.wesleiaqui.EternoMail
 git add .
 git commit -m "Update to v0.1.15"
 git push
@@ -121,16 +121,16 @@ git push
 
 ## Files in This Directory
 
-- `io.github.hkdb.Aerion.yml` - Flatpak manifest using pre-built binaries (main manifest for Flathub)
-- `io.github.hkdb.Aerion-source.yml` - Alternative manifest (builds from source, not used for Flathub)
+- `io.github.wesleiaqui.EternoMail.yml` - Flatpak manifest using pre-built binaries (main manifest for Flathub)
+- `io.github.wesleiaqui.EternoMail-source.yml` - Alternative manifest (builds from source, not used for Flathub)
 - `calculate-hashes.sh` - Helper script that automatically updates the manifest with new release hashes
 - `release.sh` - Helper script that copies all files to the Flathub repository
 - `README.md` - This file
 
 **Files to copy from parent directory for Flathub submission:**
-- `../io.github.hkdb.Aerion.metainfo.xml` - AppStream metadata
-- `../../linux/aerion.desktop` - Desktop file (rename to `io.github.hkdb.Aerion.desktop`)
-- `../../appicon.png` - Application icon (rename to `io.github.hkdb.Aerion.png`)
+- `../io.github.wesleiaqui.EternoMail.metainfo.xml` - AppStream metadata
+- `../../linux/io.github.wesleiaqui.EternoMail.desktop` - Desktop file
+- `../../appicon.png` - Application icon (installed as `io.github.wesleiaqui.EternoMail.png`)
 
 ## OAuth Credentials
 

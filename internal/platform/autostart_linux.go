@@ -12,13 +12,13 @@ import (
 )
 
 const (
-	autostartFilename = "io.github.hkdb.Aerion.desktop"
+	autostartFilename = "io.github.wesleiaqui.EternoMail.desktop"
 	desktopEntryTmpl  = `[Desktop Entry]
 Type=Application
-Name=Aerion
-Comment=Aerion Email Client
+Name=Eterno Mail
+Comment=Eterno Mail email client
 Exec=%s
-Icon=io.github.hkdb.Aerion
+Icon=io.github.wesleiaqui.EternoMail
 Terminal=false
 Categories=Network;Email;
 X-GNOME-Autostart-enabled=true

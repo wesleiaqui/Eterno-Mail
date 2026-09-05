@@ -1,12 +1,12 @@
 #!/bin/bash
-# Build Aerion Flatpak locally (no Docker)
+# Build Eterno Mail Flatpak locally (no Docker)
 # This uses the hybrid approach - network access during build
 
 set -e
 
 cd "$(dirname "$0")/../.."
 
-echo "=== Aerion Flatpak Local Builder ==="
+echo "=== Eterno Mail Flatpak Local Builder ==="
 echo ""
 
 # Check if flatpak-builder is installed
@@ -56,18 +56,19 @@ fi
 
 # Build the binary on the host first
 echo ""
-echo "Building Aerion binary on host..."
+echo "Building Eterno Mail binary on host..."
 cd "$(dirname "$0")/../.."
 make build-linux
 
-# Package into Flatpak
+# Package the locally built binary with the development manifest. The canonical
+# Flathub manifest intentionally requires an existing immutable release tag.
 echo ""
 echo "Packaging into Flatpak..."
 echo "This will take a few minutes..."
 echo ""
 
 flatpak-builder --force-clean --user --install-deps-from=flathub \
-    --repo=repo build-dir build/flatpak/flathub/io.github.hkdb.Aerion.yml
+    --repo=repo build-dir build/flatpak/io.github.wesleiaqui.EternoMail-dev.yml
 
 # Create bundle for distribution
 echo ""
@@ -76,9 +77,9 @@ mkdir -p build/bin
 
 # Get version from git tag, fallback to "dev" if no tag
 VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "dev")
-BUNDLE_NAME="Aerion-${VERSION}.flatpak"
+BUNDLE_NAME="Eterno-Mail-${VERSION}.flatpak"
 
-flatpak build-bundle repo "build/bin/${BUNDLE_NAME}" io.github.hkdb.Aerion
+flatpak build-bundle repo "build/bin/${BUNDLE_NAME}" io.github.wesleiaqui.EternoMail
 
 echo ""
 echo "✅ Build complete!"
@@ -86,7 +87,7 @@ echo ""
 echo "Flatpak bundle created: build/bin/${BUNDLE_NAME}"
 echo ""
 echo "To install locally:"
-echo "  flatpak install --user Aerion.flatpak"
+echo "  flatpak install --user ${BUNDLE_NAME}"
 echo ""
 echo "To run:"
-echo "  flatpak run io.github.hkdb.Aerion"
+echo "  flatpak run io.github.wesleiaqui.EternoMail"

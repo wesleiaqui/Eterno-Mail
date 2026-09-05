@@ -59,7 +59,6 @@ Key visual changes:
 - **Settings redesign:** The settings panel was reformulated with a more intuitive and organized layout, making it easier to navigate and configure accounts, appearance, and preferences.
 - **Sender logos in conversation list:** Company logos (Google, Discord, Carrefour, etc.) are now displayed alongside contact avatars in the message list, making it easier to visually identify senders at a glance. Falls back to colored initials when no logo is available.
 - **Refined conversation list layout:** Improved spacing, typography, and visual hierarchy in the message list for better readability across density modes.
-- **Modernized title bar:** Centered "Eterno Mail" branding in the title bar with a cleaner, more balanced header layout.
 - **Folder organization:** Folders section with dedicated "Snoozed" and "More" options for better mailbox management.
 
 #### 🐛 Bug Fixes

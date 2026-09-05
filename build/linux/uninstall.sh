@@ -41,9 +41,9 @@ if [[ "$(uname -s)" != "Linux" ]]; then
 fi
 
 echo ""
-print_info "Aerion Email Client - Uninstall Script"
+print_info "Eterno Mail - Uninstall Script"
 echo ""
-echo "This script will uninstall Aerion from your system."
+echo "This script will uninstall Eterno Mail from your system."
 echo ""
 echo "Choose installation type to uninstall:"
 echo "  1) System-wide (requires sudo, /usr/local or /usr/share)"
@@ -76,7 +76,7 @@ while true; do
 done
 
 echo ""
-print_info "Uninstalling Aerion ($INSTALL_TYPE)..."
+print_info "Uninstalling Eterno Mail ($INSTALL_TYPE)..."
 echo ""
 
 # Function to run command with or without sudo
@@ -117,12 +117,12 @@ remove_file() {
 REMOVED_COUNT=0
 
 # Remove binary
-if remove_file "$BIN_DIR/aerion" "binary"; then
+if remove_file "$BIN_DIR/eterno-mail" "binary"; then
     REMOVED_COUNT=$((REMOVED_COUNT + 1))
 fi
 
 # Remove new desktop file
-if remove_file "$APPS_DIR/io.github.hkdb.Aerion.desktop" "desktop file"; then
+if remove_file "$APPS_DIR/io.github.wesleiaqui.EternoMail.desktop" "desktop file"; then
     REMOVED_COUNT=$((REMOVED_COUNT + 1))
 fi
 
@@ -131,18 +131,33 @@ if remove_file "$APPS_DIR/aerion.desktop" "old desktop file"; then
     REMOVED_COUNT=$((REMOVED_COUNT + 1))
 fi
 
+# Remove legacy Eterno Mail desktop file if it exists
+if remove_file "$APPS_DIR/io.github.hkdb.EternoMail.desktop" "legacy desktop file"; then
+    REMOVED_COUNT=$((REMOVED_COUNT + 1))
+fi
+
 # Remove backup desktop file if it exists
 if remove_file "$APPS_DIR/aerion.desktop.backup" "backup desktop file"; then
     REMOVED_COUNT=$((REMOVED_COUNT + 1))
 fi
 
+# Remove legacy Eterno Mail backup desktop file if it exists
+if remove_file "$APPS_DIR/io.github.hkdb.EternoMail.desktop.backup" "legacy backup desktop file"; then
+    REMOVED_COUNT=$((REMOVED_COUNT + 1))
+fi
+
 # Remove icon
-if remove_file "$ICONS_DIR/io.github.hkdb.Aerion.png" "icon"; then
+if remove_file "$ICONS_DIR/io.github.wesleiaqui.EternoMail.png" "icon"; then
     REMOVED_COUNT=$((REMOVED_COUNT + 1))
 fi
 
 # Remove old icon name if it exists
 if remove_file "$ICONS_DIR/aerion.png" "old icon"; then
+    REMOVED_COUNT=$((REMOVED_COUNT + 1))
+fi
+
+# Remove legacy Eterno Mail icon name if it exists
+if remove_file "$ICONS_DIR/io.github.hkdb.EternoMail.png" "legacy icon"; then
     REMOVED_COUNT=$((REMOVED_COUNT + 1))
 fi
 
@@ -173,5 +188,5 @@ else
 fi
 
 echo ""
-echo "Thank you for trying Aerion!"
+echo "Thank you for trying Eterno Mail!"
 echo ""

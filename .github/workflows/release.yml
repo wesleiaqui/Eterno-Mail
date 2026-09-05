@@ -50,7 +50,7 @@ jobs:
           node-version: '24'
 
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
 
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
@@ -69,7 +69,7 @@ jobs:
       - name: Install frontend dependencies
         run: |
           cd frontend
-          npm install
+          npm ci
 
       - name: Build (Linux)
         if: matrix.platform == 'linux'
@@ -78,9 +78,9 @@ jobs:
 
           # Rename binary with version tag
           if [ "${{ matrix.arch }}" = "amd64" ]; then
-            mv build/bin/aerion build/bin/aerion-${{ github.ref_name }}-linux-x86_64
+            mv build/bin/eterno-mail build/bin/eterno-mail-${{ github.ref_name }}-linux-x86_64
           elif [ "${{ matrix.arch }}" = "arm64" ]; then
-            mv build/bin/aerion build/bin/aerion-${{ github.ref_name }}-linux-aarch64
+            mv build/bin/eterno-mail build/bin/eterno-mail-${{ github.ref_name }}-linux-aarch64
           fi
 
           # Build OAuth credentials shim binary
@@ -98,16 +98,16 @@ jobs:
 
           # Create distribution tarball (complete package for manual installation)
           mkdir -p dist-package
-          cp build/bin/aerion-${{ github.ref_name }}-linux-* dist-package/aerion
+          cp build/bin/eterno-mail-${{ github.ref_name }}-linux-* dist-package/eterno-mail
           cp build/linux/install.sh dist-package/
           cp build/linux/uninstall.sh dist-package/
-          cp build/linux/aerion.desktop dist-package/io.github.hkdb.Aerion.desktop
-          cp build/linux/aerion.png dist-package/io.github.hkdb.Aerion.png
+          cp build/linux/io.github.wesleiaqui.EternoMail.desktop dist-package/io.github.wesleiaqui.EternoMail.desktop
+          cp build/linux/aerion.png dist-package/io.github.wesleiaqui.EternoMail.png
 
           if [ "${{ matrix.arch }}" = "amd64" ]; then
-            tar czf aerion-linux-amd64.tar.gz -C dist-package .
+            tar czf eterno-mail-linux-amd64.tar.gz -C dist-package .
           elif [ "${{ matrix.arch }}" = "arm64" ]; then
-            tar czf aerion-linux-arm64.tar.gz -C dist-package .
+            tar czf eterno-mail-linux-arm64.tar.gz -C dist-package .
           fi
 
           rm -rf dist-package
@@ -119,8 +119,8 @@ jobs:
         run: |
           make build
           cd build/bin
-          zip -r Aerion-darwin-${{ matrix.arch }}.zip Aerion.app
-          rm -rf Aerion.app
+          zip -r Eterno-Mail-darwin-${{ matrix.arch }}.zip "Eterno Mail.app"
+          rm -rf "Eterno Mail.app"
 
       - name: Build (Windows)
         if: matrix.platform == 'windows'
@@ -129,17 +129,17 @@ jobs:
           GOARCH: ${{ matrix.arch }}
         run: |
           make build-windows-installer
-          Move-Item build/bin/aerion.exe build/bin/Aerion-windows-${{ matrix.arch }}.exe
-          Move-Item build/bin/aerion-${{ matrix.arch }}-installer.exe build/bin/Aerion-windows-setup-${{ matrix.arch }}.exe
+          Move-Item build/bin/eterno-mail.exe build/bin/Eterno-Mail-windows-${{ matrix.arch }}.exe
+          Move-Item build/bin/eterno-mail-${{ matrix.arch }}-installer.exe build/bin/Eterno-Mail-windows-setup-${{ matrix.arch }}.exe
 
       - uses: actions/upload-artifact@v7
         with:
-          name: aerion-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.variant && format('-{0}', matrix.variant) || '' }}
+          name: eterno-mail-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.variant && format('-{0}', matrix.variant) || '' }}
           path: |
-            build/bin/aerion-*
-            build/bin/Aerion-*
+            build/bin/eterno-mail-*
+            build/bin/Eterno-Mail-*
             build/bin/flathub-build-env-*
-            aerion-*.tar.gz
+            eterno-mail-*.tar.gz
           retention-days: 1
 
   publish:
@@ -164,8 +164,8 @@ jobs:
 
           # Upload all artifacts (binaries, shim binaries, tarballs)
           gh release upload $TAG_NAME \
-            aerion-*/build/bin/* \
-            aerion-*/*.tar.gz \
+            eterno-mail-*/build/bin/* \
+            eterno-mail-*/*.tar.gz \
             --clobber
 
   update-manifest:
@@ -190,7 +190,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: flathub-manifest
-          path: build/flatpak/flathub/io.github.hkdb.Aerion.yml
+          path: build/flatpak/flathub/io.github.wesleiaqui.EternoMail.yml
           retention-days: 1
 
   build-flatpak:
@@ -227,10 +227,10 @@ jobs:
       - name: Install Flatpak runtimes and SDK extensions
         run: |
           flatpak install -y --user flathub \
-            org.gnome.Platform//49 \
-            org.gnome.Sdk//49 \
-            org.freedesktop.Sdk.Extension.golang//24.08 \
-            org.freedesktop.Sdk.Extension.node24//24.08
+            org.gnome.Platform//50 \
+            org.gnome.Sdk//50 \
+            org.freedesktop.Sdk.Extension.golang//25.08 \
+            org.freedesktop.Sdk.Extension.node24//25.08
 
       - name: Clean flatpak-builder cache
         run: |
@@ -240,15 +240,15 @@ jobs:
         run: |
           flatpak-builder --user --force-clean --repo=repo \
             --install-deps-from=flathub \
-            build-dir build/flatpak/flathub/io.github.hkdb.Aerion.yml
+            build-dir build/flatpak/flathub/io.github.wesleiaqui.EternoMail.yml
 
           mkdir -p build/bin
-          flatpak build-bundle repo build/bin/Aerion-${{ github.ref_name }}-${{ matrix.arch }}.flatpak io.github.hkdb.Aerion
+          flatpak build-bundle repo build/bin/Eterno-Mail-${{ github.ref_name }}-${{ matrix.arch }}.flatpak io.github.wesleiaqui.EternoMail
 
       - name: Upload Flatpak to release
         run: |
           gh release upload ${{ github.ref_name }} \
-            build/bin/Aerion-${{ github.ref_name }}-${{ matrix.arch }}.flatpak \
+            build/bin/Eterno-Mail-${{ github.ref_name }}-${{ matrix.arch }}.flatpak \
             --clobber
 
   commit-manifest:
@@ -273,6 +273,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main:main
           git checkout main
-          git add build/flatpak/flathub/io.github.hkdb.Aerion.yml
+          git add build/flatpak/flathub/io.github.wesleiaqui.EternoMail.yml
           git commit -m "${{ github.ref_name }} - Flathub submission" || echo "No changes to commit"
           git push origin main

@@ -4,6 +4,16 @@ on:
   pull_request:
 
 jobs:
+  version:
+    name: Version consistency
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Check application version consistency
+        run: ./scripts/version.sh check
+
   lint:
     name: Lint
     runs-on: ubuntu-22.04

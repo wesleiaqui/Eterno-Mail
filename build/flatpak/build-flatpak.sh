@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Aerion Flatpak for local development/testing.
+# Build Eterno Mail Flatpak for local development/testing.
 # Builds the binary on the host, then packages it into a Flatpak.
 
 set -e
@@ -7,7 +7,7 @@ set -e
 # Change to project root
 cd "$(dirname "$0")/../.."
 
-echo "=== Aerion Flatpak Dev Builder ==="
+echo "=== Eterno Mail Flatpak Dev Builder ==="
 echo ""
 
 # Check if flatpak-builder is installed
@@ -46,7 +46,7 @@ if [ -z "$GOOGLE_CLIENT_ID" ] && [ -z "$MICROSOFT_CLIENT_ID" ]; then
 fi
 
 # Build the binary on the host
-echo "Building Aerion binary on host..."
+echo "Building Eterno Mail binary on host..."
 make build-linux
 
 # Package into Flatpak using the dev manifest (packaging only, no compilation)
@@ -55,22 +55,22 @@ echo "Packaging into Flatpak..."
 echo ""
 
 flatpak-builder --force-clean --user --install-deps-from=flathub \
-    --repo=repo build-dir build/flatpak/io.github.hkdb.Aerion-dev.yml
+    --repo=repo build-dir build/flatpak/io.github.wesleiaqui.EternoMail-dev.yml
 
 # Create bundle for distribution/testing on other machines
 echo ""
 echo "Creating .flatpak bundle..."
 mkdir -p build/bin
 
-flatpak build-bundle repo build/bin/Aerion-dev.flatpak io.github.hkdb.Aerion
+flatpak build-bundle repo build/bin/Eterno-Mail-dev.flatpak io.github.wesleiaqui.EternoMail
 
 echo ""
 echo "Build complete!"
 echo ""
-echo "Flatpak bundle: build/bin/Aerion-dev.flatpak"
+echo "Flatpak bundle: build/bin/Eterno-Mail-dev.flatpak"
 echo ""
 echo "To install on a target machine:"
-echo "  flatpak install --user Aerion-dev.flatpak"
+echo "  flatpak install --user Eterno-Mail-dev.flatpak"
 echo ""
 echo "To run:"
-echo "  flatpak run io.github.hkdb.Aerion"
+echo "  flatpak run io.github.wesleiaqui.EternoMail"

@@ -1,11 +1,11 @@
-app-id: io.github.hkdb.Aerion
+app-id: io.github.wesleiaqui.EternoMail
 runtime: org.gnome.Platform
 runtime-version: '50'
 sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.golang
   - org.freedesktop.Sdk.Extension.node24
-command: aerion
+command: eterno-mail
 
 finish-args:
   # Network access for email sync
@@ -35,8 +35,8 @@ modules:
         npm_config_offline: 'true'
 
     build-commands:
-      # Install frontend dependencies from offline cache
-      - cd frontend && npm install --offline --legacy-peer-deps
+      # Install exactly the lockfile dependency graph from the declared cache.
+      - cd frontend && npm ci --offline --legacy-peer-deps
 
       # Build frontend
       - cd frontend && npm run build
@@ -44,27 +44,27 @@ modules:
       # Build the Go binary using vendored modules (no ldflags needed;
       # OAuth credentials are loaded at runtime from the shim binary).
       # Tags: desktop (Wails runtime), webkit2_41 (GTK webkit API), production (embedded assets)
-      - go build -mod=vendor -tags desktop,webkit2_41,production -ldflags "-w -s" -o aerion
+      - go build -mod=vendor -tags desktop,webkit2_41,production -ldflags "-w -s" -o eterno-mail
 
       # Install binary
-      - install -Dm755 aerion /app/bin/aerion
+      - install -Dm755 eterno-mail /app/bin/eterno-mail
 
       # Install OAuth credentials shim binary
       - install -Dm755 aerion-creds /app/lib/aerion/aerion-creds
 
       # Install desktop file with correct app ID
-      - install -Dm644 build/linux/aerion.desktop /app/share/applications/io.github.hkdb.Aerion.desktop
+      - install -Dm644 build/linux/io.github.wesleiaqui.EternoMail.desktop /app/share/applications/io.github.wesleiaqui.EternoMail.desktop
 
       # Install icon with correct app ID
-      - install -Dm644 build/appicon.png /app/share/icons/hicolor/256x256/apps/io.github.hkdb.Aerion.png
+      - install -Dm644 build/appicon.png /app/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.EternoMail.png
 
       # Install metainfo (AppStream metadata)
-      - install -Dm644 build/flatpak/io.github.hkdb.Aerion.metainfo.xml /app/share/metainfo/io.github.hkdb.Aerion.metainfo.xml
+      - install -Dm644 build/flatpak/io.github.wesleiaqui.EternoMail.metainfo.xml /app/share/metainfo/io.github.wesleiaqui.EternoMail.metainfo.xml
 
     sources:
       # Application source code (tag and commit updated by calculate-hashes.sh)
       - type: git
-        url: https://github.com/hkdb/aerion.git
+        url: https://github.com/wesleiaqui/Eterno-Mail.git
         tag: v0.3.3
         commit: 517c605fe4bf8a0b83d7e8d72a3d53906966d1ec
 
@@ -76,7 +76,7 @@ modules:
 
       # OAuth credentials shim binary (x86_64)
       - type: file
-        url: https://github.com/hkdb/aerion/releases/download/v0.3.3/flathub-build-env-v0.3.3-linux-x86_64
+        url: https://github.com/wesleiaqui/Eterno-Mail/releases/download/v0.3.3/flathub-build-env-v0.3.3-linux-x86_64
         sha256: f16bee42059324d7b8529992eae4980d89b8eac22ac496f0559fc9dc2473d0e2
         dest-filename: aerion-creds
         only-arches:
@@ -84,7 +84,7 @@ modules:
 
       # OAuth credentials shim binary (aarch64)
       - type: file
-        url: https://github.com/hkdb/aerion/releases/download/v0.3.3/flathub-build-env-v0.3.3-linux-aarch64
+        url: https://github.com/wesleiaqui/Eterno-Mail/releases/download/v0.3.3/flathub-build-env-v0.3.3-linux-aarch64
         sha256: e11bc56f1246c0cef486ece263610ba02a2e4ebb4c6ac828a8552770178116f5
         dest-filename: aerion-creds
         only-arches:

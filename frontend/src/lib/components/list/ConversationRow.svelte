@@ -121,11 +121,17 @@
       standard: 'text-sm',
       large: 'text-base',
     },
-    text: {
-      micro: 'text-[10px]',
-      compact: 'text-xs',
-      standard: 'text-xs',
-      large: 'text-sm',
+    subjectText: {
+      micro: 'text-[10px] leading-4',
+      compact: 'text-xs leading-4',
+      standard: 'text-xs leading-4',
+      large: 'text-sm leading-5',
+    },
+    previewText: {
+      micro: 'text-[10px] leading-4',
+      compact: 'text-xs leading-4',
+      standard: 'text-xs leading-4',
+      large: 'text-sm leading-5',
     },
     dateText: {
       micro: 'text-[10px]',
@@ -462,7 +468,7 @@
   <div
     data-conversation-row
     draggable={getLayoutMode() !== 'narrow'}
-    class="group relative w-full flex items-start overflow-hidden touch-pan-y {densityClasses.row[density]} text-left border-b border-border transition-colors duration-300 cursor-pointer outline-none {selected
+    class="group relative w-full flex items-start overflow-hidden touch-pan-y {densityClasses.row[density]} font-[system-ui] text-left border-b border-border transition-colors duration-300 cursor-pointer outline-none {selected
       ? 'bg-primary/20'
       : 'hover:bg-muted/50'} {getAccentBarUnread() && hasUnread ? 'border-l-2 border-l-primary' : ''} {swipeAnim === 'select' ? 'swipe-select-anim' : ''} {swipeAnim === 'delete' ? 'swipe-delete-anim' : ''}"
     onclick={handleRowClick}
@@ -635,14 +641,14 @@
       <!-- Subject (with highlighting if in search mode) -->
       {#if highlightedSubject}
         <p
-          class="truncate {densityClasses.text[density]} {hasUnread ? 'font-medium text-foreground' : 'text-muted-foreground'}"
+          class="truncate {densityClasses.subjectText[density]} {hasUnread ? 'font-semibold text-foreground' : 'text-muted-foreground'}"
         >
           <!-- eslint-disable-next-line svelte/no-at-html-tags -- highlightMatches only inserts <mark> around already-escaped text -->
           {@html highlightedSubject}
         </p>
       {:else}
         <p
-          class="truncate {densityClasses.text[density]} {hasUnread ? 'font-medium text-foreground' : 'text-muted-foreground'}"
+          class="truncate {densityClasses.subjectText[density]} {hasUnread ? 'font-semibold text-foreground' : 'text-muted-foreground'}"
         >
           {conversation.subject || $_('viewer.noSubject')}
         </p>
@@ -650,20 +656,20 @@
 
       <!-- Snippet (with highlighting if in search mode) -->
       {#if highlightedSnippet}
-        <p class="truncate {densityClasses.text[density]} text-muted-foreground">
+        <p class="truncate {densityClasses.previewText[density]} text-muted-foreground">
           <!-- eslint-disable-next-line svelte/no-at-html-tags -- highlightMatches only inserts <mark> around already-escaped text -->
           {@html highlightedSnippet}
         </p>
       {:else if conversation.snippet}
-        <p class="truncate {densityClasses.text[density]} text-muted-foreground">
+        <p class="truncate {densityClasses.previewText[density]} text-muted-foreground">
           {conversation.snippet}
         </p>
       {:else if conversation.isEncrypted}
-        <p class="truncate {densityClasses.text[density]} text-muted-foreground italic">
+        <p class="truncate {densityClasses.previewText[density]} text-muted-foreground italic">
           {$_('messageList.encryptedContent')}
         </p>
       {:else}
-        <p class="truncate {densityClasses.text[density]} text-muted-foreground italic">
+        <p class="truncate {densityClasses.previewText[density]} text-muted-foreground italic">
           {$_('messageList.noContent')}
         </p>
       {/if}

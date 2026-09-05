@@ -1,11 +1,11 @@
-# Flatpak Packaging for Aerion
+# Flatpak Packaging for Eterno Mail
 
-This directory contains files for building and distributing Aerion as a Flatpak.
+This directory contains files for building and distributing Eterno Mail as a Flatpak.
 
 ## Files
 
-- `io.github.hkdb.Aerion-dev.yml` - Dev manifest (packages pre-built host binary, no compilation)
-- `io.github.hkdb.Aerion.metainfo.xml` - AppStream metadata
+- `io.github.wesleiaqui.EternoMail-dev.yml` - Dev manifest (packages pre-built host binary, no compilation)
+- `io.github.wesleiaqui.EternoMail.metainfo.xml` - AppStream metadata
 - `build-flatpak.sh` - Dev build script (uses `-dev.yml`)
 - `build-local.sh` - From-source local build script (uses flathub manifest)
 - `test-build.sh` - CI build test script (Docker container)
@@ -69,7 +69,7 @@ Builds everything from source inside the Flatpak sandbox, matching how Flathub b
 After building, run the Flatpak:
 
 ```bash
-flatpak run io.github.hkdb.Aerion
+flatpak run io.github.wesleiaqui.EternoMail
 ```
 
 ## Validation
@@ -82,13 +82,13 @@ sudo dnf install libappstream-glib  # Fedora
 sudo apt install appstream-util      # Ubuntu/Debian
 
 # Validate (from project root)
-appstream-util validate build/flatpak/io.github.hkdb.Aerion.metainfo.xml
+appstream-util validate build/flatpak/io.github.wesleiaqui.EternoMail.metainfo.xml
 ```
 
 Validate the desktop file:
 
 ```bash
-desktop-file-validate build/linux/aerion.desktop
+desktop-file-validate build/linux/io.github.wesleiaqui.EternoMail.desktop
 ```
 
 ## Submitting to Flathub

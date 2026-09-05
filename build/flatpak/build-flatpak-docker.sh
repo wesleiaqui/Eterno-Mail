@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build Aerion Flatpak using Docker (hybrid approach: build binary on host in container, then package)
+# Build Eterno Mail Flatpak using Docker (hybrid approach: build binary on host in container, then package)
 
 set -e
 
 cd "$(dirname "$0")/../.."
 
-echo "=== Aerion Flatpak Docker Builder ==="
+echo "=== Eterno Mail Flatpak Docker Builder ==="
 echo ""
 
 # Check if Docker is installed
@@ -39,7 +39,7 @@ echo "Building Docker image (this may take a few minutes on first run)..."
 docker build -t aerion-flatpak-builder -f build/flatpak/Dockerfile build/flatpak
 
 echo ""
-echo "Building Aerion in Docker container..."
+echo "Building Eterno Mail in Docker container..."
 echo ""
 
 # Get version from git tag
@@ -55,29 +55,29 @@ docker run --rm \
     aerion-flatpak-builder \
     bash -c "
         echo 'Installing frontend dependencies...'
-        cd frontend && npm install && cd ..
+        cd frontend && npm ci && cd ..
 
         echo ''
-        echo 'Building Aerion binary...'
+        echo 'Building Eterno Mail binary...'
         make build-linux
 
         echo ''
         echo 'Packaging into Flatpak...'
-        flatpak-builder --force-clean --repo=repo build-dir build/flatpak/flathub/io.github.hkdb.Aerion.yml
+        flatpak-builder --force-clean --repo=repo build-dir build/flatpak/flathub/io.github.wesleiaqui.EternoMail.yml
 
         echo ''
         echo 'Creating .flatpak bundle...'
         mkdir -p build/bin
-        flatpak build-bundle repo build/bin/Aerion-${VERSION}.flatpak io.github.hkdb.Aerion
+        flatpak build-bundle repo build/bin/Eterno-Mail-${VERSION}.flatpak io.github.wesleiaqui.EternoMail
     "
 
 echo ""
 echo "✅ Build complete!"
 echo ""
-echo "Flatpak bundle created: build/bin/Aerion-${VERSION}.flatpak"
+echo "Flatpak bundle created: build/bin/Eterno-Mail-${VERSION}.flatpak"
 echo ""
 echo "To install locally:"
-echo "  flatpak install --user build/bin/Aerion-${VERSION}.flatpak"
+echo "  flatpak install --user build/bin/Eterno-Mail-${VERSION}.flatpak"
 echo ""
 echo "To run:"
-echo "  flatpak run io.github.hkdb.Aerion"
+echo "  flatpak run io.github.wesleiaqui.EternoMail"

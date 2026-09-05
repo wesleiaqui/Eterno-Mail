@@ -8,9 +8,10 @@ We take the security of Eterno Mail seriously. If you believe you have found a s
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to: aerion@3df.io
+Instead, please report them through the project's private security advisory flow:
+https://github.com/wesleiaqui/Eterno-Mail/security/advisories/new
 
-You should receive a response within 72 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
+You should receive a response within 72 hours. If for some reason you do not, please follow up through the repository's security contact.
 
 Please include the following information in your report:
 

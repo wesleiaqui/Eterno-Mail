@@ -1,12 +1,12 @@
 #!/bin/bash
-# Copy Aerion files to Flathub repository for submission/update
-# Usage: ./release.sh /path/to/flathub/io.github.hkdb.Aerion
+# Copy Eterno Mail files to Flathub repository for submission/update
+# Usage: ./release.sh /path/to/flathub/io.github.wesleiaqui.EternoMail
 
 set -e
 
 if [ -z "$1" ]; then
     echo "Usage: $0 <flathub-repo-path>"
-    echo "Example: $0 ~/flathub/io.github.hkdb.Aerion"
+    echo "Example: $0 ~/flathub/io.github.wesleiaqui.EternoMail"
     exit 1
 fi
 
@@ -21,7 +21,7 @@ fi
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "=========================================="
-echo "Aerion Flathub Release Helper"
+echo "Eterno Mail Flathub Release Helper"
 echo "=========================================="
 echo "Source: $SCRIPT_DIR"
 echo "Target: $FLATHUB_DIR"
@@ -36,9 +36,9 @@ echo ""
 
 # Copy manifest
 echo "Copying manifest..."
-cp "${SCRIPT_DIR}/io.github.hkdb.Aerion.yml" \
-   "${FLATHUB_DIR}/io.github.hkdb.Aerion.yml"
-echo "   io.github.hkdb.Aerion.yml"
+cp "${SCRIPT_DIR}/io.github.wesleiaqui.EternoMail.yml" \
+   "${FLATHUB_DIR}/io.github.wesleiaqui.EternoMail.yml"
+echo "   io.github.wesleiaqui.EternoMail.yml"
 
 # Copy Go module vendoring sources
 echo "Copying Go module sources..."

@@ -12,13 +12,13 @@ import (
 )
 
 const (
-	autostartFilename = "io.github.wesleiaqui.EternoMail.desktop"
+	autostartFilename = "io.github.wesleiaqui.eternomail.desktop"
 	desktopEntryTmpl  = `[Desktop Entry]
 Type=Application
 Name=Eterno Mail
 Comment=Eterno Mail email client
 Exec=%s
-Icon=io.github.wesleiaqui.EternoMail
+Icon=io.github.wesleiaqui.eternomail
 Terminal=false
 Categories=Network;Email;
 X-GNOME-Autostart-enabled=true

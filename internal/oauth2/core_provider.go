@@ -11,9 +11,9 @@ package oauth2
 //     scopes behind verification the way Google does, so a single Azure AD
 //     app registration covers Mail + Contacts + Calendar.
 //
-// No per-extension OAuth credentials live in the extension packages — the
-// vars + ldflags + .env all consolidate here. Extensions stay focused on
-// domain logic.
+// No per-extension OAuth credentials live in the extension packages — source
+// defaults and optional development environment overrides consolidate here.
+// Extensions stay focused on domain logic.
 //
 // Registered automatically at package init.
 type coreProvider struct{}

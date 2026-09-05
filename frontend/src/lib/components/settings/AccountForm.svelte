@@ -503,6 +503,34 @@
     }
   })
 
+  // The completed OAuth flow already contains the authenticated mailbox
+  // address. Use it to complete the required account fields so the user only
+  // needs to review the form before adding the account. OAuth currently
+  // guarantees an email address, but not a trustworthy display name, so use a
+  // readable email-derived default and keep any value the user already typed.
+  $effect(() => {
+    const authorizedEmail = oauthStore.flowResult?.email.trim()
+    if (!authorizedEmail || editAccount || authMethod !== 'oauth2') return
+
+    if (!email) {
+      email = authorizedEmail
+    }
+
+    const localPart = authorizedEmail.split('@')[0]
+    const suggestedName = localPart
+      .split(/[._+-]+/)
+      .filter(Boolean)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
+
+    if (!name && suggestedName) {
+      name = suggestedName
+    }
+    if (!displayName && suggestedName) {
+      displayName = suggestedName
+    }
+  })
+
   // Build config from form fields
   function buildConfig(): account.AccountConfig {
     return new account.AccountConfig({
@@ -510,7 +538,7 @@
       displayName,
       color,
       email,
-      username: username || email,
+      username: authMethod === 'oauth2' && !isGenericProvider ? email : username || email,
       password: authMethod === 'oauth2' ? '' : password,
       imapHost,
       imapPort,
@@ -786,18 +814,20 @@
           {/if}
         </div>
 
-        <div class="space-y-2">
-          <Label for="username">{$_('account.username')}</Label>
-          <Input
-            id="username"
-            type="text"
-            placeholder={$_('account.usernamePlaceholder')}
-            bind:value={username}
-          />
-          <p class="text-xs text-muted-foreground">
-            {$_('account.usernameHelp')}
-          </p>
-        </div>
+        {#if authMethod !== 'oauth2' || isGenericProvider}
+          <div class="space-y-2">
+            <Label for="username">{$_('account.username')}</Label>
+            <Input
+              id="username"
+              type="text"
+              placeholder={$_('account.usernamePlaceholder')}
+              bind:value={username}
+            />
+            <p class="text-xs text-muted-foreground">
+              {$_('account.usernameHelp')}
+            </p>
+          </div>
+        {/if}
 
         <!-- Authentication Section -->
         <div class="space-y-3">

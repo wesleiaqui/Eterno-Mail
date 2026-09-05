@@ -61,7 +61,7 @@ echo "This will take a few minutes..."
 echo ""
 
 flatpak-builder --force-clean --user --install-deps-from=flathub \
-    --repo=repo build-dir build/flatpak/io.github.wesleiaqui.EternoMail-dev.yml
+    --repo=repo build-dir build/flatpak/io.github.wesleiaqui.eternomail-dev.yml
 
 # Create bundle for distribution
 echo ""
@@ -72,7 +72,7 @@ mkdir -p build/bin
 VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "dev")
 BUNDLE_NAME="Eterno-Mail-${VERSION}.flatpak"
 
-flatpak build-bundle repo "build/bin/${BUNDLE_NAME}" io.github.wesleiaqui.EternoMail
+flatpak build-bundle repo "build/bin/${BUNDLE_NAME}" io.github.wesleiaqui.eternomail
 
 echo ""
 echo "✅ Build complete!"
@@ -83,4 +83,4 @@ echo "To install locally:"
 echo "  flatpak install --user ${BUNDLE_NAME}"
 echo ""
 echo "To run:"
-echo "  flatpak run io.github.wesleiaqui.EternoMail"
+echo "  flatpak run io.github.wesleiaqui.eternomail"

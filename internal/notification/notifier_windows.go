@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	windowsAppID = "io.github.wesleiaqui.EternoMail"
+	windowsAppID = "io.github.wesleiaqui.eternomail"
 	windowsGUID  = "{8F2B5A4E-3C1D-4E6F-9A7B-2D8E1F0C3B5A}"
 )
 

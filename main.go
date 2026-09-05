@@ -24,7 +24,7 @@ var assets embed.FS
 
 // appIcon is passed to GTK directly so Linux uses the current branded icon
 // for the running window instead of a stale icon cached for the desktop entry.
-// The matching desktop entry is io.github.wesleiaqui.EternoMail.desktop.
+// The matching desktop entry is io.github.wesleiaqui.eternomail.desktop.
 //go:embed build/appicon.png
 var appIcon []byte
 
@@ -152,7 +152,7 @@ func runMainMode(mailtoData *app.MailtoData, rawMailtoArg string) {
 		},
 		Linux: &linux.Options{
 			WebviewGpuPolicy: linux.WebviewGpuPolicyOnDemand,
-			ProgramName:      "io.github.wesleiaqui.EternoMail",
+			ProgramName:      "io.github.wesleiaqui.eternomail",
 			Icon:             appIcon,
 		},
 	})
@@ -242,7 +242,7 @@ func runComposerMode() {
 		},
 		Linux: &linux.Options{
 			WebviewGpuPolicy: linux.WebviewGpuPolicyOnDemand,
-			ProgramName:      "io.github.wesleiaqui.EternoMail",
+			ProgramName:      "io.github.wesleiaqui.eternomail",
 			Icon:             appIcon,
 		},
 	})

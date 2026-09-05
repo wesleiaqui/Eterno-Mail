@@ -1,34 +1,34 @@
 # Flathub Submission
 
-This directory contains the assets for submitting Eterno Mail to Flathub using **pre-built binaries** (extra-data approach) after each GitHub release.
+This directory contains the source-build manifest and assets for submitting
+Eterno Mail to Flathub after each GitHub release.
 
-## Why Pre-Built Binaries?
+## Reproducible Source Build
 
-Eterno Mail uses the extra-data approach (similar to Discord, Spotify) because OAuth credentials are embedded at build time in GitHub Actions. This allows users to have Gmail/Outlook OAuth working out-of-the-box without exposing secrets to Flathub's build infrastructure.
+The stable manifest builds a tagged source revision with vendored Go modules
+and generated Node sources. It uses public desktop OAuth configuration from
+source; it does not receive OAuth values from GitHub Actions, CI secrets, or
+build-time `-ldflags`.
 
 ## Prerequisites
 
 Before submitting to Flathub:
 
-1. **Create a GitHub release** with version tag (e.g., `v0.1.15`)
-2. **Ensure release includes**:
-   - `aerion-v0.1.13-linux-x86_64.tar.gz` (x86_64 binary with OAuth credentials)
-   - `aerion-v0.1.13-linux-aarch64.tar.gz` (aarch64 binary with OAuth credentials)
+1. **Create a GitHub release** from an immutable version tag (for example,
+   `v0.1.15`).
+2. **Update the stable manifest source** to that exact tag and commit.
 
-## Wait for GitHub Actions to build and update `build/flatpak/flathub/io.github.wesleiaqui.EternoMail.yml`
+## Update `build/flatpak/flathub/io.github.wesleiaqui.eternomail.yml`
 
-Github Actions will use the provided script to calculate SHA256 hashes and automatically update the manifest:
+After creating a release tag, update the manifest's Git source to the matching
+immutable tag and commit, then regenerate vendored dependency sources when the
+dependency graph has changed.
 
 ```bash
 ./calculate-hashes.sh v0.1.15
 ```
 
-This will:
-- Download the release tarballs from GitHub
-- Calculate SHA256 hashes and file sizes
-- Automatically update `io.github.wesleiaqui.EternoMail.yml` with new values
-- Create a backup of the original file
-- Commit the new `io.github.wesleiaqui.EternoMail.yml` with the commit message, "v0.1.15 - Flathub Submission"
+The manifest must never follow a moving branch for stable releases.
 
 ## Initial Flathub Submission (v0.1.14 - Ready Now!)
 
@@ -55,7 +55,7 @@ git checkout -b add-eterno-mail new-pr
 cd /path/to/Eterno-Mail
 git pull
 cd build/flatpak/flathub
-# Double check the new extradata file
+# Double check the source manifest and generated dependency sources
 ./release.sh /path/to/forked/flathub
 ```
 
@@ -64,7 +64,7 @@ cd build/flatpak/flathub
 ```bash
 cd /path/to/forked/flathub
 git add .
-git commit -m "Add io.github.wesleiaqui.EternoMail"
+git commit -m "Add io.github.wesleiaqui.eternomail"
 git push origin add-eterno-mail
 ```
 
@@ -75,7 +75,7 @@ On GitHub, create a pull request:
 - **Base branch**: `new-pr` ← **CRITICAL!**
 - **Head repository**: `YOUR_USERNAME/flathub`
 - **Compare branch**: `add-eterno-mail`
-- **Title**: `Add io.github.wesleiaqui.EternoMail`
+- **Title**: `Add io.github.wesleiaqui.eternomail`
 
 ### Step 6: Review Process
 
@@ -86,14 +86,14 @@ Flathub reviewers will:
 
 **Common feedback**:
 - May ask to restrict `--filesystem=home` to more specific paths
-- Verify extra-data checksums match
+- Verify the source tag, commit, and generated dependency sources match
 
 Comment `bot, build` to trigger a test build once reviewers are satisfied.
 
 ### Step 7: Approval & Repository Creation
 
 After approval:
-- Flathub creates `flathub/io.github.wesleiaqui.EternoMail` repository
+- Flathub creates `flathub/io.github.wesleiaqui.eternomail` repository
 - You receive write access invitation (accept within 1 week)
 - Must have 2FA enabled on GitHub
 
@@ -102,16 +102,16 @@ After approval:
 After v0.1.14 is on Flathub, for subsequent releases (v0.1.15, v0.1.16, etc.):
 
 ```bash
-# 1. Create GitHub release with new binaries (GitHub Actions does this)
+# 1. Create a GitHub release from the new immutable tag
 
 # 2. Get updated manifest
 git pull
 
 # 3. Release to Flathub repository (using release.sh helper script)
-./release.sh /path/to/flathub/io.github.wesleiaqui.EternoMail
+./release.sh /path/to/flathub/io.github.wesleiaqui.eternomail
 # Script automatically copies: manifest, metainfo, desktop, icon, and flathub.json
 
-cd /path/to/flathub/io.github.wesleiaqui.EternoMail
+cd /path/to/flathub/io.github.wesleiaqui.eternomail
 git add .
 git commit -m "Update to v0.1.15"
 git push
@@ -121,27 +121,30 @@ git push
 
 ## Files in This Directory
 
-- `io.github.wesleiaqui.EternoMail.yml` - Flatpak manifest using pre-built binaries (main manifest for Flathub)
-- `io.github.wesleiaqui.EternoMail-source.yml` - Alternative manifest (builds from source, not used for Flathub)
+- `io.github.wesleiaqui.eternomail.yml` - Offline source-build manifest for Flathub
+- `io.github.wesleiaqui.eternomail-source.yml` - Legacy local source experiment (not suitable for Flathub)
 - `calculate-hashes.sh` - Helper script that automatically updates the manifest with new release hashes
 - `release.sh` - Helper script that copies all files to the Flathub repository
 - `README.md` - This file
 
 **Files to copy from parent directory for Flathub submission:**
-- `../io.github.wesleiaqui.EternoMail.metainfo.xml` - AppStream metadata
-- `../../linux/io.github.wesleiaqui.EternoMail.desktop` - Desktop file
-- `../../appicon.png` - Application icon (installed as `io.github.wesleiaqui.EternoMail.png`)
+- `../io.github.wesleiaqui.eternomail.metainfo.xml` - AppStream metadata
+- `../../linux/io.github.wesleiaqui.eternomail.desktop` - Desktop file
+- `../../appicon.png` - Application icon (installed as `io.github.wesleiaqui.eternomail.png`)
 
 ## OAuth Credentials
 
-With the extra-data approach, OAuth credentials are **already embedded** in the pre-built binaries. Users get working Gmail/Outlook OAuth out-of-the-box without any additional configuration.
+Official desktop OAuth configuration is versioned in
+`internal/oauth2/public_clients.go`, so the source manifest can be built
+offline without CI secrets or build-time `-ldflags`. Google Desktop client
+configuration and Microsoft client IDs are public client configuration; user
+tokens and custom credentials are never included in the source or manifest.
 
 ## Resources
 
 - [Flathub Submission Guide](https://docs.flathub.org/docs/for-app-authors/submission)
 - [App Requirements](https://docs.flathub.org/docs/for-app-authors/requirements)
 - [Flathub Review Guidelines](https://docs.flathub.org/docs/for-app-authors/review-guidelines)
-- [Extra Data Documentation](https://docs.flatpak.org/en/latest/flatpak-builder-command-reference.html#extra-data-sources)
 
 ## Troubleshooting
 

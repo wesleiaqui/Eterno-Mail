@@ -1,14 +1,16 @@
 // Package oauth2 provides OAuth2 authentication for email providers
 package oauth2
 
-// Public client IDs have source defaults for reproducible official builds.
-// Development builds may override them through ldflags, for example:
+import "os"
+
+// Public client configuration has source defaults for reproducible official
+// builds. Development may override a default with an environment variable at
+// application runtime. This deliberately avoids passing OAuth configuration in
+// -ldflags, which Wails prints in its build options.
 //
-//	go build -ldflags "-X 'github.com/hkdb/aerion/internal/oauth2.GoogleClientID=xxx'"
-//
-// Microsoft has no client secret. Google Desktop clients may require the
-// value Google calls client_secret; it remains non-confidential desktop
-// configuration. ProviderConfig also supports custom provider credentials.
+// Microsoft has no client secret. Google Desktop clients may require the value
+// Google calls client_secret; it remains non-confidential desktop configuration.
+// ProviderConfig also supports custom provider credentials.
 var (
 	// GoogleClientID is the OAuth2 client ID for Google/Gmail (Mail-scoped project).
 	// Same client also backs first-party extensions' Google flows for any scopes
@@ -25,15 +27,20 @@ var (
 )
 
 func init() {
-	if GoogleClientID == "" {
-		GoogleClientID = DefaultGoogleClientID
+	loadPublicClientDefaults()
+}
+
+func loadPublicClientDefaults() {
+	GoogleClientID = publicClientValue("GOOGLE_CLIENT_ID", DefaultGoogleClientID)
+	GoogleClientSecret = publicClientValue("GOOGLE_CLIENT_SECRET", DefaultGoogleClientSecret)
+	MicrosoftClientID = publicClientValue("MICROSOFT_CLIENT_ID", DefaultMicrosoftClientID)
+}
+
+func publicClientValue(environmentVariable, defaultValue string) string {
+	if value := os.Getenv(environmentVariable); value != "" {
+		return value
 	}
-	if GoogleClientSecret == "" {
-		GoogleClientSecret = DefaultGoogleClientSecret
-	}
-	if MicrosoftClientID == "" {
-		MicrosoftClientID = DefaultMicrosoftClientID
-	}
+	return defaultValue
 }
 
 // IsGoogleConfigured returns true if Google OAuth credentials are

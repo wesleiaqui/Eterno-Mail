@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.wesleiaqui.EternoMail</id>
+  <id>io.github.wesleiaqui.eternomail</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>Apache-2.0</project_license>
   <name>Eterno Mail</name>
@@ -229,11 +229,11 @@
     </ul>
   </description>
 
-  <launchable type="desktop-id">io.github.wesleiaqui.EternoMail.desktop</launchable>
+  <launchable type="desktop-id">io.github.wesleiaqui.eternomail.desktop</launchable>
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/wesleiaqui/Eterno-Mail/main/docs/ss.png</image>
+      <image>https://raw.githubusercontent.com/wesleiaqui/EternoMail/main/docs/ss.png</image>
       <caption>Eterno Mail main window showing inbox</caption>
       <caption xml:lang="cs">Hlavní okno aplikace Eterno Mail zobrazující schránku</caption>
       <caption xml:lang="de">Das Hauptfenster von Eterno Mail mit dem Posteingang</caption>
@@ -248,10 +248,10 @@
     </screenshot>
   </screenshots>
 
-  <url type="homepage">https://github.com/wesleiaqui/Eterno-Mail</url>
-  <url type="bugtracker">https://github.com/wesleiaqui/Eterno-Mail/issues</url>
-  <url type="help">https://github.com/wesleiaqui/Eterno-Mail#readme</url>
-  <url type="vcs-browser">https://github.com/wesleiaqui/Eterno-Mail</url>
+  <url type="homepage">https://github.com/wesleiaqui/eternomail</url>
+  <url type="bugtracker">https://github.com/wesleiaqui/eternomail/issues</url>
+  <url type="help">https://github.com/wesleiaqui/eternomail#readme</url>
+  <url type="vcs-browser">https://github.com/wesleiaqui/eternomail</url>
 
   <developer id="io.github.wesleiaqui">
     <name>Weslei</name>
@@ -503,7 +503,7 @@
         
         <p>As of 2026-04-26, Eterno Mail is CASA Tier 2 certified and verified by Google so oAuth2 signin will no longer be blocked.</p>
 
-        <p>v0.1.39 is a major milestone that includes some remaining originally planned basic features and a substantial amount of bug fixes/refinements focused on making existing features much more reliable/stable. It will serve as a solid foundation for us to continue the further development of this mail client.</p>
+        <p>Version 0.1.39 is a major milestone that includes some remaining originally planned basic features and a substantial amount of bug fixes/refinements focused on making existing features much more reliable/stable. It will serve as a solid foundation for us to continue the further development of this mail client.</p>
 
         <ul>
           <li>Added image block logic to composer to avoid leaks</li>
@@ -691,7 +691,7 @@
           <li>Refactored MessageList.svelte for better maintainability and performance</li>
           <li>Resuming Flathub submission</li>
         </ul>
-        <p>NOTE: A massive amount of features and fixes were in v0.1.25 - v0.1.27 which were not released in Flathub. Check the Release Page (https://github.com/wesleiaqui/Eterno-Mail/releases) to see these changes.</p>
+        <p>NOTE: A massive amount of features and fixes were in v0.1.25 - v0.1.27 which were not released in Flathub. See the project release page for details.</p>
       </description>
     </release>
     <release version="0.1.27" date="2026-02-23">

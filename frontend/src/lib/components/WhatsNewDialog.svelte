@@ -1,6 +1,6 @@
 <script lang="ts">
   // Per-version release announcement. Shown once after the user upgrades
-  // to a new Aerion version. Only the explicit OK click records
+  // to a new Eterno Mail version. Only the explicit OK click records
   // acknowledgement (via onAcknowledge → SetLastSeenVersion in App.svelte).
   // Closing via ESC or outside-click leaves the version unrecorded, so
   // the dialog fires again on next launch.
@@ -21,7 +21,7 @@
 
   let { open = $bindable(false), onAcknowledge }: Props = $props()
 
-  const CHANGELOG_URL = 'https://github.com/hkdb/aerion/blob/main/CHANGELOG.md'
+  const CHANGELOG_URL = 'https://github.com/wesleiaqui/eternomail/blob/main/CHANGELOG.md'
 
   // Open external links via the backend OpenURL: on Linux it tries the OpenURI
   // portal first, so links work inside the Flatpak sandbox (where xdg-open —
@@ -38,7 +38,7 @@
     />
     <DialogPrimitive.Content
       class={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-6 border bg-background p-8 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg'
+        'fixed left-[50%] top-[50%] z-[51] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-6 border bg-background p-8 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg'
       )}
     >
       <div class="flex flex-col space-y-1.5 text-center sm:text-left">
@@ -53,12 +53,10 @@
         <p>Here are the highlights of this release:</p>
 
         <ul class="list-disc pl-6 space-y-1">
-          <li>⚗️ The message list has been redesigned to have messages cover the checkboxes on the left and will shift to the right to show the checkboxes on mouseover individually. This can be turned off by toggling, "Always show checkbox next to message" to revert to the original design.</li>
-          <li>🐁 Added left and right swipe gestures. Swipe right to select and swipe left to delete.</li>
-          <li>✏️ Added manual config of auth mechanism</li>
-          <li>🚀 Added g, G, alt+g, alt+G, alt+c, alt+m shortcuts</li>
-          <li>📩 Improved sync guards to improve stability</li>
-          <li>🐛 Bug fixes and improvements</li>
+          <li>✨ Eterno Mail branding, documentation and public legal links.</li>
+          <li>🧭 Refined sidebar navigation, sizing and icon alignment.</li>
+          <li>📥 Improved inbox actions, read-state handling and continuous loading.</li>
+          <li>🛡️ Reliability improvements for IMAP connections and synchronization.</li>
         </ul>
 
         <p>🏷 See the full change log here:</p>
@@ -69,7 +67,7 @@
             class="text-primary hover:underline break-all focus:outline-none focus-visible:outline-none focus:ring-0"
             onclick={() => openExternal(CHANGELOG_URL)}
           >
-            https://github.com/hkdb/aerion/blob/main/CHANGELOG.md
+            https://github.com/wesleiaqui/eternomail/blob/main/CHANGELOG.md
           </button>
         </p>
       </div>

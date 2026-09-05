@@ -1,14 +1,14 @@
 <script lang="ts">
   import Icon from '@iconify/svelte'
   import { BrowserOpenURL } from '../../../../wailsjs/runtime/runtime'
-  import { GetInlineAttachments, AddImageAllowlist, OpenURL } from '../../../../wailsjs/go/app/App'
+  import { GetInlineAttachments, AddImageAllowlist, OpenURL, SetAlwaysLoadImages } from '../../../../wailsjs/go/app/App'
   import { getCached, setCache } from '../../stores/inlineAttachmentCache'
   import { isImageAllowedSync, refreshImageAllowlist } from '$lib/stores/imageAllowlist.svelte'
   import { setFocusedPane, focusPreviousPane, focusNextPane } from '$lib/stores/keyboard.svelte'
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu'
   import { _ } from '$lib/i18n'
   import { toasts } from '$lib/stores/toast'
-  import { getAlwaysLoadImages, getThemeMode } from '$lib/stores/settings.svelte'
+  import { getAlwaysLoadImages, getThemeMode, setAlwaysLoadImages } from '$lib/stores/settings.svelte'
 
   interface Props {
     messageId: string
@@ -571,6 +571,17 @@ ${processedHtml}
     onImagesLoaded?.()
   }
 
+  // Handle "Always load for all emails" action.
+  async function handleAlwaysLoadAll() {
+    try {
+      await SetAlwaysLoadImages(true)
+      setAlwaysLoadImages(true)
+      loadImages()
+    } catch (err) {
+      console.error('[EmailBody] Failed to enable always-load remote images:', err)
+    }
+  }
+
   // Extract domain from email address
   function extractDomain(email: string): string {
     const parts = email.split('@')
@@ -715,7 +726,7 @@ ${processedHtml}
   // Listen for Ctrl-Shift-L always load dropdown event
   $effect(() => {
     function handleAlwaysLoadDropdownEvent() {
-      if (hasRemoteImages && imagesBlocked && fromEmail) {
+      if (hasRemoteImages && imagesBlocked) {
         alwaysLoadDropdownOpen = true
       }
     }
@@ -782,15 +793,19 @@ ${processedHtml}
           </button>
 
           <!-- Always Load dropdown -->
-          {#if fromEmail}
-            <DropdownMenu.Root bind:open={alwaysLoadDropdownOpen}>
-              <DropdownMenu.Trigger
-                class="px-2 py-1 text-xs font-medium rounded bg-yellow-600 text-white hover:bg-yellow-700 transition-colors flex items-center gap-1"
-              >
-                {$_('viewer.alwaysLoad')}
-                <Icon icon="mdi:chevron-down" class="w-3 h-3" />
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Content align="end">
+          <DropdownMenu.Root bind:open={alwaysLoadDropdownOpen}>
+            <DropdownMenu.Trigger
+              class="px-2 py-1 text-xs font-medium rounded bg-yellow-600 text-white hover:bg-yellow-700 transition-colors flex items-center gap-1"
+            >
+              {$_('viewer.alwaysLoad')}
+              <Icon icon="mdi:chevron-down" class="w-3 h-3" />
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="end">
+              <DropdownMenu.Item onSelect={handleAlwaysLoadAll}>
+                <Icon icon="mdi:earth" class="w-4 h-4 mr-2" />
+                {$_('viewer.forAll')}
+              </DropdownMenu.Item>
+              {#if fromEmail}
                 <DropdownMenu.Item onSelect={handleAlwaysLoadDomain}>
                   <Icon icon="mdi:domain" class="w-4 h-4 mr-2" />
                   {$_('viewer.forDomain', { values: { domain: extractDomain(fromEmail) || 'this domain' } })}
@@ -799,9 +814,9 @@ ${processedHtml}
                   <Icon icon="mdi:account" class="w-4 h-4 mr-2" />
                   {$_('viewer.forSender', { values: { email: fromEmail } })}
                 </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
-          {/if}
+              {/if}
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
         </div>
       </div>
     {/if}

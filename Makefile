@@ -22,7 +22,10 @@ export
 # Go module path
 MODULE := github.com/hkdb/aerion
 
-# Build flags for injecting OAuth credentials at compile time.
+# OAuth development overrides are inherited by `wails dev` at runtime.
+# Official builds use the public source defaults in
+# internal/oauth2/public_clients.go. Do not pass OAuth values through
+# -ldflags: Wails displays that field in its build options.
 #
 #   GOOGLE_CLIENT_ID          — optional development override for the public
 #                               Google Desktop client. Also backs
@@ -36,16 +39,6 @@ MODULE := github.com/hkdb/aerion
 #                               microsoft-calendar (Microsoft Graph
 #                               doesn't gate scopes behind verification).
 #                               Surfaced as "Aerion - Microsoft".
-LDFLAGS :=
-ifneq ($(strip $(GOOGLE_CLIENT_ID)),)
-LDFLAGS += -X '$(MODULE)/internal/oauth2.GoogleClientID=$(GOOGLE_CLIENT_ID)'
-endif
-ifneq ($(strip $(GOOGLE_CLIENT_SECRET)),)
-LDFLAGS += -X '$(MODULE)/internal/oauth2.GoogleClientSecret=$(GOOGLE_CLIENT_SECRET)'
-endif
-ifneq ($(strip $(MICROSOFT_CLIENT_ID)),)
-LDFLAGS += -X '$(MODULE)/internal/oauth2.MicrosoftClientID=$(MICROSOFT_CLIENT_ID)'
-endif
 
 # Wails build tags
 BUILD_TAGS := webkit2_41
@@ -69,7 +62,7 @@ all: build
 # Build production binary
 build:
 	@echo "Building Aerion..."
-	wails build -ldflags "$(LDFLAGS)" -tags $(BUILD_TAGS)
+	wails build -tags $(BUILD_TAGS)
 ifeq ($(UNAME_S),Darwin)
 	@echo "Ad-hoc signing Aerion.app (required for macOS notifications)..."
 	codesign --force --deep --sign - build/bin/Aerion.app
@@ -78,7 +71,7 @@ endif
 # Build for Linux specifically
 build-linux:
 	@echo "Building Aerion for Linux..."
-	wails build -ldflags "$(LDFLAGS)" -tags $(BUILD_TAGS),linux,production
+	wails build -tags $(BUILD_TAGS),linux,production
 
 # Build Flatpak (recommended for Linux distribution)
 flatpak:
@@ -93,7 +86,7 @@ flatpak-dev:
 # Run in development mode with hot reload
 dev:
 	@echo "Starting Aerion in development mode..."
-	wails dev -ldflags "$(LDFLAGS)" -tags $(BUILD_TAGS)
+	wails dev -tags $(BUILD_TAGS)
 
 # Run in development mode with Go's race detector enabled. Builds significantly
 # slower and adds ~5-10x runtime overhead, but instruments every memory access
@@ -102,7 +95,7 @@ dev:
 # reproduce the crash and the detector report points right at it.
 dev-race:
 	@echo "Starting Aerion in development mode with -race..."
-	wails dev -ldflags "$(LDFLAGS)" -tags $(BUILD_TAGS) -race
+	wails dev -tags $(BUILD_TAGS) -race
 
 # Generate Wails TypeScript bindings
 generate:
@@ -188,8 +181,8 @@ endif
 install-linux: build
 	@echo "Installing Eterno Mail to $(DESTDIR)$(PREFIX)..."
 	install -Dm755 build/bin/eterno-mail "$(DESTDIR)$(PREFIX)/bin/eterno-mail"
-	install -Dm644 build/appicon.png "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.EternoMail.png"
-	install -Dm644 build/linux/io.github.wesleiaqui.EternoMail.desktop "$(DESTDIR)$(PREFIX)/share/applications/io.github.wesleiaqui.EternoMail.desktop"
+	install -Dm644 build/appicon.png "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.eternomail.png"
+	install -Dm644 build/linux/io.github.wesleiaqui.eternomail.desktop "$(DESTDIR)$(PREFIX)/share/applications/io.github.wesleiaqui.eternomail.desktop"
 	@echo "Updating icon cache..."
 	-gtk-update-icon-cache -f -t "$(DESTDIR)$(PREFIX)/share/icons/hicolor" 2>/dev/null || true
 	@echo ""
@@ -197,18 +190,18 @@ install-linux: build
 	@echo "You may need to log out and back in for the application to appear in your menu."
 	@echo ""
 	@echo "To set Eterno Mail as your default email client:"
-	@echo "  xdg-mime default io.github.wesleiaqui.EternoMail.desktop x-scheme-handler/mailto"
+	@echo "  xdg-mime default io.github.wesleiaqui.eternomail.desktop x-scheme-handler/mailto"
 
 # Uninstall Eterno Mail from Linux
 uninstall-linux:
 	@echo "Uninstalling Eterno Mail from $(DESTDIR)$(PREFIX)..."
 	rm -f "$(DESTDIR)$(PREFIX)/bin/eterno-mail"
 	rm -f "$(DESTDIR)$(PREFIX)/bin/aerion"
-	rm -f "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.EternoMail.png"
+	rm -f "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.eternomail.png"
 	rm -f "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.hkdb.EternoMail.png"
 	rm -f "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/io.github.hkdb.Aerion.png"
 	rm -f "$(DESTDIR)$(PREFIX)/share/icons/hicolor/256x256/apps/aerion.png"  # Remove old name if it exists
-	rm -f "$(DESTDIR)$(PREFIX)/share/applications/io.github.wesleiaqui.EternoMail.desktop"
+	rm -f "$(DESTDIR)$(PREFIX)/share/applications/io.github.wesleiaqui.eternomail.desktop"
 	rm -f "$(DESTDIR)$(PREFIX)/share/applications/io.github.hkdb.EternoMail.desktop"
 	rm -f "$(DESTDIR)$(PREFIX)/share/applications/io.github.hkdb.Aerion.desktop"
 	rm -f "$(DESTDIR)$(PREFIX)/share/applications/aerion.desktop"  # Remove old name if it exists
@@ -242,7 +235,7 @@ uninstall-darwin:
 # Build Windows installer (requires NSIS)
 build-windows-installer:
 	@echo "Building Windows installer..."
-	wails build -ldflags "$(LDFLAGS)" -tags $(BUILD_TAGS) -nsis
+	wails build -tags $(BUILD_TAGS) -nsis
 	@echo ""
 	@echo "Installer created at build/bin/aerion-amd64-installer.exe"
 

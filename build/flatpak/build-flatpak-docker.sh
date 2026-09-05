@@ -42,8 +42,6 @@ VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "dev")
 docker run --rm \
     -v "$(pwd):/workspace" \
     -w /workspace \
-    -e GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
-    -e MICROSOFT_CLIENT_ID="${MICROSOFT_CLIENT_ID}" \
     aerion-flatpak-builder \
     bash -c "
         echo 'Installing frontend dependencies...'
@@ -55,12 +53,12 @@ docker run --rm \
 
         echo ''
         echo 'Packaging into Flatpak...'
-        flatpak-builder --force-clean --repo=repo build-dir build/flatpak/flathub/io.github.wesleiaqui.EternoMail.yml
+        flatpak-builder --force-clean --repo=repo build-dir build/flatpak/flathub/io.github.wesleiaqui.eternomail.yml
 
         echo ''
         echo 'Creating .flatpak bundle...'
         mkdir -p build/bin
-        flatpak build-bundle repo build/bin/Eterno-Mail-${VERSION}.flatpak io.github.wesleiaqui.EternoMail
+        flatpak build-bundle repo build/bin/Eterno-Mail-${VERSION}.flatpak io.github.wesleiaqui.eternomail
     "
 
 echo ""
@@ -72,4 +70,4 @@ echo "To install locally:"
 echo "  flatpak install --user build/bin/Eterno-Mail-${VERSION}.flatpak"
 echo ""
 echo "To run:"
-echo "  flatpak run io.github.wesleiaqui.EternoMail"
+echo "  flatpak run io.github.wesleiaqui.eternomail"

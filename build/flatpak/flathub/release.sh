@@ -1,12 +1,12 @@
 #!/bin/bash
 # Copy Eterno Mail files to Flathub repository for submission/update
-# Usage: ./release.sh /path/to/flathub/io.github.wesleiaqui.EternoMail
+# Usage: ./release.sh /path/to/flathub/io.github.wesleiaqui.eternomail
 
 set -e
 
 if [ -z "$1" ]; then
     echo "Usage: $0 <flathub-repo-path>"
-    echo "Example: $0 ~/flathub/io.github.wesleiaqui.EternoMail"
+    echo "Example: $0 ~/flathub/io.github.wesleiaqui.eternomail"
     exit 1
 fi
 
@@ -28,17 +28,17 @@ echo "Target: $FLATHUB_DIR"
 echo ""
 echo "NOTE: This is a from-source build. The Flathub repo contains the manifest"
 echo "      plus vendored dependency files. The app is built from source during"
-echo "      the Flathub build process. Only the OAuth credentials shim binary"
-echo "      is downloaded as a pre-built binary."
+echo "      the Flathub build process. Public OAuth desktop-client configuration"
+echo "      is included in source; no local file or CI value is used."
 echo ""
 echo "Copying files..."
 echo ""
 
 # Copy manifest
 echo "Copying manifest..."
-cp "${SCRIPT_DIR}/io.github.wesleiaqui.EternoMail.yml" \
-   "${FLATHUB_DIR}/io.github.wesleiaqui.EternoMail.yml"
-echo "   io.github.wesleiaqui.EternoMail.yml"
+cp "${SCRIPT_DIR}/io.github.wesleiaqui.eternomail.yml" \
+   "${FLATHUB_DIR}/io.github.wesleiaqui.eternomail.yml"
+echo "   io.github.wesleiaqui.eternomail.yml"
 
 # Copy Go module vendoring sources
 echo "Copying Go module sources..."

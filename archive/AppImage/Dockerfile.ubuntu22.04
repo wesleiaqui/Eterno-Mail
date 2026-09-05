@@ -30,7 +30,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Wails CLI
-RUN go install github.com/wailsapp/wails/v2/cmd/wails@latest
+RUN go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
 ENV PATH="/root/go/bin:${PATH}"
 
 # Set working directory

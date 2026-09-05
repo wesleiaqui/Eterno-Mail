@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## Eterno Mail — v0.3.3 development
+
+- Introduced Eterno Mail branding, public legal documentation and updated public links.
+- Refined sidebar navigation, sizing and icon alignment.
+- Improved inbox actions, read-state handling and continuous message loading.
+- Hardened IMAP pool concurrency and migration test coverage.
+
 
 **v0.3.3 - 08-06-2026**
 ---

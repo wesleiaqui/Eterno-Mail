@@ -2,7 +2,6 @@
   import { Dialog as DialogPrimitive } from 'bits-ui'
   import { cn } from '$lib/utils'
   import { Button } from '$lib/components/ui/button'
-  import Switch from '$lib/components/ui/switch/Switch.svelte'
   // @ts-ignore - wailsjs path
   import { BrowserOpenURL } from '../../../wailsjs/runtime/runtime'
   import { _ } from '$lib/i18n'
@@ -16,8 +15,8 @@
 
   let agreed = $state(false)
 
-  const PRIVACY_URL = 'https://github.com/hkdb/aerion/blob/main/docs/PRIVACY.md'
-  const TERMS_URL = 'https://github.com/hkdb/aerion/blob/main/docs/TERMS.md'
+  const PRIVACY_URL = 'https://github.com/wesleiaqui/eternomail/blob/main/docs/PRIVACY.md'
+  const TERMS_URL = 'https://github.com/wesleiaqui/eternomail/blob/main/docs/TERMS.md'
 
   function openPrivacyPolicy() {
     BrowserOpenURL(PRIVACY_URL)
@@ -48,8 +47,9 @@
     <!-- Content - no close button -->
     <DialogPrimitive.Content
       onInteractOutside={preventClose}
+      onEscapeKeydown={preventClose}
       class={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-6 border bg-background p-8 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg'
+        'fixed left-[50%] top-[50%] z-[51] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-6 border bg-background p-8 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg'
       )}
     >
       <!-- Header -->
@@ -97,9 +97,11 @@
 
         <!-- Toggle -->
         <div class="flex items-center gap-3">
-          <Switch
-            bind:checked={agreed}
+          <input
             id="agree-terms"
+            type="checkbox"
+            bind:checked={agreed}
+            class="h-4 w-4 cursor-pointer accent-primary"
           />
           <label for="agree-terms" class="text-sm cursor-pointer">
             {$_('terms.agreeLabel')}

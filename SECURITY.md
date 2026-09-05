@@ -9,7 +9,7 @@ We take the security of Eterno Mail seriously. If you believe you have found a s
 **Please do not report security vulnerabilities through public GitHub issues.**
 
 Instead, please report them through the project's private security advisory flow:
-https://github.com/wesleiaqui/Eterno-Mail/security/advisories/new
+https://github.com/wesleiaqui/eternomail/security/advisories/new
 
 You should receive a response within 72 hours. If for some reason you do not, please follow up through the repository's security contact.
 

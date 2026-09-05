@@ -161,14 +161,16 @@
     "collapseAll": "Recolher tudo",
     "print": "Imprimir",
     "editDraft": "Editar rascunho",
-    "copyEmail": "Clique para copiar o endereco de e-mail"
+    "copyEmail": "Clique para copiar o endereco de e-mail",
+    "forAll": "Para todos"
   },
   "responsive": {
     "back": "Voltar",
     "folders": "Pastas"
   },
   "settingsGeneral": {
-    "titleBarEterno Mail": "Eterno Mail",
+    "titleBarEterno": "Eterno Mail",
+    "titleBarEternoDesc": "Usar a barra de título do aplicativo",
     "sidebarSize": "Tamanho da lateral",
     "sidebarSizeHelp": "Escolha a largura, textos, ícones e espaçamentos da lateral expandida. A alteração é aplicada imediatamente.",
     "sidebarCompact": "Compacta",

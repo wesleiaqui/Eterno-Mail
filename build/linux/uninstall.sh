@@ -122,7 +122,7 @@ if remove_file "$BIN_DIR/eterno-mail" "binary"; then
 fi
 
 # Remove new desktop file
-if remove_file "$APPS_DIR/io.github.wesleiaqui.EternoMail.desktop" "desktop file"; then
+if remove_file "$APPS_DIR/io.github.wesleiaqui.eternomail.desktop" "desktop file"; then
     REMOVED_COUNT=$((REMOVED_COUNT + 1))
 fi
 
@@ -147,7 +147,7 @@ if remove_file "$APPS_DIR/io.github.hkdb.EternoMail.desktop.backup" "legacy back
 fi
 
 # Remove icon
-if remove_file "$ICONS_DIR/io.github.wesleiaqui.EternoMail.png" "icon"; then
+if remove_file "$ICONS_DIR/io.github.wesleiaqui.eternomail.png" "icon"; then
     REMOVED_COUNT=$((REMOVED_COUNT + 1))
 fi
 

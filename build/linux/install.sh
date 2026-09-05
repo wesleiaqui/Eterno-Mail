@@ -48,15 +48,15 @@ if [[ ! -f "eterno-mail" ]]; then
 fi
 
 # Check if desktop file exists
-if [[ ! -f "io.github.wesleiaqui.EternoMail.desktop" ]]; then
-    print_error "io.github.wesleiaqui.EternoMail.desktop file not found in current directory"
+if [[ ! -f "io.github.wesleiaqui.eternomail.desktop" ]]; then
+    print_error "io.github.wesleiaqui.eternomail.desktop file not found in current directory"
     echo "Please ensure the desktop file is in the same directory as this script"
     exit 1
 fi
 
 # Check if icon exists
-if [[ ! -f "io.github.wesleiaqui.EternoMail.png" ]]; then
-    print_error "io.github.wesleiaqui.EternoMail.png icon not found in current directory"
+if [[ ! -f "io.github.wesleiaqui.eternomail.png" ]]; then
+    print_error "io.github.wesleiaqui.eternomail.png icon not found in current directory"
     echo "Please ensure the icon file is in the same directory as this script"
     exit 1
 fi
@@ -137,11 +137,11 @@ run_cmd install -Dm755 eterno-mail "$BIN_DIR/eterno-mail"
 
 # Install desktop file
 print_info "Installing desktop file to $APPS_DIR..."
-run_cmd install -Dm644 io.github.wesleiaqui.EternoMail.desktop "$APPS_DIR/io.github.wesleiaqui.EternoMail.desktop"
+run_cmd install -Dm644 io.github.wesleiaqui.eternomail.desktop "$APPS_DIR/io.github.wesleiaqui.eternomail.desktop"
 
 # Install icon
 print_info "Installing icon to $ICONS_DIR..."
-run_cmd install -Dm644 io.github.wesleiaqui.EternoMail.png "$ICONS_DIR/io.github.wesleiaqui.EternoMail.png"
+run_cmd install -Dm644 io.github.wesleiaqui.eternomail.png "$ICONS_DIR/io.github.wesleiaqui.eternomail.png"
 
 # Update icon cache
 print_info "Updating icon cache..."
@@ -176,7 +176,7 @@ fi
 echo "You may need to log out and back in for the application to appear in your menu."
 echo ""
 echo "To set Eterno Mail as your default email client, run:"
-echo "  xdg-mime default io.github.wesleiaqui.EternoMail.desktop x-scheme-handler/mailto"
+echo "  xdg-mime default io.github.wesleiaqui.eternomail.desktop x-scheme-handler/mailto"
 echo ""
 echo "To start Eterno Mail, run:"
 echo "  eterno-mail --dbus-notify"

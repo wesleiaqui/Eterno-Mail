@@ -58,8 +58,8 @@ check_value "frontend/package.json" "$(json_version "$ROOT_DIR/frontend/package.
 check_value "frontend/package-lock.json root" "$(json_version "$ROOT_DIR/frontend/package-lock.json")"
 check_value "frontend/package-lock.json package root" "$(json_version "$ROOT_DIR/frontend/package-lock.json" 2)"
 check_value "wails.json" "$(awk -F'"' '/"productVersion"/ { print $4; exit }' "$ROOT_DIR/wails.json")"
-check_value "AppStream current release" "$(awk -F'"' '/<release version=/ { print $2; exit }' "$ROOT_DIR/build/flatpak/io.github.wesleiaqui.EternoMail.metainfo.xml")"
-check_value "Flatpak source tag" "$(awk '/^[[:space:]]*tag: / { sub(/^[[:space:]]*tag: v/, ""); print; exit }' "$ROOT_DIR/build/flatpak/flathub/io.github.wesleiaqui.EternoMail.yml")"
+check_value "AppStream current release" "$(awk -F'"' '/<release version=/ { print $2; exit }' "$ROOT_DIR/build/flatpak/io.github.wesleiaqui.eternomail.metainfo.xml")"
+check_value "Flatpak source tag" "$(awk '/^[[:space:]]*tag: / { sub(/^[[:space:]]*tag: v/, ""); print; exit }' "$ROOT_DIR/build/flatpak/flathub/io.github.wesleiaqui.eternomail.yml")"
 
 if (( failures )); then
     exit 1

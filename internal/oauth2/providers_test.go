@@ -47,6 +47,50 @@ func TestOfficialProvidersArePublicClients(t *testing.T) {
 	}
 }
 
+func TestPublicClientDefaultsAreConfigured(t *testing.T) {
+	if DefaultGoogleClientID == "" {
+		t.Fatal("Google client ID default must be configured")
+	}
+	if DefaultGoogleClientSecret == "" {
+		t.Fatal("Google Desktop client configuration default must be configured")
+	}
+	if DefaultMicrosoftClientID == "" {
+		t.Fatal("Microsoft client ID default must be configured")
+	}
+}
+
+func TestPublicClientDefaultsApplyWithoutEnvironmentOverrides(t *testing.T) {
+	origGoogleID, origGoogleSecret, origMicrosoftID := GoogleClientID, GoogleClientSecret, MicrosoftClientID
+	t.Cleanup(func() {
+		GoogleClientID, GoogleClientSecret, MicrosoftClientID = origGoogleID, origGoogleSecret, origMicrosoftID
+	})
+	t.Setenv("GOOGLE_CLIENT_ID", "")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "")
+	t.Setenv("MICROSOFT_CLIENT_ID", "")
+
+	loadPublicClientDefaults()
+
+	if GoogleClientID != DefaultGoogleClientID || GoogleClientSecret != DefaultGoogleClientSecret || MicrosoftClientID != DefaultMicrosoftClientID {
+		t.Fatal("public OAuth defaults were not applied")
+	}
+}
+
+func TestPublicClientEnvironmentOverrides(t *testing.T) {
+	origGoogleID, origGoogleSecret, origMicrosoftID := GoogleClientID, GoogleClientSecret, MicrosoftClientID
+	t.Cleanup(func() {
+		GoogleClientID, GoogleClientSecret, MicrosoftClientID = origGoogleID, origGoogleSecret, origMicrosoftID
+	})
+	t.Setenv("GOOGLE_CLIENT_ID", "development-google-id")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "development-google-desktop-configuration")
+	t.Setenv("MICROSOFT_CLIENT_ID", "development-microsoft-id")
+
+	loadPublicClientDefaults()
+
+	if GoogleClientID != "development-google-id" || GoogleClientSecret != "development-google-desktop-configuration" || MicrosoftClientID != "development-microsoft-id" {
+		t.Fatal("development environment did not override public OAuth client configuration")
+	}
+}
+
 func TestGoogleWithoutSecretIsUnavailable(t *testing.T) {
 	origGoogle, origSecret, origOverride := GoogleClientID, GoogleClientSecret, UserOverrideLookup
 	t.Cleanup(func() { GoogleClientID, GoogleClientSecret, UserOverrideLookup = origGoogle, origSecret, origOverride })

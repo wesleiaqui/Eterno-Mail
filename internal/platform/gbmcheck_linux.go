@@ -78,7 +78,7 @@ func showGBMFixDialog() {
 		"Eterno Mail - Display Issue Detected",
 		"A display rendering error was detected that may cause a blank window or crash.\n\n"+
 			"To fix this permanently, close Eterno Mail and run:\n\n"+
-			"flatpak override --user --env=WEBKIT_DISABLE_DMABUF_RENDERER=1 io.github.wesleiaqui.EternoMail\n\n"+
+			"flatpak override --user --env=WEBKIT_DISABLE_DMABUF_RENDERER=1 io.github.wesleiaqui.eternomail\n\n"+
 			"Then restart Eterno Mail.",
 	)
 }

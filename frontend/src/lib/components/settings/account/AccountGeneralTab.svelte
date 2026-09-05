@@ -154,19 +154,21 @@
       </p>
     </div>
 
-    <div class="space-y-2">
-      <Label for="username">{$_('account.username')}</Label>
-      <Input
-        id="username"
-        type="text"
-        placeholder={$_('account.usernamePlaceholder')}
-        bind:value={username}
-        oninput={(e) => onUsernameChange((e.target as HTMLInputElement).value)}
-      />
-      <p class="text-xs text-muted-foreground">
-        {$_('account.usernameHelp')}
-      </p>
-    </div>
+    {#if authType !== 'oauth2' || isGenericProvider}
+      <div class="space-y-2">
+        <Label for="username">{$_('account.username')}</Label>
+        <Input
+          id="username"
+          type="text"
+          placeholder={$_('account.usernamePlaceholder')}
+          bind:value={username}
+          oninput={(e) => onUsernameChange((e.target as HTMLInputElement).value)}
+        />
+        <p class="text-xs text-muted-foreground">
+          {$_('account.usernameHelp')}
+        </p>
+      </div>
+    {/if}
 
     {#if authType === 'oauth2'}
       <!-- OAuth account -->

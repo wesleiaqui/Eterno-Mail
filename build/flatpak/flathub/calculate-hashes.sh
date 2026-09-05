@@ -11,7 +11,7 @@ if [ -z "$1" ]; then
 fi
 
 VERSION="$1"
-REPO="https://github.com/wesleiaqui/Eterno-Mail"
+REPO="https://github.com/wesleiaqui/eternomail"
 
 echo "=========================================="
 echo "Flathub Manifest Updater (from-source)"
@@ -22,7 +22,7 @@ echo ""
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-MANIFEST="${SCRIPT_DIR}/io.github.wesleiaqui.EternoMail.yml"
+MANIFEST="${SCRIPT_DIR}/io.github.wesleiaqui.eternomail.yml"
 
 if [ ! -f "$MANIFEST" ]; then
     echo "ERROR: Manifest file not found: $MANIFEST"

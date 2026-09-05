@@ -1,4 +1,4 @@
-app-id: io.github.wesleiaqui.EternoMail
+app-id: io.github.wesleiaqui.eternomail
 runtime: org.gnome.Platform
 runtime-version: '50'
 sdk: org.gnome.Sdk
@@ -19,6 +19,8 @@ finish-args:
   - --device=dri
   # Sleep/wake detection for sync management
   - --system-talk-name=org.freedesktop.login1
+  # Secret Service access for the existing go-keyring integration
+  - --talk-name=org.freedesktop.secrets
 
 modules:
   - name: aerion
@@ -50,18 +52,18 @@ modules:
       - install -Dm755 eterno-mail /app/bin/eterno-mail
 
       # Install desktop file with correct app ID
-      - install -Dm644 build/linux/io.github.wesleiaqui.EternoMail.desktop /app/share/applications/io.github.wesleiaqui.EternoMail.desktop
+      - install -Dm644 build/linux/io.github.wesleiaqui.eternomail.desktop /app/share/applications/io.github.wesleiaqui.eternomail.desktop
 
       # Install icon with correct app ID
-      - install -Dm644 build/appicon.png /app/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.EternoMail.png
+      - install -Dm644 build/appicon.png /app/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.eternomail.png
 
       # Install metainfo (AppStream metadata)
-      - install -Dm644 build/flatpak/io.github.wesleiaqui.EternoMail.metainfo.xml /app/share/metainfo/io.github.wesleiaqui.EternoMail.metainfo.xml
+      - install -Dm644 build/flatpak/io.github.wesleiaqui.eternomail.metainfo.xml /app/share/metainfo/io.github.wesleiaqui.eternomail.metainfo.xml
 
     sources:
       # Application source code (tag and commit updated by calculate-hashes.sh)
       - type: git
-        url: https://github.com/wesleiaqui/Eterno-Mail.git
+        url: https://github.com/wesleiaqui/eternomail.git
         tag: v0.3.3
         commit: 517c605fe4bf8a0b83d7e8d72a3d53906966d1ec
 

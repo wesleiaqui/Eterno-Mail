@@ -222,7 +222,7 @@
         displayName,
         color,
         email,
-        username: username || email,
+        username: authType === 'oauth2' && !isGenericProvider ? email : username || email,
         password: password, // Empty = keep current
         imapHost,
         imapPort,

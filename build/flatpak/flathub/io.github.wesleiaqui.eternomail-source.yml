@@ -1,6 +1,6 @@
 # Legacy local source experiment. It is intentionally not the Flathub manifest:
-# it downloads dependencies during build and installs Wails at @latest.
-app-id: io.github.wesleiaqui.EternoMail
+# it downloads dependencies during build, despite pinning the Wails CLI.
+app-id: io.github.wesleiaqui.eternomail
 runtime: org.gnome.Platform
 runtime-version: '50'
 sdk: org.gnome.Sdk
@@ -21,6 +21,8 @@ finish-args:
   - --device=dri
   # Sleep/wake detection for sync management
   - --system-talk-name=org.freedesktop.login1
+  # Secret Service access for the existing go-keyring integration
+  - --talk-name=org.freedesktop.secrets
 
 modules:
   - name: aerion
@@ -44,7 +46,7 @@ modules:
       - |
         export PATH=$PATH:/run/build/aerion/go/bin
         export GOPATH=/run/build/aerion/go
-        go install github.com/wailsapp/wails/v2/cmd/wails@latest
+        go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
 
       # Install frontend dependencies
       - |
@@ -52,8 +54,8 @@ modules:
         npm install --legacy-peer-deps
         cd ..
 
-      # Build the application
-      # Note: OAuth credentials should be configured via Flathub secrets if needed
+      # Build the application. Official OAuth desktop-client configuration is
+      # versioned source code; do not inject credentials through build flags.
       - |
         export PATH=$PATH:/run/build/aerion/go/bin
         /run/build/aerion/go/bin/wails build -tags webkit2_41,linux,production -o eterno-mail
@@ -62,17 +64,17 @@ modules:
       - install -Dm755 build/bin/eterno-mail /app/bin/eterno-mail
 
       # Install desktop file with correct app ID
-      - install -Dm644 build/linux/io.github.wesleiaqui.EternoMail.desktop /app/share/applications/io.github.wesleiaqui.EternoMail.desktop
+      - install -Dm644 build/linux/io.github.wesleiaqui.eternomail.desktop /app/share/applications/io.github.wesleiaqui.eternomail.desktop
 
       # Update desktop file Icon and Exec fields
-      - desktop-file-edit --set-key=Icon --set-value=io.github.wesleiaqui.EternoMail /app/share/applications/io.github.wesleiaqui.EternoMail.desktop
-      - desktop-file-edit --set-key=Exec --set-value=eterno-mail /app/share/applications/io.github.wesleiaqui.EternoMail.desktop
+      - desktop-file-edit --set-key=Icon --set-value=io.github.wesleiaqui.eternomail /app/share/applications/io.github.wesleiaqui.eternomail.desktop
+      - desktop-file-edit --set-key=Exec --set-value=eterno-mail /app/share/applications/io.github.wesleiaqui.eternomail.desktop
 
       # Install icon with correct app ID
-      - install -Dm644 build/appicon.png /app/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.EternoMail.png
+      - install -Dm644 build/appicon.png /app/share/icons/hicolor/256x256/apps/io.github.wesleiaqui.eternomail.png
 
       # Install metainfo (AppStream metadata)
-      - install -Dm644 build/flatpak/io.github.wesleiaqui.EternoMail.metainfo.xml /app/share/metainfo/io.github.wesleiaqui.EternoMail.metainfo.xml
+      - install -Dm644 build/flatpak/io.github.wesleiaqui.eternomail.metainfo.xml /app/share/metainfo/io.github.wesleiaqui.eternomail.metainfo.xml
 
     sources:
       # Local source for development builds (make flatpak-dev)

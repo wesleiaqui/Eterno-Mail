@@ -48,14 +48,14 @@ echo "Packaging into Flatpak..."
 echo ""
 
 flatpak-builder --force-clean --user --install-deps-from=flathub \
-    --repo=repo build-dir build/flatpak/io.github.wesleiaqui.EternoMail-dev.yml
+    --repo=repo build-dir build/flatpak/io.github.wesleiaqui.eternomail-dev.yml
 
 # Create bundle for distribution/testing on other machines
 echo ""
 echo "Creating .flatpak bundle..."
 mkdir -p build/bin
 
-flatpak build-bundle repo build/bin/Eterno-Mail-dev.flatpak io.github.wesleiaqui.EternoMail
+flatpak build-bundle repo build/bin/Eterno-Mail-dev.flatpak io.github.wesleiaqui.eternomail
 
 echo ""
 echo "Build complete!"
@@ -66,4 +66,4 @@ echo "To install on a target machine:"
 echo "  flatpak install --user Eterno-Mail-dev.flatpak"
 echo ""
 echo "To run:"
-echo "  flatpak run io.github.wesleiaqui.EternoMail"
+echo "  flatpak run io.github.wesleiaqui.eternomail"

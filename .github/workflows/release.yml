@@ -83,7 +83,7 @@ jobs:
           cp build/linux/install.sh dist-package/
           cp build/linux/uninstall.sh dist-package/
           cp build/linux/io.github.wesleiaqui.eternomail.desktop dist-package/io.github.wesleiaqui.eternomail.desktop
-          cp build/linux/aerion.png dist-package/io.github.wesleiaqui.eternomail.png
+          cp build/linux/io.github.wesleiaqui.eternomail.png dist-package/io.github.wesleiaqui.eternomail.png
 
           if [ "${{ matrix.arch }}" = "amd64" ]; then
             tar czf eterno-mail-linux-amd64.tar.gz -C dist-package .
@@ -100,8 +100,8 @@ jobs:
         run: |
           make build
           cd build/bin
-          zip -r Eterno-Mail-darwin-${{ matrix.arch }}.zip "Eterno Mail.app"
-          rm -rf "Eterno Mail.app"
+          zip -r Eterno-Mail-darwin-${{ matrix.arch }}.zip eterno-mail.app
+          rm -rf eterno-mail.app
 
       - name: Build (Windows)
         if: matrix.platform == 'windows'
@@ -119,7 +119,6 @@ jobs:
           path: |
             build/bin/eterno-mail-*
             build/bin/Eterno-Mail-*
-            build/bin/flathub-build-env-*
             eterno-mail-*.tar.gz
           retention-days: 1
 

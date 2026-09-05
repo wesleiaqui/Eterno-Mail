@@ -64,8 +64,8 @@ build:
 	@echo "Building Aerion..."
 	wails build -tags $(BUILD_TAGS)
 ifeq ($(UNAME_S),Darwin)
-	@echo "Ad-hoc signing Aerion.app (required for macOS notifications)..."
-	codesign --force --deep --sign - build/bin/Aerion.app
+	@echo "Ad-hoc signing eterno-mail.app (required for macOS notifications)..."
+	codesign --force --deep --sign - build/bin/eterno-mail.app
 endif
 
 # Build for Linux specifically
@@ -237,7 +237,7 @@ build-windows-installer:
 	@echo "Building Windows installer..."
 	wails build -tags $(BUILD_TAGS) -nsis
 	@echo ""
-	@echo "Installer created at build/bin/aerion-amd64-installer.exe"
+	@echo "Installer created at build/bin/eterno-mail-$(GOARCH)-installer.exe"
 
 ## Help
 

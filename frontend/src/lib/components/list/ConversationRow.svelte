@@ -468,7 +468,7 @@
   <div
     data-conversation-row
     draggable={getLayoutMode() !== 'narrow'}
-    class="group relative w-full flex items-start overflow-hidden touch-pan-y {densityClasses.row[density]} font-[system-ui] text-left border-b border-border transition-colors duration-300 cursor-pointer outline-none {selected
+    class="group relative w-full flex items-start overflow-hidden touch-pan-y {densityClasses.row[density]} text-left border-b border-border transition-colors duration-300 cursor-pointer outline-none {selected
       ? 'bg-primary/20'
       : 'hover:bg-muted/50'} {getAccentBarUnread() && hasUnread ? 'border-l-2 border-l-primary' : ''} {swipeAnim === 'select' ? 'swipe-select-anim' : ''} {swipeAnim === 'delete' ? 'swipe-delete-anim' : ''}"
     onclick={handleRowClick}

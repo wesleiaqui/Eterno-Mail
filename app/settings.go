@@ -504,7 +504,7 @@ func (a *App) SendReadReceipt(accountID, messageID string) error {
 
 	// Mark as handled
 	if err := a.messageStore.MarkReadReceiptHandled(messageID); err != nil {
-		log.Warn().Err(err).Str("message_id", messageID).Msg("Failed to mark read receipt as handled")
+		log.Warn().Err(err).Str("message_ref", logging.ShortHash(messageID)).Msg("Failed to mark read receipt as handled")
 	}
 
 	log.Info().

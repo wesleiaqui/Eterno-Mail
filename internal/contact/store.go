@@ -200,7 +200,7 @@ func (s *Store) AddOrUpdate(email, displayName string) error {
 		`, recordID, email, now); err != nil {
 			return fmt.Errorf("failed to insert contact_emails: %w", err)
 		}
-		s.log.Debug().Str("email", email).Str("name", displayName).Msg("Contact created (collected)")
+		s.log.Debug().Str("email", logging.RedactEmail(email)).Msg("Contact created (collected)")
 		return nil
 	}
 	if err != nil {
@@ -231,7 +231,7 @@ func (s *Store) AddOrUpdate(email, displayName string) error {
 		}
 	}
 
-	s.log.Debug().Str("email", email).Msg("Contact updated (auto-collected)")
+	s.log.Debug().Str("email", logging.RedactEmail(email)).Msg("Contact updated (auto-collected)")
 	return nil
 }
 
@@ -263,7 +263,7 @@ func (s *Store) UpdateName(email, newName string) error {
 	if _, err := s.db.Exec(`UPDATE contact_emails SET name_overridden = 1 WHERE record_id = ? AND email = ?`, recordID, email); err != nil {
 		return fmt.Errorf("failed to set name_overridden: %w", err)
 	}
-	s.log.Debug().Str("email", email).Str("name", newName).Msg("Local contact name updated (user-overridden)")
+	s.log.Debug().Str("email", logging.RedactEmail(email)).Msg("Local contact name updated (user-overridden)")
 	return nil
 }
 
@@ -312,7 +312,7 @@ func (s *Store) Create(email, displayName string) error {
 		return fmt.Errorf("failed to insert contact_emails: %w", err)
 	}
 
-	s.log.Debug().Str("email", email).Str("name", displayName).Msg("Local contact created (manual)")
+	s.log.Debug().Str("email", logging.RedactEmail(email)).Msg("Local contact created (manual)")
 	return nil
 }
 

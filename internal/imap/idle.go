@@ -46,9 +46,9 @@ func DefaultIdleConfig() IdleConfig {
 		ReconnectBackoff:     1 * time.Second,
 		MaxReconnectBackoff:  5 * time.Minute,
 		MaxReconnectAttempts: 10,
-		EventSendTimeout:     2 * time.Second,  // Don't block forever on event send
-		HealthCheckEnabled:   true,             // Verify connection before IDLE
-		ShutdownTimeout:      5 * time.Second,  // Graceful shutdown timeout
+		EventSendTimeout:     2 * time.Second, // Don't block forever on event send
+		HealthCheckEnabled:   true,            // Verify connection before IDLE
+		ShutdownTimeout:      5 * time.Second, // Graceful shutdown timeout
 	}
 }
 
@@ -78,7 +78,7 @@ func newIdleConnection(accountID, accountName string, config IdleConfig, getCred
 		accountName:    accountName,
 		config:         config,
 		getCredentials: getCredentials,
-		log:            logging.WithComponent("imap-idle").With().Str("account", accountName).Logger(),
+		log:            logging.WithComponent("imap-idle").With().Str("account_id", accountID).Logger(),
 		folder:         "INBOX",
 	}
 }
@@ -520,7 +520,7 @@ func (m *IdleManager) Stop() {
 
 	m.mu.Lock()
 	for accountID, conn := range m.connections {
-		m.log.Debug().Str("account", accountID).Msg("Stopping IDLE connection")
+		m.log.Debug().Str("account_id", accountID).Msg("Stopping IDLE connection")
 		conn.Stop()
 	}
 	m.connections = make(map[string]*IdleConnection)
@@ -546,11 +546,11 @@ func (m *IdleManager) StartAccount(accountID, accountName string) {
 		running := conn.running
 		conn.mu.Unlock()
 		if running {
-			m.log.Debug().Str("account", accountName).Msg("IDLE already running for account")
+			m.log.Debug().Str("account_id", accountID).Msg("IDLE already running for account")
 			return
 		}
 		// Goroutine exited (e.g., max reconnect attempts reached) — remove stale entry
-		m.log.Debug().Str("account", accountName).Msg("Replacing dead IDLE connection")
+		m.log.Debug().Str("account_id", accountID).Msg("Replacing dead IDLE connection")
 		delete(m.connections, accountID)
 	}
 
@@ -565,7 +565,7 @@ func (m *IdleManager) StartAccount(accountID, accountName string) {
 		conn.Start(m.ctx, m.events)
 	}()
 
-	m.log.Info().Str("account", accountName).Msg("Started IDLE for account")
+	m.log.Info().Str("account_id", accountID).Msg("Started IDLE for account")
 }
 
 // StopAccount stops IDLE for a specific account
@@ -576,7 +576,7 @@ func (m *IdleManager) StopAccount(accountID string) {
 	if conn, exists := m.connections[accountID]; exists {
 		conn.Stop()
 		delete(m.connections, accountID)
-		m.log.Info().Str("accountID", accountID).Msg("Stopped IDLE for account")
+		m.log.Info().Str("account_id", accountID).Msg("Stopped IDLE for account")
 	}
 }
 

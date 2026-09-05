@@ -20,7 +20,7 @@
 import { logger } from '$extensions/calendar/frontend/lib/logger'
 import { calendarSources } from '$extensions/calendar/frontend/stores/calendarSources.svelte'
 // @ts-ignore - wailsjs bindings
-import { Calendar_SetDisplayTimezone } from '$wailsjs/go/app/App.js'
+import { Calendar_SetDisplayTimezone, IsExtensionEnabled } from '$wailsjs/go/app/App.js'
 
 const STORAGE_KEY_TZ        = 'aerion:calendar:displayTimezone'
 const STORAGE_KEY_GLOBAL    = 'aerion:calendar:globalDefaultCalendarId'
@@ -68,13 +68,14 @@ function currentEffectiveTZ(): string {
 // Best-effort: a failure (e.g. extension not yet initialized) is non-fatal — the
 // backend also seeds from persisted state at init, and this re-pushes on change.
 function pushTimezoneToBackend(): void {
-  try {
-    void Calendar_SetDisplayTimezone(currentEffectiveTZ()).catch((err) => {
+  void (async () => {
+    try {
+      if (!await IsExtensionEnabled('calendar')) return
+      await Calendar_SetDisplayTimezone(currentEffectiveTZ())
+    } catch (err) {
       logger.warn(`calendarSettings: push tz to backend failed: ${err}`)
-    })
-  } catch (err) {
-    logger.warn(`calendarSettings: push tz to backend failed: ${err}`)
-  }
+    }
+  })()
 }
 
 // Sync the persisted (possibly overridden) tz to the backend on load, so a

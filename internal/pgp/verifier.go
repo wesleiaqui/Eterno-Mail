@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/hkdb/aerion/internal/logging"
 	"github.com/rs/zerolog"
 )
 
@@ -243,12 +244,12 @@ func (v *Verifier) cacheSenderKey(entity *openpgp.Entity, email string) {
 
 	armored, err := ArmorPublicKey(entity)
 	if err != nil {
-		v.log.Warn().Err(err).Str("email", email).Msg("Failed to armor sender key for caching")
+		v.log.Warn().Err(err).Str("email", logging.RedactEmail(email)).Msg("Failed to armor sender key for caching")
 		return
 	}
 
 	if err := v.store.CacheSenderKey(email, armored, "message"); err != nil {
-		v.log.Warn().Err(err).Str("email", email).Msg("Failed to cache sender key")
+		v.log.Warn().Err(err).Str("email", logging.RedactEmail(email)).Msg("Failed to cache sender key")
 	}
 }
 

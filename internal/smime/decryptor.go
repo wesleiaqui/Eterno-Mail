@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/hkdb/aerion/internal/credentials"
+	"github.com/hkdb/aerion/internal/logging"
 	"github.com/rs/zerolog"
 	"go.mozilla.org/pkcs7"
 )
@@ -45,7 +46,7 @@ func (d *Decryptor) DecryptBytes(accountID, recipientEmail string, encryptedData
 		if err == nil {
 			return decrypted, nil
 		}
-		d.log.Debug().Err(err).Str("email", recipientEmail).Msg("Identity-specific decryption failed, trying all certs")
+		d.log.Debug().Err(err).Str("email", logging.RedactEmail(recipientEmail)).Msg("Identity-specific decryption failed, trying all certs")
 	}
 
 	// Fall back to trying all certificates for this account
@@ -185,10 +186,10 @@ func (d *Decryptor) DecryptMessage(accountID, recipientEmail string, raw []byte)
 	if recipientEmail != "" {
 		decrypted, decErr := d.tryDecryptWithEmail(p7, accountID, recipientEmail)
 		if decErr == nil {
-			d.log.Info().Str("email", recipientEmail).Msg("Successfully decrypted S/MIME message with identity cert")
+			d.log.Info().Str("email", logging.RedactEmail(recipientEmail)).Msg("Successfully decrypted S/MIME message with identity cert")
 			return decrypted, true, nil
 		}
-		d.log.Debug().Err(decErr).Str("email", recipientEmail).Msg("Identity-specific decryption failed, trying all certs")
+		d.log.Debug().Err(decErr).Str("email", logging.RedactEmail(recipientEmail)).Msg("Identity-specific decryption failed, trying all certs")
 	}
 
 	// Fall back to trying all certificates for this account

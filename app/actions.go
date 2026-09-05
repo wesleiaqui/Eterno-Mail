@@ -515,7 +515,7 @@ func (a *App) moveMessagesToIMAP(messages []*message.Message, sourceFolderID str
 				var copyErr error
 				hasCopies, copyErr = a.messageStore.HasCopiesInOtherFolders(m.MessageID, sourceFolderID, accountID)
 				if copyErr != nil {
-					log.Warn().Err(copyErr).Str("messageID", m.MessageID).Msg("Failed to check for copies, treating as sole copy")
+					log.Warn().Err(copyErr).Str("message_ref", logging.ShortHash(m.MessageID)).Msg("Failed to check for copies, treating as sole copy")
 				}
 			}
 			if hasCopies {
@@ -888,7 +888,7 @@ func (a *App) gmailTrashOrSpam(messageIDs []string, destFolder *folder.Folder) (
 		if m.MessageID != "" {
 			hasCopies, err = a.messageStore.HasCopiesInOtherFolders(m.MessageID, m.FolderID, accountID)
 			if err != nil {
-				log.Warn().Err(err).Str("messageID", m.MessageID).Msg("Failed to check for copies, treating as sole copy")
+				log.Warn().Err(err).Str("message_ref", logging.ShortHash(m.MessageID)).Msg("Failed to check for copies, treating as sole copy")
 			}
 		}
 		if hasCopies {
@@ -1214,10 +1214,10 @@ func (a *App) deleteMessagesFromIMAP(messages []*message.Message, folderID strin
 		if isGmail && m.MessageID != "" {
 			hasCopies, copyErr := a.messageStore.HasCopiesInOtherFolders(m.MessageID, folderID, accountID)
 			if copyErr != nil {
-				log.Warn().Err(copyErr).Str("messageID", m.MessageID).Msg("Failed to check for copies in other folders")
+				log.Warn().Err(copyErr).Str("message_ref", logging.ShortHash(m.MessageID)).Msg("Failed to check for copies in other folders")
 			}
 			if hasCopies {
-				log.Debug().Str("messageID", m.MessageID).Msg("Gmail: skipping IMAP delete — message exists in other folders")
+				log.Debug().Str("message_ref", logging.ShortHash(m.MessageID)).Msg("Gmail: skipping IMAP delete — message exists in other folders")
 				continue
 			}
 		}

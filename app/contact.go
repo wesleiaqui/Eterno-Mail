@@ -129,12 +129,14 @@ func (a *App) GetAccountProfilePhotos(emails []string) ([]contact.ContactPhoto, 
 		if _, ok := wanted[email]; !ok {
 			continue
 		}
-		if _, alreadyAdded := seen[email]; alreadyAdded || acc.AuthType != account.AuthOAuth2 || !strings.Contains(strings.ToLower(acc.IMAPHost), "gmail") {
+		isGoogleOAuth := acc.AuthType == account.AuthOAuth2 && strings.Contains(strings.ToLower(acc.IMAPHost), "gmail")
+		if _, alreadyAdded := seen[email]; alreadyAdded || !isGoogleOAuth {
 			continue
 		}
 
 		tokens, err := a.getValidOAuthToken(acc.ID)
 		if err != nil || tokens == nil || tokens.AccessToken == "" {
+			log.Debug().Str("account_id", acc.ID).Str("email", logging.RedactEmail(email)).Str("reason", "no-valid-token").Msg("Account profile photo lookup failed")
 			continue
 		}
 
@@ -153,16 +155,24 @@ func (a *App) GetAccountProfilePhotos(emails []string) ([]contact.ContactPhoto, 
 				URL     string `json:"url"`
 				Default bool   `json:"default"`
 			} `json:"photos"`
+			Error struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+			} `json:"error"`
 		}
 		decodeErr := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&profile)
 		statusCode := resp.StatusCode
 		resp.Body.Close()
-		log.Debug().
-			Str("accountID", acc.ID).
-			Str("email", email).
-			Int("status", statusCode).
-			Interface("photos", profile.Photos).
-			Msg("Google account profile photo response")
+		if statusCode != http.StatusOK {
+			log.Debug().
+				Str("account_id", acc.ID).
+				Str("email", logging.RedactEmail(email)).
+				Int("status", statusCode).
+				Int("google_error_code", profile.Error.Code).
+				Msg("Account profile photo lookup failed")
+		} else if decodeErr != nil {
+			log.Debug().Str("account_id", acc.ID).Str("email", logging.RedactEmail(email)).Int("status", statusCode).Str("reason", "invalid-response").Msg("Account profile photo lookup failed")
+		}
 		if statusCode != http.StatusOK || decodeErr != nil {
 			continue
 		}

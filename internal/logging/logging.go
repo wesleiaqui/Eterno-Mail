@@ -2,9 +2,12 @@
 package logging
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -92,6 +95,33 @@ func WithComponent(component string) zerolog.Logger {
 // WithAccountID returns a logger with an account ID field
 func WithAccountID(accountID string) zerolog.Logger {
 	return Logger.With().Str("account_id", accountID).Logger()
+}
+
+// RedactEmail preserves a short local-part prefix and domain for diagnostics.
+// Invalid values are never returned verbatim.
+func RedactEmail(email string) string {
+	email = strings.TrimSpace(email)
+	if email == "" {
+		return ""
+	}
+	if strings.Count(email, "@") != 1 {
+		return "***"
+	}
+	parts := strings.SplitN(email, "@", 2)
+	if parts[0] == "" || parts[1] == "" {
+		return "***"
+	}
+	prefix := parts[0]
+	if len(prefix) > 3 {
+		prefix = prefix[:3]
+	}
+	return prefix + "***@" + parts[1]
+}
+
+// ShortHash returns an opaque, stable reference suitable for diagnostic logs.
+func ShortHash(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(sum[:])[:8]
 }
 
 // Debug logs a debug message

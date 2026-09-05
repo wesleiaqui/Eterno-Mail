@@ -13,6 +13,7 @@ import (
 	"github.com/emersion/go-imap/v2/imapclient"
 	"github.com/hkdb/aerion/internal/folder"
 	imapPkg "github.com/hkdb/aerion/internal/imap"
+	"github.com/hkdb/aerion/internal/logging"
 	"github.com/hkdb/aerion/internal/message"
 )
 
@@ -31,6 +32,7 @@ import (
 // light; the scheduled sync passes false so it stays the authoritative full
 // reconciliation. Deletion detection (the UID diff below) is unaffected either way.
 func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, syncPeriodDays int, preferIncremental bool) error {
+	startedAt := time.Now()
 	// Check context at start
 	if ctx.Err() != nil {
 		return ctx.Err()
@@ -51,6 +53,9 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	}
 	if f == nil {
 		return fmt.Errorf("folder not found: %s", folderID)
+	}
+	if f.AccountID != accountID {
+		return fmt.Errorf("folder %s belongs to account %s, not %s", folderID, f.AccountID, accountID)
 	}
 
 	e.log.Debug().
@@ -245,7 +250,7 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 				inTrash, _ := e.messageStore.ExistsInFolder(msg.MessageID, string(folder.TypeTrash), accountID)
 				inSpam, _ := e.messageStore.ExistsInFolder(msg.MessageID, string(folder.TypeSpam), accountID)
 				if inTrash || inSpam {
-					e.log.Debug().Uint32("uid", uid).Str("messageID", msg.MessageID).
+					e.log.Debug().Uint32("uid", uid).Str("message_ref", logging.ShortHash(msg.MessageID)).
 						Msg("Gmail: skipping local delete — message hidden by Trash/Spam label")
 					continue
 				}
@@ -284,6 +289,7 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	}
 
 	// Fetch new messages with incremental approach (headers first)
+	persistedNewMessages := 0
 	if len(newUIDs) > 0 {
 		// Sort UIDs descending (newest first)
 		sort.Slice(newUIDs, func(i, j int) bool {
@@ -317,8 +323,9 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 			// Fetch headers for this batch with retry on connection error
 			batchRetries := 0
 			for {
-				err := e.fetchMessageHeaders(ctx, conn.Client().RawClient(), accountID, folderID, batch)
+				persisted, err := e.fetchMessageHeaders(ctx, conn.Client().RawClient(), accountID, folderID, batch)
 				if err == nil {
+					persistedNewMessages += persisted
 					break // Success
 				}
 
@@ -412,8 +419,12 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 
 	e.log.Info().
 		Str("folder", f.Path).
-		Int("new", len(newUIDs)).
+		Int("requested", len(newUIDs)).
+		Int("persisted", persistedNewMessages).
+		Int("failed", len(newUIDs)-persistedNewMessages).
+		Int("new", persistedNewMessages).
 		Int("deleted", len(deletedUIDs)).
+		Dur("duration", time.Since(startedAt)).
 		Msg("Message sync complete (headers)")
 
 	return nil
@@ -719,9 +730,9 @@ func (e *Engine) fetchAllUIDs(ctx context.Context, client *imapclient.Client) ([
 
 // fetchMessageHeaders fetches only headers (envelope, flags) for the given UIDs.
 // Messages are saved with BodyFetched=false, bodies to be fetched later.
-func (e *Engine) fetchMessageHeaders(ctx context.Context, client *imapclient.Client, accountID, folderID string, uids []uint32) error {
+func (e *Engine) fetchMessageHeaders(ctx context.Context, client *imapclient.Client, accountID, folderID string, uids []uint32) (int, error) {
 	if len(uids) == 0 {
-		return nil
+		return 0, nil
 	}
 
 	e.log.Debug().Int("count", len(uids)).Msg("Fetching message headers")
@@ -842,7 +853,11 @@ func (e *Engine) fetchMessageHeaders(ctx context.Context, client *imapclient.Cli
 
 		// Save to store immediately (don't wait for all messages)
 		if err := e.messageStore.Upsert(m); err != nil {
-			e.log.Warn().Err(err).Uint32("uid", m.UID).Msg("Failed to save message header")
+			e.log.Warn().Err(err).
+				Str("account_id", accountID).
+				Str("folder_id", folderID).
+				Uint32("uid", m.UID).
+				Msg("Failed to save message header")
 			continue
 		}
 		savedMessages = append(savedMessages, m)
@@ -890,18 +905,18 @@ func (e *Engine) fetchMessageHeaders(ctx context.Context, client *imapclient.Cli
 		if threadID != "" && threadID != m.ThreadID {
 			m.ThreadID = threadID
 			if err := e.messageStore.UpdateThreadID(m.ID, threadID); err != nil {
-				e.log.Warn().Err(err).Str("messageId", m.ID).Msg("Failed to update thread ID")
+				e.log.Warn().Err(err).Str("message_ref", logging.ShortHash(m.ID)).Msg("Failed to update thread ID")
 			}
 		}
 
 		// Reconcile threads: link this message with related messages
 		// This handles cases where replies were synced before the original message
 		if err := e.messageStore.ReconcileThreadsForNewMessage(accountID, m.ID, m.MessageID, m.ThreadID, m.InReplyTo); err != nil {
-			e.log.Warn().Err(err).Str("messageId", m.ID).Msg("Failed to reconcile threads")
+			e.log.Warn().Err(err).Str("message_ref", logging.ShortHash(m.ID)).Msg("Failed to reconcile threads")
 		}
 	}
 
-	return nil
+	return fetchedCount, nil
 }
 
 /*

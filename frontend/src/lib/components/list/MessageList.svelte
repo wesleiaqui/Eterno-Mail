@@ -26,7 +26,7 @@
   import { message } from '../../../../wailsjs/go/models'
   // @ts-ignore - wailsjs runtime
   import { EventsOn, EventsOff } from '../../../../wailsjs/runtime/runtime'
-  import { getLanguage, getMessageListDensity, getMessageListSortOrder, setMessageListSortOrder, getShowMessageListCircles, getShowMessageListProfilePics } from '$lib/stores/settings.svelte'
+  import { getLanguage, getMessageListDensity, getMessageListSortOrder, setMessageListSortOrder, getShowMessageListProfilePics } from '$lib/stores/settings.svelte'
   import { getInboxDisplayMode, setInboxDisplayMode as setInboxDisplayPreference, initializeInboxDisplayPreferences, getInboxCardGrouping, getInboxCardVisibleCount, isInboxCardAccountVisible, type InboxDisplayMode } from '$lib/stores/inboxDisplay.svelte'
   import { contactPhotos } from '$lib/stores/contactPhotos.svelte'
   import { domainFromEmail, senderLogos } from '$lib/stores/senderLogos.svelte'
@@ -1068,40 +1068,39 @@
       : totalCount
   )
 
-  // Opt-in contact photos: batch-prefetch the visible rows' avatar emails in one
-  // Wails call (never per-row). Debounced (~150ms, cancelled via effect cleanup)
-  // so fast folder switching only fetches the folder you land on. participants[0]
-  // is already folder-aware (recipient in Sent/Drafts, sender elsewhere), and the
-  // cache serves repeat contacts / return visits instantly. Feature off ⇒ no calls.
+  // Resolve every visible sender through the same batch path. Contact photos are
+  // optional, but brand-logo lookup must not depend on that display preference.
   $effect(() => {
-    if (!getShowMessageListProfilePics()) return
     const list = activeList
+    const configuredAccountEmails = new Set(
+      accountStore.accounts.map(item => item.account.email.trim().toLowerCase()).filter(Boolean)
+    )
     const t = setTimeout(() => {
       const emails: string[] = []
       for (const c of list) {
         const email = c?.participants?.[0]?.email
-        if (email) emails.push(email)
+        if (email) {
+          emails.push(email)
+        }
+      }
+      const accountEmails = emails.filter(email => configuredAccountEmails.has(email.trim().toLowerCase()))
+      const ensureLogos = (logoEmails: string[]) => {
+        const domains = logoEmails.map(domainFromEmail).filter(Boolean)
+        if (!domains.length) return
+        void senderLogos.ensure(domains)
+      }
+      if (!getShowMessageListProfilePics()) {
+        void contactPhotos.ensure(accountEmails)
+        ensureLogos(emails.filter(email => !configuredAccountEmails.has(email.trim().toLowerCase())))
+        return
       }
       void contactPhotos.ensure(emails).then(() => {
-        const domains = emails
-          .filter(email => !contactPhotos.get(email))
-          .map(domainFromEmail)
-          .filter(Boolean)
-        void senderLogos.ensure(domains)
+        ensureLogos(emails.filter(email => !configuredAccountEmails.has(email.trim().toLowerCase()) && !contactPhotos.get(email)))
+      }).catch(() => {
+        // A contact lookup must never suppress the independent logo fallback.
+        ensureLogos(emails.filter(email => !configuredAccountEmails.has(email.trim().toLowerCase())))
       })
     }, 150)
-    return () => clearTimeout(t)
-  })
-
-  // Brand logos are independent from contact photos. Fetch them asynchronously
-  // for visible senders; Avatar still gives any personal contact photo priority.
-  $effect(() => {
-    if (!getShowMessageListCircles() || getShowMessageListProfilePics()) return
-    const list = activeList
-    const t = setTimeout(() => {
-      const domains = list.map(c => domainFromEmail(c?.participants?.[0]?.email || '')).filter(Boolean)
-      void senderLogos.ensure(domains)
-    }, 200)
     return () => clearTimeout(t)
   })
 

@@ -13,6 +13,7 @@ import { GetContactPhotos } from '../../../wailsjs/go/app/App.js'
 import { GetAccountProfilePhotos } from '../../../wailsjs/go/app/App.js'
 // @ts-ignore - wailsjs bindings
 import { EventsOn } from '../../../wailsjs/runtime/runtime'
+import { isConfiguredAccountEmail } from '$lib/stores/accounts.svelte'
 
 type Photo = { data: string; mediaType: string }
 type PhotoResult = Photo & { email: string }
@@ -23,6 +24,11 @@ let cache = $state<Record<string, Photo | null>>({})
 
 // Non-reactive dedupe set of emails with a fetch in flight.
 const inflight = new Set<string>()
+
+// Account profile photos have a separate retry lifecycle from contact photos:
+// a prior contact miss must not suppress the configured account's own profile.
+const accountProfileInflight = new Set<string>()
+const accountProfileChecked = new Set<string>()
 
 // The most recent batch the message list asked for — re-fetched on invalidate
 // so newly-synced photos appear without an app restart.
@@ -48,6 +54,8 @@ function norm(email: string): string {
 function invalidate(): void {
   cache = {}
   inflight.clear()
+  accountProfileInflight.clear()
+  accountProfileChecked.clear()
   if (lastEmails.length) void ensure(lastEmails)
 }
 
@@ -60,22 +68,38 @@ async function ensure(emails: string[]): Promise<void> {
     const e = norm(raw)
     if (!e || seen.has(e)) continue
     seen.add(e)
-    if (e in cache || inflight.has(e)) continue
+    if (e in cache) {
+      continue
+    }
+    if (inflight.has(e)) {
+      continue
+    }
     missing.push(e)
   }
-  if (missing.length === 0) return
+  const accountEmails = [...seen].filter(email =>
+    isConfiguredAccountEmail(email) &&
+    !accountProfileChecked.has(email) &&
+    !accountProfileInflight.has(email)
+  )
+  if (missing.length === 0 && accountEmails.length === 0) return
 
   for (const e of missing) inflight.add(e)
+  for (const email of accountEmails) accountProfileInflight.add(email)
   try {
-    const results = (await GetContactPhotos(missing)) || []
+    const results = missing.length ? (await GetContactPhotos(missing)) || [] : []
     // A mail account's own Google profile is not necessarily a contact, so
-    // fetch those account avatars separately. This is best-effort: normal
-    // contact photos must still work for non-OAuth and offline accounts.
+    // fetch its profile separately. A cached contact miss must not block this
+    // one account-profile lookup, but it is still deduplicated per session.
     let accountProfiles: PhotoResult[] = []
     try {
-      accountProfiles = (await GetAccountProfilePhotos(missing)) || []
+      accountProfiles = accountEmails.length ? (await GetAccountProfilePhotos(accountEmails)) || [] : []
     } catch (err) {
       console.debug('Failed to fetch account profile photos:', err)
+    } finally {
+      for (const email of accountEmails) {
+        accountProfileInflight.delete(email)
+        accountProfileChecked.add(email)
+      }
     }
     // Seed every requested email as a miss, then overwrite the ones that
     // returned a photo — so misses are cached and won't be re-queried.
@@ -92,6 +116,7 @@ async function ensure(emails: string[]): Promise<void> {
     console.error('Failed to fetch contact photos:', err)
   } finally {
     for (const e of missing) inflight.delete(e)
+    for (const email of accountEmails) accountProfileInflight.delete(email)
   }
 }
 

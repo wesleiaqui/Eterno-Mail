@@ -98,7 +98,11 @@ func (pc *PooledConnection) isHealthyLocked() bool {
 type Pool struct {
 	config      PoolConfig
 	connections map[string][]*PooledConnection // accountID -> connections
-	waiters     map[string][]chan *PooledConnection
+	creating    map[string]int                 // accountID -> connections being established
+	waiters     map[string][]chan poolWaitResult
+	waitCounts  map[string]int
+	waitTotal   map[string]time.Duration
+	waitMax     map[string]time.Duration
 	mu          sync.Mutex
 	log         zerolog.Logger
 
@@ -106,12 +110,21 @@ type Pool struct {
 	getCredentials func(accountID string) (*ClientConfig, error)
 }
 
+type poolWaitResult struct {
+	conn   *PooledConnection
+	closed bool
+}
+
 // NewPool creates a new connection pool
 func NewPool(config PoolConfig, getCredentials func(accountID string) (*ClientConfig, error)) *Pool {
 	return &Pool{
 		config:         config,
 		connections:    make(map[string][]*PooledConnection),
-		waiters:        make(map[string][]chan *PooledConnection),
+		creating:       make(map[string]int),
+		waiters:        make(map[string][]chan poolWaitResult),
+		waitCounts:     make(map[string]int),
+		waitTotal:      make(map[string]time.Duration),
+		waitMax:        make(map[string]time.Duration),
 		log:            logging.WithComponent("imap-pool"),
 		getCredentials: getCredentials,
 	}
@@ -119,89 +132,118 @@ func NewPool(config PoolConfig, getCredentials func(accountID string) (*ClientCo
 
 // GetConnection gets or creates a connection for an account
 func (p *Pool) GetConnection(ctx context.Context, accountID string) (*PooledConnection, error) {
-	p.mu.Lock()
+	hasWaited := false
+	waitStarted := time.Now()
+	recordWait := func() {
+		if !hasWaited {
+			return
+		}
+		waited := time.Since(waitStarted)
+		p.mu.Lock()
+		p.waitCounts[accountID]++
+		p.waitTotal[accountID] += waited
+		if waited > p.waitMax[accountID] {
+			p.waitMax[accountID] = waited
+		}
+		p.mu.Unlock()
+	}
+	defer recordWait()
+	for {
+		p.mu.Lock()
 
-	// Try to find an available connection
-	if conns, ok := p.connections[accountID]; ok {
-		for _, conn := range conns {
-			conn.mu.Lock()
-			if !conn.inUse && conn.isHealthyLocked() {
-				conn.inUse = true
-				conn.lastUsed = time.Now()
+		// Try to find an available connection.
+		if conns, ok := p.connections[accountID]; ok {
+			for _, conn := range conns {
+				conn.mu.Lock()
+				if !conn.inUse && conn.isHealthyLocked() {
+					conn.inUse = true
+					conn.lastUsed = time.Now()
+					conn.mu.Unlock()
+					p.mu.Unlock()
+
+					p.log.Debug().Str("account", accountID).Msg("Reusing existing connection")
+					return conn, nil
+				}
 				conn.mu.Unlock()
-				p.mu.Unlock()
-
-				p.log.Debug().
-					Str("account", accountID).
-					Msg("Reusing existing connection")
-				return conn, nil
 			}
-			conn.mu.Unlock()
+		}
+
+		openConnections := len(p.connections[accountID])
+		creatingConnections := p.creating[accountID]
+		if openConnections+creatingConnections < p.config.MaxConnections {
+			p.creating[accountID]++
+			p.mu.Unlock()
+			return p.createConnection(ctx, accountID)
+		}
+
+		if !hasWaited {
+			p.log.Debug().Str("account_id", accountID).Int("open_connections", openConnections).Int("creating_connections", creatingConnections).Int("max", p.config.MaxConnections).Msg("Connection pool exhausted, waiting")
+			hasWaited = true
+		}
+		waiter := make(chan poolWaitResult, 1)
+		p.waiters[accountID] = append(p.waiters[accountID], waiter)
+		p.mu.Unlock()
+
+		timer := time.NewTimer(p.config.WaiterTimeout)
+		select {
+		case result := <-waiter:
+			timer.Stop()
+			if result.closed {
+				return nil, fmt.Errorf("connection pool closed")
+			}
+			if result.conn != nil {
+				return result.conn, nil
+			}
+			// A connection attempt failed and released a slot. Try again.
+		case <-ctx.Done():
+			timer.Stop()
+			p.mu.Lock()
+			p.removeWaiterLocked(accountID, waiter)
+			p.mu.Unlock()
+			return nil, ctx.Err()
+		case <-timer.C:
+			p.mu.Lock()
+			p.removeWaiterLocked(accountID, waiter)
+			p.mu.Unlock()
+			p.log.Warn().Str("account", accountID).Dur("timeout", p.config.WaiterTimeout).Msg("Timed out waiting for connection from pool")
+			return nil, fmt.Errorf("timed out waiting for connection from pool")
 		}
 	}
+}
 
-	// Count current connections for this account
-	currentCount := len(p.connections[accountID])
-
-	// Can we create a new one?
-	if currentCount < p.config.MaxConnections {
-		p.mu.Unlock()
-		return p.createConnection(ctx, accountID)
-	}
-
-	// At limit - must wait
-	p.log.Debug().
-		Str("account", accountID).
-		Int("current", currentCount).
-		Int("max", p.config.MaxConnections).
-		Msg("Connection pool exhausted, waiting")
-
-	waiter := make(chan *PooledConnection, 1)
-	p.waiters[accountID] = append(p.waiters[accountID], waiter)
-	p.mu.Unlock()
-
-	// Wait for a connection, context cancellation, or timeout
-	select {
-	case conn := <-waiter:
-		if conn == nil {
-			// Channel was closed by CloseAccount/CloseAll — pool is being cleared
-			return nil, fmt.Errorf("connection pool closed")
+func (p *Pool) removeWaiterLocked(accountID string, waiter chan poolWaitResult) {
+	waiters := p.waiters[accountID]
+	for i, candidate := range waiters {
+		if candidate == waiter {
+			p.waiters[accountID] = append(waiters[:i], waiters[i+1:]...)
+			return
 		}
-		return conn, nil
-	case <-ctx.Done():
-		// Remove ourselves from waiters
-		p.mu.Lock()
-		waiters := p.waiters[accountID]
-		for i, w := range waiters {
-			if w == waiter {
-				p.waiters[accountID] = append(waiters[:i], waiters[i+1:]...)
-				break
-			}
-		}
-		p.mu.Unlock()
-		return nil, ctx.Err()
-	case <-time.After(p.config.WaiterTimeout):
-		// Timeout waiting for connection - pool may be deadlocked
-		p.mu.Lock()
-		waiters := p.waiters[accountID]
-		for i, w := range waiters {
-			if w == waiter {
-				p.waiters[accountID] = append(waiters[:i], waiters[i+1:]...)
-				break
-			}
-		}
-		p.mu.Unlock()
-		p.log.Warn().
-			Str("account", accountID).
-			Dur("timeout", p.config.WaiterTimeout).
-			Msg("Timed out waiting for connection from pool")
-		return nil, fmt.Errorf("timed out waiting for connection from pool")
 	}
 }
 
 // createConnection creates a new connection for an account
 func (p *Pool) createConnection(ctx context.Context, accountID string) (*PooledConnection, error) {
-	return p.createConnectionWithRetry(ctx, accountID, 0)
+	conn, err := p.createConnectionWithRetry(ctx, accountID, 0)
+
+	p.mu.Lock()
+	p.creating[accountID]--
+	if p.creating[accountID] == 0 {
+		delete(p.creating, accountID)
+	}
+	if err == nil {
+		p.connections[accountID] = append(p.connections[accountID], conn)
+	} else if waiters := p.waiters[accountID]; len(waiters) > 0 {
+		waiter := waiters[0]
+		p.waiters[accountID] = waiters[1:]
+		waiter <- poolWaitResult{}
+	}
+	p.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+
+	p.log.Info().Str("account", accountID).Msg("New connection created")
+	return conn, nil
 }
 
 // createConnectionWithRetry creates a connection with retry logic for transient errors
@@ -280,14 +322,6 @@ func (p *Pool) createConnectionWithRetry(ctx context.Context, accountID string, 
 		inUse:     true,
 	}
 
-	p.mu.Lock()
-	p.connections[accountID] = append(p.connections[accountID], conn)
-	p.mu.Unlock()
-
-	p.log.Info().
-		Str("account", accountID).
-		Msg("New connection created")
-
 	return conn, nil
 }
 
@@ -341,7 +375,7 @@ func (p *Pool) Release(conn *PooledConnection) {
 		conn.inUse = true
 		conn.mu.Unlock()
 
-		waiter <- conn
+		waiter <- poolWaitResult{conn: conn}
 		return
 	}
 
@@ -395,27 +429,28 @@ func (p *Pool) CloseAccount(accountID string) {
 	defer p.mu.Unlock()
 
 	conns, ok := p.connections[accountID]
-	if !ok {
-		return
-	}
-
-	for _, conn := range conns {
-		conn.mu.Lock()
-		if conn.client != nil {
-			conn.client.ForceClose()
-			conn.client = nil
+	if ok {
+		for _, conn := range conns {
+			conn.mu.Lock()
+			if conn.client != nil {
+				conn.client.ForceClose()
+				conn.client = nil
+			}
+			conn.mu.Unlock()
 		}
-		conn.mu.Unlock()
-	}
 
-	delete(p.connections, accountID)
+		delete(p.connections, accountID)
+	}
 
 	// Notify any waiters that we're closing
 	if waiters, ok := p.waiters[accountID]; ok {
 		for _, w := range waiters {
-			close(w)
+			w <- poolWaitResult{closed: true}
 		}
 		delete(p.waiters, accountID)
+	}
+	if !ok {
+		return
 	}
 
 	p.log.Info().
@@ -530,6 +565,24 @@ func (p *Pool) GetStats() PoolStats {
 	}
 
 	return stats
+}
+
+// WaitMetrics aggregates connection-wait observations for an account.
+type WaitMetrics struct {
+	Count int
+	Total time.Duration
+	Max   time.Duration
+}
+
+// WaitMetricsSnapshot returns the pool wait metrics observed for an account.
+func (p *Pool) WaitMetricsSnapshot(accountID string) WaitMetrics {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return WaitMetrics{
+		Count: p.waitCounts[accountID],
+		Total: p.waitTotal[accountID],
+		Max:   p.waitMax[accountID],
+	}
 }
 
 // Client returns the underlying IMAP client from a pooled connection

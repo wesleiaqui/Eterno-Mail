@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hkdb/aerion/internal/logging"
+	"golang.org/x/net/publicsuffix"
 )
 
 const (
@@ -39,20 +40,26 @@ type SenderLogo struct {
 }
 
 type Store struct {
-	db     *sql.DB
-	client *http.Client
+	db           *sql.DB
+	strictClient *http.Client
+	normalClient *http.Client
 }
 
 func NewStore(db *sql.DB) *Store {
-	return &Store{db: db, client: &http.Client{
-		Timeout: requestTimeout,
-		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
-	}}
+	return &Store{
+		db: db,
+		strictClient: &http.Client{
+			Timeout:       requestTimeout,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		},
+		normalClient: &http.Client{Timeout: requestTimeout},
+	}
 }
 
 // FetchDomainLogo performs the best-effort BIMI → favicon cascade without cache.
 func FetchDomainLogo(domain string) (data, mediaType string, ok bool) {
-	result := fetchDomainLogo(NewStore(nil).client, domain)
+	store := NewStore(nil)
+	result := fetchDomainLogo(store.strictClient, store.normalClient, domain)
 	return result.data, result.mediaType, result.ok
 }
 
@@ -127,7 +134,9 @@ func (s *Store) loadFresh(domains []string) map[string]cacheResult {
 		if failure == failureTransient {
 			ttl = transientTTL
 		}
-		if time.Unix(fetchedAt, 0).Add(ttl).After(now) {
+		fetched := time.Unix(fetchedAt, 0)
+		expiresAt := fetched.Add(ttl)
+		if expiresAt.After(now) {
 			results[domain] = cacheResult{data: data, mediaType: mediaType, ok: data != "" && mediaType != "", failure: failure}
 		}
 	}
@@ -181,9 +190,9 @@ func (s *Store) resolveBatch(domains []string) map[string]cacheResult {
 		go func() {
 			defer wg.Done()
 			for domain := range jobs {
-				result := fetchDomainLogo(s.client, domain)
+				result := fetchDomainLogo(s.strictClient, s.normalClient, domain)
 				log.Debug().
-					Str("domain", domain).Str("source", result.source).Int("status", result.status).
+					Str("requested_domain", domain).Str("source", result.source).Int("status", result.status).
 					Str("cache_outcome", cacheOutcome(result)).Msg("Sender logo lookup completed")
 				mu.Lock()
 				results[domain] = result
@@ -205,34 +214,74 @@ func (s *Store) resolveBatch(domains []string) map[string]cacheResult {
 	return results
 }
 
-func fetchDomainLogo(client *http.Client, domain string) cacheResult {
+func fetchDomainLogo(strictClient, normalClient *http.Client, domain string) cacheResult {
 	domain = normalizeDomain(domain)
 	if domain == "" {
 		return cacheResult{failure: failureDefinitive, source: "invalid-domain"}
 	}
-	logoURL, bimiFailure := lookupBIMILogo(domain)
-	if logoURL != "" {
-		result := fetchImage(client, logoURL, true)
+	lookupDomains := logoLookupDomains(domain)
+	last := cacheResult{failure: failureDefinitive, source: "no-logo-source"}
+	hadTransientFailure := false
+
+	recordFailure := func(result cacheResult) {
+		last = result
+		if result.failure == failureTransient {
+			hadTransientFailure = true
+		}
+	}
+
+	// BIMI is the identity-authoritative source. Its strict client deliberately
+	// does not follow redirects; favicon requests below use the normal client.
+	for _, lookupDomain := range lookupDomains {
+		logoURL, bimiFailure := lookupBIMILogo(lookupDomain)
+		if logoURL == "" {
+			result := cacheResult{failure: bimiFailure, source: "bimi", status: 0}
+			recordFailure(result)
+			continue
+		}
+		result := fetchImage(strictClient, logoURL, true)
 		result.source = "bimi"
 		if result.ok {
 			return result
 		}
+		recordFailure(result)
 	}
-	direct := fetchImage(client, "https://"+domain+"/favicon.ico", false)
-	direct.source = "favicon-direct"
-	if direct.ok {
-		return direct
+
+	for _, lookupDomain := range lookupDomains {
+		result := fetchImage(normalClient, "https://"+lookupDomain+"/favicon.ico", false)
+		result.source = "favicon-direct"
+		if result.ok {
+			return result
+		}
+		recordFailure(result)
 	}
-	google := fetchGoogleFavicon(client, domain)
-	if google.ok {
-		return google
+
+	for _, lookupDomain := range lookupDomains {
+		result := fetchGoogleFavicon(normalClient, domain, lookupDomain)
+		if result.ok {
+			return result
+		}
+		recordFailure(result)
 	}
-	if google.failure == failureTransient || direct.failure == failureTransient || bimiFailure == failureTransient {
-		google.failure = failureTransient
+
+	if hadTransientFailure {
+		last.failure = failureTransient
 	} else {
-		google.failure = failureDefinitive
+		last.failure = failureDefinitive
 	}
-	return google
+	return last
+}
+
+// logoLookupDomains keeps the requested host first, then adds its registrable
+// eTLD+1 when it differs. Public Suffix List handling is required for names
+// such as company.co.uk, where dropping one label would be wrong.
+func logoLookupDomains(domain string) []string {
+	lookupDomains := []string{domain}
+	organizational, err := publicsuffix.EffectiveTLDPlusOne(domain)
+	if err == nil && organizational != domain {
+		lookupDomains = append(lookupDomains, organizational)
+	}
+	return lookupDomains
 }
 
 func lookupBIMILogo(domain string) (string, failureType) {
@@ -264,21 +313,22 @@ func lookupBIMILogo(domain string) (string, failureType) {
 	return "", failureDefinitive
 }
 
-func fetchGoogleFavicon(client *http.Client, domain string) cacheResult {
+func fetchGoogleFavicon(client *http.Client, requestedDomain, lookupDomain string) cacheResult {
 	log := logging.WithComponent("senderlogo")
 	var result cacheResult
 	for attempt, delay := range []time.Duration{0, 200 * time.Millisecond, 600 * time.Millisecond} {
 		if delay > 0 {
 			time.Sleep(delay)
 		}
-		result = fetchImage(client, "https://www.google.com/s2/favicons?domain="+url.QueryEscape(domain)+"&sz=128", false)
+		result = fetchImage(client, "https://www.google.com/s2/favicons?domain="+url.QueryEscape(lookupDomain)+"&sz=128", false)
 		result.source = "favicon-google"
 		if result.ok || result.failure != failureTransient {
 			return result
 		}
 		if attempt < 2 {
 			log.Debug().
-				Str("domain", domain).Int("attempt", attempt+1).Int("status", result.status).
+				Str("requested_domain", requestedDomain).Str("lookup_domain", lookupDomain).
+				Int("attempt", attempt+1).Int("status", result.status).
 				Msg("Retrying transient Google favicon failure")
 		}
 	}

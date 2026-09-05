@@ -127,3 +127,21 @@ func TestDefaultIdleConfig(t *testing.T) {
 		t.Errorf("DefaultIdleConfig().MaxReconnectAttempts = %d, want 10", cfg.MaxReconnectAttempts)
 	}
 }
+
+func TestMailboxIsSelectable(t *testing.T) {
+	container := &Mailbox{
+		Name:       "[Gmail]",
+		Attributes: []string{"\\HasChildren", "\\Noselect"},
+	}
+	if container.IsSelectable() {
+		t.Fatal("[Gmail] container with \\Noselect is selectable")
+	}
+
+	sent := &Mailbox{
+		Name:       "[Gmail]/E-mails enviados",
+		Attributes: []string{"\\HasNoChildren", "\\Sent"},
+	}
+	if !sent.IsSelectable() {
+		t.Fatal("selectable \\Sent mailbox is not selectable")
+	}
+}

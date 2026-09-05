@@ -22,9 +22,9 @@ import (
 	"github.com/hkdb/aerion/internal/logging"
 	"github.com/hkdb/aerion/internal/message"
 	"github.com/hkdb/aerion/internal/oauth2"
+	"github.com/hkdb/aerion/internal/pgp"
 	"github.com/hkdb/aerion/internal/platform"
 	"github.com/hkdb/aerion/internal/settings"
-	"github.com/hkdb/aerion/internal/pgp"
 	"github.com/hkdb/aerion/internal/smime"
 	"github.com/hkdb/aerion/internal/smtp"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -378,7 +378,7 @@ func (c *ComposerApp) loadInitialData() error {
 		}
 		if msg != nil {
 			c.originalMessage = msg
-			log.Info().Str("messageID", c.config.MessageID).Str("mode", c.config.Mode).Msg("Loaded original message")
+			log.Info().Str("message_ref", logging.ShortHash(c.config.MessageID)).Str("mode", c.config.Mode).Msg("Loaded original message")
 		}
 	}
 

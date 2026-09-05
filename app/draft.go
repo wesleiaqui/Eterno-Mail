@@ -22,7 +22,7 @@ import (
 // draftBodyPayload is used to serialize body fields for encrypted draft storage
 type draftBodyPayload struct {
 	BodyHTML    string            `json:"bodyHtml"`
-	BodyText   string            `json:"bodyText"`
+	BodyText    string            `json:"bodyText"`
 	Attachments []smtp.Attachment `json:"attachments,omitempty"`
 }
 
@@ -779,13 +779,13 @@ func (a *App) GetDraft(id string) (*smtp.ComposeMessage, error) {
 		return nil, err
 	}
 	if d != nil {
-		log.Debug().Str("messageID", id).Str("draftID", d.ID).Msg("Found draft by message IMAP UID")
+		log.Debug().Str("message_ref", logging.ShortHash(id)).Str("draft_id", d.ID).Msg("Found draft by message IMAP UID")
 		return a.draftToComposeMessage(d), nil
 	}
 
 	// No draft found - this might be a draft that was created outside Aerion
 	// (e.g., from webmail). Build a ComposeMessage from the message itself.
-	log.Debug().Str("messageID", id).Msg("No local draft found, building from message")
+	log.Debug().Str("message_ref", logging.ShortHash(id)).Msg("No local draft found, building from message")
 	return a.messageToComposeMessage(msg), nil
 }
 

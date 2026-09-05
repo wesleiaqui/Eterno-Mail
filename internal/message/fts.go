@@ -40,10 +40,10 @@ func (f *FTSIndexer) SetCompleteCallback(cb func(folderID string)) {
 	f.onComplete = cb
 }
 
-// IndexAllFolders indexes all folders across all accounts
+// IndexAllFolders scans all folders across all accounts and repairs incomplete indexes.
 // This should be called in the background after app startup
 func (f *FTSIndexer) IndexAllFolders(ctx context.Context) error {
-	logging.Info().Msg("Starting background FTS indexing for all folders")
+	logging.Debug().Msg("Starting background FTS indexing")
 
 	// Get all folder IDs
 	rows, err := f.db.QueryContext(ctx, `SELECT id FROM folders`)
@@ -65,9 +65,12 @@ func (f *FTSIndexer) IndexAllFolders(ctx context.Context) error {
 		return fmt.Errorf("error iterating folders: %w", err)
 	}
 
-	logging.Info().Int("folderCount", len(folderIDs)).Msg("Found folders to index")
+	logging.Debug().Int("folders_total", len(folderIDs)).Msg("FTS indexing scan started")
 
 	// Index each folder
+	alreadyIndexed := 0
+	processed := 0
+	failed := 0
 	for _, folderID := range folderIDs {
 		select {
 		case <-ctx.Done():
@@ -76,14 +79,55 @@ func (f *FTSIndexer) IndexAllFolders(ctx context.Context) error {
 		default:
 		}
 
+		needsWork, err := f.folderNeedsIndexing(ctx, folderID)
+		if err != nil {
+			failed++
+			logging.Error().Err(err).Str("folderID", folderID).Msg("Failed to check FTS index status")
+			continue
+		}
+		if !needsWork {
+			alreadyIndexed++
+			continue
+		}
+
+		processed++
 		if err := f.IndexFolder(ctx, folderID); err != nil {
+			failed++
 			logging.Error().Err(err).Str("folderID", folderID).Msg("Failed to index folder")
 			// Continue with other folders
 		}
 	}
 
-	logging.Info().Msg("Background FTS indexing completed for all folders")
+	logging.Info().
+		Int("folders_total", len(folderIDs)).
+		Int("already_indexed", alreadyIndexed).
+		Int("indexed_folders", processed).
+		Int("failed_folders", failed).
+		Int("skipped_folders", len(folderIDs)-alreadyIndexed-processed-failed).
+		Msg("Background FTS indexing completed")
 	return nil
+}
+
+// folderNeedsIndexing checks whether a folder needs background repair using one
+// query. Complete status plus the current message count is enough for the
+// skip path; incomplete, absent, or mismatched status still routes through the
+// full indexer so recovery stays authoritative.
+func (f *FTSIndexer) folderNeedsIndexing(ctx context.Context, folderID string) (bool, error) {
+	var isComplete bool
+	var indexedTotal sql.NullInt64
+	var currentCount int
+	err := f.db.QueryRowContext(ctx, `
+		SELECT COALESCE(fis.is_complete, 0), fis.total_count, COUNT(m.rowid)
+		FROM folders fd
+		LEFT JOIN fts_index_status fis ON fis.folder_id = fd.id
+		LEFT JOIN messages m ON m.folder_id = fd.id
+		WHERE fd.id = ?
+		GROUP BY fd.id, fis.is_complete, fis.total_count
+	`, folderID).Scan(&isComplete, &indexedTotal, &currentCount)
+	if err != nil {
+		return false, fmt.Errorf("failed to check index status: %w", err)
+	}
+	return !isComplete || !indexedTotal.Valid || int(indexedTotal.Int64) != currentCount, nil
 }
 
 // IndexFolder indexes all messages in a folder
@@ -103,30 +147,12 @@ func (f *FTSIndexer) IndexFolder(ctx context.Context, folderID string) error {
 		f.mu.Unlock()
 	}()
 
-	// Check if folder is already fully indexed
-	status, err := f.GetIndexStatus(folderID)
+	needsWork, err := f.folderNeedsIndexing(ctx, folderID)
 	if err != nil {
-		return fmt.Errorf("failed to get index status: %w", err)
+		return err
 	}
-
-	if status != nil && status.IsComplete {
-		// Check if message count has changed
-		var currentCount int
-		err := f.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM messages WHERE folder_id = ?`, folderID).Scan(&currentCount)
-		if err != nil {
-			return fmt.Errorf("failed to count messages: %w", err)
-		}
-
-		if currentCount == status.TotalCount {
-			logging.Debug().Str("folderID", folderID).Msg("Folder already fully indexed")
-			return nil
-		}
-
-		// Message count changed, need to re-index
-		logging.Info().Str("folderID", folderID).
-			Int("previousCount", status.TotalCount).
-			Int("currentCount", currentCount).
-			Msg("Message count changed, re-indexing folder")
+	if !needsWork {
+		return nil
 	}
 
 	// Get total message count for this folder

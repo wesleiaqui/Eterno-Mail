@@ -206,6 +206,42 @@ func TestUpdateSyncState(t *testing.T) {
 	}
 }
 
+func TestHighestModSeqPersistsAfterReopen(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "restart.db")
+	db, err := database.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+	createTestAccount(t, db, "acc1")
+	store := NewStore(db)
+	folder := &Folder{AccountID: "acc1", Name: "Inbox", Path: "INBOX", Type: TypeInbox}
+	if err := store.Create(folder); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.UpdateSyncState(folder.ID, 100, 200, 300, 50, 10); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened, err := database.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = reopened.Close() })
+	got, err := NewStore(reopened).Get(folder.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil || got.HighestModSeq != 300 {
+		t.Fatalf("HighestModSeq after reopen = %#v, want 300", got)
+	}
+}
+
 func TestDelete(t *testing.T) {
 	db := openTestDB(t)
 	createTestAccount(t, db, "acc1")

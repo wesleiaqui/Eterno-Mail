@@ -201,7 +201,7 @@ func (c *Client) Login() error {
 	}
 
 	c.log.Debug().
-		Str("username", c.config.Username).
+		Str("username", logging.RedactEmail(c.config.Username)).
 		Str("authType", string(authType)).
 		Msg("Authenticating")
 

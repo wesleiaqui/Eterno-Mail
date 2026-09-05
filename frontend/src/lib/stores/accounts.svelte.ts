@@ -572,3 +572,8 @@ class AccountStore {
 
 // Export singleton instance
 export const accountStore = new AccountStore()
+
+export function isConfiguredAccountEmail(email: string): boolean {
+  const normalized = email.trim().toLowerCase()
+  return !!normalized && accountStore.accounts.some(item => item.account.email.trim().toLowerCase() === normalized)
+}

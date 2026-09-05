@@ -31,7 +31,7 @@ func (a *App) AddAccount(config account.AccountConfig) (*account.Account, error)
 	// Create account in database
 	acc, err := a.accountStore.Create(&config)
 	if err != nil {
-		log.Error().Err(err).Str("email", config.Email).Msg("Failed to create account")
+		log.Error().Err(err).Str("email", logging.RedactEmail(config.Email)).Msg("Failed to create account")
 		return nil, err
 	}
 
@@ -70,7 +70,7 @@ func (a *App) AddAccount(config account.AccountConfig) (*account.Account, error)
 		a.idleManager.StartAccount(acc.ID, acc.Name)
 	}
 
-	log.Info().Str("account_id", acc.ID).Str("email", acc.Email).Msg("Account created")
+	log.Info().Str("account_id", acc.ID).Str("email", logging.RedactEmail(acc.Email)).Msg("Account created")
 	return acc, nil
 }
 
@@ -403,9 +403,9 @@ func (a *App) SetDefaultIdentity(accountID, identityID string) error {
 
 // ConnectionTestResult holds the result of a connection test
 type ConnectionTestResult struct {
-	Success             bool                      `json:"success"`
-	Error               string                    `json:"error,omitempty"`
-	CertificateRequired bool                      `json:"certificateRequired"`
+	Success             bool                         `json:"success"`
+	Error               string                       `json:"error,omitempty"`
+	CertificateRequired bool                         `json:"certificateRequired"`
 	Certificate         *certificate.CertificateInfo `json:"certificate,omitempty"`
 }
 

@@ -16,16 +16,16 @@ import (
 	"github.com/hkdb/aerion/internal/contact"
 	"github.com/hkdb/aerion/internal/credentials"
 	"github.com/hkdb/aerion/internal/draft"
-	"github.com/hkdb/aerion/internal/folder"
 	"github.com/hkdb/aerion/internal/email"
+	"github.com/hkdb/aerion/internal/folder"
 	"github.com/hkdb/aerion/internal/imap"
 	"github.com/hkdb/aerion/internal/logging"
 	"github.com/hkdb/aerion/internal/message"
-	"github.com/rs/zerolog"
 	"github.com/hkdb/aerion/internal/oauth2"
 	"github.com/hkdb/aerion/internal/pgp"
 	"github.com/hkdb/aerion/internal/smime"
 	"github.com/hkdb/aerion/internal/smtp"
+	"github.com/rs/zerolog"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -633,7 +633,7 @@ func (a *App) syncSentFolder(accountID string) error {
 // mode can be "reply", "reply-all", or "forward"
 func (a *App) PrepareReply(messageID, mode string) (*smtp.ComposeMessage, error) {
 	log := logging.WithComponent("app")
-	log.Debug().Str("messageID", messageID).Str("mode", mode).Msg("Preparing reply message")
+	log.Debug().Str("message_ref", logging.ShortHash(messageID)).Str("mode", mode).Msg("Preparing reply message")
 
 	// Get the original message
 	msg, err := a.messageStore.Get(messageID)
@@ -736,7 +736,7 @@ func (a *App) PrepareReply(messageID, mode string) (*smtp.ComposeMessage, error)
 
 	// If body hasn't been fetched yet, fetch it on-demand
 	if !msg.BodyFetched {
-		log.Debug().Str("messageID", messageID).Msg("Body not yet fetched, fetching on-demand for reply")
+		log.Debug().Str("message_ref", logging.ShortHash(messageID)).Msg("Body not yet fetched, fetching on-demand for reply")
 		updatedMsg, fetchErr := a.syncEngine.FetchMessageBody(a.ctx, msg.AccountID, messageID)
 		if fetchErr != nil {
 			log.Warn().Err(fetchErr).Msg("Failed to fetch body on-demand, reply will have empty quote")
@@ -1099,7 +1099,7 @@ func quoteText(s string) string {
 func providerAutoSavesSentMail(host string) bool {
 	host = strings.ToLower(host)
 	autoSaveProviders := []string{
-		"imap.gmail.com",       // Gmail
+		"imap.gmail.com",        // Gmail
 		"outlook.office365.com", // Microsoft 365
 		"imap-mail.outlook.com", // Outlook.com
 	}
@@ -1212,4 +1212,3 @@ func detectContentType(filename string) string {
 		return "application/octet-stream"
 	}
 }
-

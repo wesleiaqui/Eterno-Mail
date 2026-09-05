@@ -32,6 +32,7 @@ frontend/dist/
 *.test
 *.out
 *.AppImage
+go*.linux-amd64.tar.gz
 
 # IDE
 .idea/

@@ -2,6 +2,38 @@ package logging
 
 import "testing"
 
+func TestRedactEmail(t *testing.T) {
+	tests := []struct {
+		name  string
+		email string
+		want  string
+	}{
+		{name: "normal", email: "wesleybrsales2018@gmail.com", want: "wes***@gmail.com"},
+		{name: "short", email: "ab@example.com", want: "ab***@example.com"},
+		{name: "invalid", email: "not-an-email", want: "***"},
+		{name: "empty", email: "", want: ""},
+		{name: "domain preserved", email: "user@sub.example.com", want: "use***@sub.example.com"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := RedactEmail(test.email); got != test.want {
+				t.Fatalf("RedactEmail(%q) = %q, want %q", test.email, got, test.want)
+			}
+		})
+	}
+}
+
+func TestShortHashStable(t *testing.T) {
+	const value = "<sensitive-message-id@example.com>"
+	first := ShortHash(value)
+	if first != ShortHash(value) {
+		t.Fatal("ShortHash is not stable")
+	}
+	if len(first) != 8 || first == value {
+		t.Fatalf("ShortHash(%q) = %q, want an opaque 8-character reference", value, first)
+	}
+}
+
 func TestInit(t *testing.T) {
 	err := Init(Config{
 		Console: true,

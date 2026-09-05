@@ -3,8 +3,13 @@ package platform
 
 import (
 	"context"
+	"errors"
 	"time"
 )
+
+// ErrSleepWakeMonitoringUnavailable indicates that the current environment
+// intentionally does not expose a system sleep/wake event source.
+var ErrSleepWakeMonitoringUnavailable = errors.New("sleep/wake monitoring unavailable")
 
 // PowerState represents the current power state
 type PowerState string

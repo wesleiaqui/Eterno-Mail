@@ -198,6 +198,8 @@ func (a *App) ForceSyncFolder(accountID, folderID string) error {
 // 2. Syncs core folders' messages (Inbox, Drafts, Sent)
 func (a *App) SyncAccountComplete(accountID string) error {
 	log := logging.WithComponent("app.masterSync")
+	startedAt := time.Now()
+	poolStarted := a.imapPool.WaitMetricsSnapshot(accountID)
 	log.Info().Str("accountID", accountID).Msg("Starting complete account sync")
 
 	// Check if sync was cancelled before starting
@@ -209,9 +211,11 @@ func (a *App) SyncAccountComplete(accountID string) error {
 	}
 
 	// 1. Sync folder list first (required for message sync)
+	folderSyncStarted := time.Now()
 	if err := a.SyncFolders(accountID); err != nil {
 		return fmt.Errorf("folder sync failed: %w", err)
 	}
+	folderSyncDuration := time.Since(folderSyncStarted)
 
 	// 2. Determine which folders to sync based on account settings
 	foldersToSync, err := a.getSyncFolders(accountID)
@@ -259,7 +263,16 @@ func (a *App) SyncAccountComplete(accountID string) error {
 		return fmt.Errorf("some folders failed to sync: %s", strings.Join(syncErrors, "; "))
 	}
 
-	log.Info().Str("accountID", accountID).Msg("Complete account sync finished")
+	poolFinished := a.imapPool.WaitMetricsSnapshot(accountID)
+	log.Info().
+		Str("accountID", accountID).
+		Dur("duration", time.Since(startedAt)).
+		Dur("folder_sync", folderSyncDuration).
+		Dur("message_sync", time.Since(startedAt)-folderSyncDuration).
+		Int("pool_waits", poolFinished.Count-poolStarted.Count).
+		Dur("pool_wait_total", poolFinished.Total-poolStarted.Total).
+		Dur("pool_wait_max", poolFinished.Max).
+		Msg("Complete account sync finished")
 	return nil
 }
 
@@ -304,6 +317,7 @@ func (a *App) getCoreOnlyFolders(accountID string) ([]*folder.Folder, error) {
 // This is the master sync function called from the sidebar sync button.
 func (a *App) SyncAllComplete() error {
 	log := logging.WithComponent("app.masterSync")
+	startedAt := time.Now()
 
 	// Reset cancellation flag for this sync run
 	a.syncMu.Lock()
@@ -385,7 +399,9 @@ func (a *App) SyncAllComplete() error {
 		return fmt.Errorf("sync errors: %s", strings.Join(errors, "; "))
 	}
 
-	log.Info().Msg("Complete sync of all accounts and contacts finished")
+	log.Info().
+		Dur("duration", time.Since(startedAt)).
+		Msg("Complete sync of all accounts and contacts finished")
 	return nil
 }
 

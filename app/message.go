@@ -34,7 +34,7 @@ func (a *App) GetMessage(id string) (*message.Message, error) {
 // GetMessageSource fetches the raw RFC822 source of a message from the IMAP server
 func (a *App) GetMessageSource(messageID string) (string, error) {
 	log := logging.WithComponent("app")
-	log.Debug().Str("messageID", messageID).Msg("Fetching message source")
+	log.Debug().Str("message_ref", logging.ShortHash(messageID)).Msg("Fetching message source")
 
 	// Get the message to find the account, folder, and UID
 	msg, err := a.messageStore.Get(messageID)
@@ -59,7 +59,7 @@ func (a *App) GetMessageSource(messageID string) (string, error) {
 // It fetches the body from IMAP, updates the database, and returns the updated message.
 func (a *App) FetchMessageBody(messageID string) (*message.Message, error) {
 	log := logging.WithComponent("app")
-	log.Debug().Str("messageID", messageID).Msg("Fetching message body on-demand")
+	log.Debug().Str("message_ref", logging.ShortHash(messageID)).Msg("Fetching message body on-demand")
 
 	// Get the message first to get the account ID
 	msg, err := a.messageStore.Get(messageID)
@@ -115,7 +115,7 @@ func (a *App) GetUnifiedInboxUnreadCount() (int, error) {
 func (a *App) GetConversation(threadID, folderID string) (*message.Conversation, error) {
 	log := logging.WithComponent("app")
 	log.Debug().
-		Str("threadID", threadID).
+		Str("thread_ref", logging.ShortHash(threadID)).
 		Str("folderID", folderID).
 		Msg("GetConversation called")
 
@@ -129,11 +129,10 @@ func (a *App) GetConversation(threadID, folderID string) (*message.Conversation,
 		for i, m := range conv.Messages {
 			log.Debug().
 				Int("index", i).
-				Str("messageID", m.ID).
-				Str("subject", m.Subject).
+				Str("message_ref", logging.ShortHash(m.ID)).
 				Int("bodyTextLen", len(m.BodyText)).
 				Int("bodyHTMLLen", len(m.BodyHTML)).
-				Str("threadID", m.ThreadID).
+				Str("thread_ref", logging.ShortHash(m.ThreadID)).
 				Msg("GetConversation message")
 		}
 	} else {
@@ -198,7 +197,7 @@ func (a *App) ProcessSMIMEMessage(messageID string) (*SMIMEViewResult, error) {
 	if msg.SMIMEEncrypted {
 		decrypted, isEncrypted, decErr := a.smimeDecryptor.DecryptMessage(msg.AccountID, recipientEmail, rawBody)
 		if decErr != nil {
-			log.Warn().Err(decErr).Str("messageID", messageID).Msg("S/MIME decryption failed")
+			log.Warn().Err(decErr).Str("message_ref", logging.ShortHash(messageID)).Msg("S/MIME decryption failed")
 			return &SMIMEViewResult{
 				SMIMEEncrypted: true,
 				SMIMEStatus:    "decrypt_failed",
@@ -317,7 +316,7 @@ func (a *App) ProcessPGPMessage(messageID string) (*PGPViewResult, error) {
 	if msg.PGPEncrypted {
 		decrypted, isEncrypted, decErr := a.pgpDecryptor.DecryptMessage(msg.AccountID, recipientEmail, rawBody)
 		if decErr != nil {
-			log.Warn().Err(decErr).Str("messageID", messageID).Msg("PGP decryption failed")
+			log.Warn().Err(decErr).Str("message_ref", logging.ShortHash(messageID)).Msg("PGP decryption failed")
 			return &PGPViewResult{
 				PGPEncrypted: true,
 				PGPStatus:    "decrypt_failed",

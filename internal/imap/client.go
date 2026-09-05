@@ -234,7 +234,7 @@ func (c *Client) Login() error {
 	}
 
 	c.log.Debug().
-		Str("username", c.config.Username).
+		Str("username", logging.RedactEmail(c.config.Username)).
 		Str("authType", string(authType)).
 		Msg("Logging in")
 
@@ -254,7 +254,7 @@ func (c *Client) Login() error {
 	c.caps = c.client.Caps()
 
 	c.log.Info().
-		Str("username", c.config.Username).
+		Str("username", logging.RedactEmail(c.config.Username)).
 		Msg("Logged in successfully")
 
 	return nil
@@ -397,6 +397,16 @@ type Mailbox struct {
 	Messages      uint32
 	Unseen        uint32
 	HighestModSeq uint64
+}
+
+// IsSelectable reports whether the mailbox may be selected or queried with STATUS.
+func (m *Mailbox) IsSelectable() bool {
+	for _, attr := range m.Attributes {
+		if imap.MailboxAttr(attr) == imap.MailboxAttrNoSelect {
+			return false
+		}
+	}
+	return true
 }
 
 // FolderType represents the type of folder

@@ -64,6 +64,25 @@ func shouldUseCondStore(uidValidityChanged bool, prevModSeq, mailboxModSeq uint6
 	return true
 }
 
+func condStoreFallbackReason(uidValidityChanged bool, prevModSeq, mailboxModSeq uint64, supportsCondStore, preferIncremental bool, existingCount int, periodicFullSweep bool) string {
+	switch {
+	case uidValidityChanged:
+		return "uidvalidity_changed"
+	case !supportsCondStore:
+		return "condstore_unavailable"
+	case prevModSeq == 0:
+		return "no_stored_modseq"
+	case mailboxModSeq == 0:
+		return "no_mailbox_modseq"
+	case !preferIncremental && existingCount < flagFullReconcileThreshold:
+		return "below_full_reconcile_threshold"
+	case !preferIncremental && periodicFullSweep:
+		return "periodic_full_sweep"
+	default:
+		return ""
+	}
+}
+
 // nextModSeq returns the value to persist as the folder's new HighestModSeq.
 // This is the single load-bearing safety invariant of the whole CONDSTORE
 // fix: advancing the baseline after a flag sync that didn't succeed means
@@ -129,15 +148,28 @@ func (e *Engine) runFlagSync(
 	// otherwise only for large mailboxes on non-sweep cycles. The short-circuit
 	// keeps dueForFullFlagSweep (which mutates a counter) from running on the
 	// IDLE path.
-	useIncremental := shouldUseCondStore(uidValidityChanged, prevModSeq, mailboxModSeq, supportsCondStore) &&
-		(preferIncremental ||
-			(len(existingUIDs) >= flagFullReconcileThreshold && !e.dueForFullFlagSweep(folderID)))
+	periodicFullSweep := false
+	if shouldUseCondStore(uidValidityChanged, prevModSeq, mailboxModSeq, supportsCondStore) &&
+		!preferIncremental && len(existingUIDs) >= flagFullReconcileThreshold {
+		periodicFullSweep = e.dueForFullFlagSweep(folderID)
+	}
+	reason := condStoreFallbackReason(
+		uidValidityChanged,
+		prevModSeq,
+		mailboxModSeq,
+		supportsCondStore,
+		preferIncremental,
+		len(existingUIDs),
+		periodicFullSweep,
+	)
+	useIncremental := reason == ""
 
 	if !useIncremental {
 		e.log.Debug().
 			Str("folder", folderID).
 			Int("existing", len(existingUIDs)).
-			Bool("condstore", supportsCondStore).
+			Bool("condstore_supported", supportsCondStore).
+			Str("reason", reason).
 			Msg("Flag sync: full reconciliation")
 		if err := e.syncMessageFlags(ctx, rawClient, folderID, existingUIDs); err != nil {
 			e.log.Warn().Err(err).Msg("Full flag reconciliation failed")

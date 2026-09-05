@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	goSync "sync"
 	"time"
@@ -730,6 +731,10 @@ func (a *App) initSleepWakeMonitor(ctx context.Context) {
 
 	// Start the monitor
 	if err := a.sleepWakeMonitor.Start(ctx); err != nil {
+		if errors.Is(err, platform.ErrSleepWakeMonitoringUnavailable) {
+			log.Info().Msg("Sleep/wake monitoring unavailable in container")
+			return
+		}
 		log.Warn().Err(err).Msg("Failed to start sleep/wake monitor - auto-sync on wake disabled")
 		return
 	}
@@ -867,7 +872,7 @@ func (a *App) syncAfterWake() {
 			inbox, err := a.folderStore.GetByType(acc.ID, folder.TypeInbox)
 			if err == nil && inbox != nil && inbox.LastSync != nil {
 				if time.Since(*inbox.LastSync) < syncCooldown {
-					log.Info().Str("account", acc.Name).Msg("Skipping full sync — last sync was recent")
+					log.Info().Str("account_id", acc.ID).Msg("Skipping full sync — last sync was recent")
 					skipSync = true
 					break
 				}
@@ -902,7 +907,7 @@ func (a *App) syncAfterWake() {
 			if err == nil && inbox != nil {
 				inbox.LastSync = &now
 				if err := a.folderStore.Update(inbox); err != nil {
-					log.Warn().Err(err).Str("account", acc.Name).Msg("Failed to update LastSync before wake sync")
+					log.Warn().Err(err).Str("account_id", acc.ID).Msg("Failed to update LastSync before wake sync")
 				}
 			}
 		}

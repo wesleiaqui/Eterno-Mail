@@ -18,7 +18,7 @@ func LookupKey(email string, hkpServers []string) (*LookupKeyResult, error) {
 	// Try WKD first (more authoritative — hosted by recipient's domain)
 	armored, err := LookupWKD(email)
 	if err != nil {
-		log.Debug().Err(err).Str("email", email).Msg("WKD lookup failed, trying HKP")
+		log.Debug().Err(err).Str("email", logging.RedactEmail(email)).Msg("WKD lookup failed, trying HKP")
 	}
 	if armored != "" {
 		return &LookupKeyResult{Armored: armored, Source: "wkd"}, nil
@@ -27,7 +27,7 @@ func LookupKey(email string, hkpServers []string) (*LookupKeyResult, error) {
 	// Fall back to HKP key servers
 	armored, err = LookupHKP(email, hkpServers)
 	if err != nil {
-		log.Debug().Err(err).Str("email", email).Msg("HKP lookup failed")
+		log.Debug().Err(err).Str("email", logging.RedactEmail(email)).Msg("HKP lookup failed")
 		return nil, err
 	}
 	if armored != "" {

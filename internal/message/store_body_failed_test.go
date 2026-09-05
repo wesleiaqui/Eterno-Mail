@@ -1,11 +1,15 @@
 package message
 
 import (
+	"bytes"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/hkdb/aerion/internal/database"
+	"github.com/hkdb/aerion/internal/logging"
+	"github.com/rs/zerolog"
 )
 
 // newBodyFailedTestStore opens a migrated temp DB, seeds one (account, folder)
@@ -53,6 +57,49 @@ func containsID(ids []string, want string) bool {
 		}
 	}
 	return false
+}
+
+func TestGetConversationLogsRedactMessageMetadata(t *testing.T) {
+	store, accountID, folderID := newBodyFailedTestStore(t)
+	const threadID = "sensitive-thread@notifications.example.com"
+	const messageID = "<sensitive-message@notifications.example.com>"
+	const subject = "Security alert for a private account"
+	message := &Message{
+		ID:        "local-message-id",
+		AccountID: accountID,
+		FolderID:  folderID,
+		UID:       1,
+		MessageID: messageID,
+		ThreadID:  threadID,
+		Subject:   subject,
+		Date:      time.Now().UTC(),
+		BodyText:  "private body",
+		BodyHTML:  "<p>private body</p>",
+	}
+	if err := store.Create(message); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	var output bytes.Buffer
+	store.log = zerolog.New(&output).Level(zerolog.DebugLevel)
+	if _, err := store.GetConversation(threadID, folderID); err != nil {
+		t.Fatalf("GetConversation: %v", err)
+	}
+
+	logs := output.String()
+	for _, sensitive := range []string{threadID, messageID, subject} {
+		if strings.Contains(logs, sensitive) {
+			t.Fatalf("GetConversation logs contain sensitive value %q: %s", sensitive, logs)
+		}
+	}
+	for _, field := range []string{"thread_ref", "normalized_thread_ref", "message_ref"} {
+		if !strings.Contains(logs, field) {
+			t.Fatalf("GetConversation logs missing %q: %s", field, logs)
+		}
+	}
+	if !strings.Contains(logs, logging.ShortHash(threadID)) || !strings.Contains(logs, logging.ShortHash(messageID)) {
+		t.Fatalf("GetConversation logs missing stable references: %s", logs)
+	}
 }
 
 // TestMarkBodyFailed_ExcludesFromQueue confirms the persistent flag actually

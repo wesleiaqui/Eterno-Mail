@@ -11,6 +11,7 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"github.com/hkdb/aerion/internal/credentials"
+	"github.com/hkdb/aerion/internal/logging"
 	"github.com/rs/zerolog"
 )
 
@@ -165,7 +166,7 @@ func (d *Decryptor) buildKeyringForEmail(accountID, recipientEmail string) (open
 				}
 			}
 		}
-		d.log.Debug().Str("email", recipientEmail).Msg("No identity-specific PGP key found, falling back to all keys")
+		d.log.Debug().Str("email", logging.RedactEmail(recipientEmail)).Msg("No identity-specific PGP key found, falling back to all keys")
 	}
 	return d.buildPrivateKeyring(accountID)
 }

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	gosync "sync"
+	"time"
 
 	"github.com/hkdb/aerion/internal/folder"
 	imapPkg "github.com/hkdb/aerion/internal/imap"
@@ -23,6 +24,8 @@ const folderStatusWorkers = 5
 
 // SyncFolders synchronizes the folder list for an account
 func (e *Engine) SyncFolders(ctx context.Context, accountID string) error {
+	startedAt := time.Now()
+	acquireStarted := time.Now()
 	e.log.Debug().Str("account", accountID).Msg("Syncing folders")
 
 	// Get a connection from the pool for LIST
@@ -30,19 +33,28 @@ func (e *Engine) SyncFolders(ctx context.Context, accountID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get connection: %w", err)
 	}
-	defer e.pool.Release(conn)
+	listAcquireDuration := time.Since(acquireStarted)
+	defer func() { e.pool.Release(conn) }()
 
 	// List mailboxes from server
+	listStarted := time.Now()
 	mailboxes, err := conn.Client().ListMailboxes()
 	if err != nil {
 		return fmt.Errorf("failed to list mailboxes: %w", err)
 	}
+	listDuration := time.Since(listStarted)
 
 	// Fetch subscribed mailbox set (for caching subscription state locally)
+	subscribedStarted := time.Now()
 	subscribedSet, subErr := conn.Client().ListSubscribedMailboxes()
+	subscribedDuration := time.Since(subscribedStarted)
 	if subErr != nil {
 		e.log.Debug().Err(subErr).Str("account", accountID).Msg("Failed to list subscribed mailboxes, subscription state will not be cached")
 	}
+	// LIST and STATUS do not need the same connection. Return it before starting
+	// parallel STATUS work so all regular pool slots remain available.
+	e.pool.Release(conn)
+	conn = nil
 
 	totalFolders := len(mailboxes)
 	if totalFolders == 0 {
@@ -86,7 +98,9 @@ func (e *Engine) SyncFolders(ctx context.Context, accountID string) error {
 	}
 
 	// Fetch STATUS for all folders in parallel
+	statusStarted := time.Now()
 	results := e.fetchFolderStatusParallel(ctx, accountID, mailboxes)
+	statusDuration := time.Since(statusStarted)
 
 	// Sort results by path depth so parents are processed before children.
 	// IMAP LIST does not guarantee ordering, so a child may appear before its parent.
@@ -105,6 +119,7 @@ func (e *Engine) SyncFolders(ctx context.Context, accountID string) error {
 	})
 
 	// Track which paths we've seen and process results
+	processStarted := time.Now()
 	seenPaths := make(map[string]bool)
 	processed := 0
 
@@ -217,7 +232,16 @@ func (e *Engine) SyncFolders(ctx context.Context, accountID string) error {
 		}
 	}
 
-	e.log.Info().Str("account", accountID).Int("folders", len(mailboxes)).Msg("Folder sync complete")
+	e.log.Info().
+		Str("account", accountID).
+		Int("folders", len(mailboxes)).
+		Dur("list_acquire", listAcquireDuration).
+		Dur("list", listDuration).
+		Dur("subscribed_list", subscribedDuration).
+		Dur("status", statusDuration).
+		Dur("process", time.Since(processStarted)).
+		Dur("duration", time.Since(startedAt)).
+		Msg("Folder sync complete")
 
 	// Persist auto-detected folder mappings if not already set.
 	// This ensures getSpecialFolder always finds the correct folder via the
@@ -238,8 +262,8 @@ func (e *Engine) persistAutoDetectedMappings(accountID string) {
 	}
 
 	type mapping struct {
-		current  string
-		fType    folder.Type
+		current string
+		fType   folder.Type
 	}
 
 	mappings := []mapping{
@@ -294,6 +318,11 @@ func (e *Engine) fetchFolderStatusParallel(ctx context.Context, accountID string
 		wg.Add(1)
 		go func(idx int, mailbox *imapPkg.Mailbox) {
 			defer wg.Done()
+			if !mailbox.IsSelectable() {
+				// Keep structural LIST entries for hierarchy, but STATUS is invalid.
+				results[idx] = folderStatusResult{mailbox: mailbox}
+				return
+			}
 
 			// Acquire semaphore
 			select {

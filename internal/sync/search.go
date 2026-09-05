@@ -9,6 +9,7 @@ import (
 
 	"github.com/emersion/go-imap/v2"
 	"github.com/emersion/go-imap/v2/imapclient"
+	"github.com/hkdb/aerion/internal/logging"
 	"github.com/hkdb/aerion/internal/message"
 )
 
@@ -411,7 +412,7 @@ func (e *Engine) FetchServerMessage(ctx context.Context, accountID, folderID str
 	if m.HasAttachments && len(rawBytes) > 0 && e.attachmentStore != nil {
 		attachments, err := e.attachExtractor.ExtractAttachments(m.ID, rawBytes)
 		if err != nil {
-			e.log.Debug().Err(err).Str("messageId", m.ID).Msg("Failed to extract attachments")
+			e.log.Debug().Err(err).Str("message_ref", logging.ShortHash(m.ID)).Msg("Failed to extract attachments")
 		} else {
 			for _, att := range attachments {
 				if att.Attachment.IsInline && len(att.Content) > 0 {
@@ -429,13 +430,13 @@ func (e *Engine) FetchServerMessage(ctx context.Context, accountID, folderID str
 	if threadID != "" && threadID != m.ThreadID {
 		m.ThreadID = threadID
 		if err := e.messageStore.UpdateThreadID(m.ID, threadID); err != nil {
-			e.log.Warn().Err(err).Str("messageId", m.ID).Msg("Failed to update thread ID")
+			e.log.Warn().Err(err).Str("message_ref", logging.ShortHash(m.ID)).Msg("Failed to update thread ID")
 		}
 	}
 
 	// Reconcile threads
 	if err := e.messageStore.ReconcileThreadsForNewMessage(accountID, m.ID, m.MessageID, m.ThreadID, m.InReplyTo); err != nil {
-		e.log.Warn().Err(err).Str("messageId", m.ID).Msg("Failed to reconcile threads")
+		e.log.Warn().Err(err).Str("message_ref", logging.ShortHash(m.ID)).Msg("Failed to reconcile threads")
 	}
 
 	// Reload from DB to pick up any thread_id changes from reconciliation.

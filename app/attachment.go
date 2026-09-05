@@ -37,22 +37,17 @@ func (a *App) GetAttachment(attachmentID string) (*message.Attachment, error) {
 func (a *App) GetInlineAttachments(messageID string) (map[string]string, error) {
 	log := logging.WithComponent("app")
 
-	log.Info().Str("messageID", messageID).Msg("GetInlineAttachments called")
+	log.Info().Str("message_ref", logging.ShortHash(messageID)).Msg("GetInlineAttachments called")
 
 	// Get inline attachments with content from database
 	// This is fast and works offline since content is stored during sync
 	result, err := a.attachmentStore.GetInlineByMessage(messageID)
 	if err != nil {
-		log.Error().Err(err).Str("messageID", messageID).Msg("Failed to get inline attachments from database")
+		log.Error().Err(err).Str("message_ref", logging.ShortHash(messageID)).Msg("Failed to get inline attachments from database")
 		return nil, fmt.Errorf("failed to get inline attachments: %w", err)
 	}
 
-	// Log the content IDs we found
-	contentIDs := make([]string, 0, len(result))
-	for cid := range result {
-		contentIDs = append(contentIDs, cid)
-	}
-	log.Info().Int("count", len(result)).Strs("contentIDs", contentIDs).Str("messageID", messageID).Msg("Returning inline attachments")
+	log.Info().Int("count", len(result)).Str("message_ref", logging.ShortHash(messageID)).Msg("Returning inline attachments")
 
 	return result, nil
 }
@@ -63,7 +58,7 @@ func (a *App) GetInlineAttachments(messageID string) (map[string]string, error) 
 func (a *App) DownloadAttachment(attachmentID, savePath string) (string, error) {
 	log := logging.WithComponent("app")
 
-	log.Debug().Str("attachmentID", attachmentID).Str("savePath", savePath).Msg("DownloadAttachment called")
+	log.Debug().Str("attachment_id", attachmentID).Bool("custom_path", savePath != "").Msg("DownloadAttachment called")
 
 	// Get attachment metadata
 	att, err := a.attachmentStore.Get(attachmentID)
@@ -76,12 +71,12 @@ func (a *App) DownloadAttachment(attachmentID, savePath string) (string, error) 
 		return "", fmt.Errorf("attachment not found: %s", attachmentID)
 	}
 
-	log.Debug().Str("filename", att.Filename).Int("size", att.Size).Msg("Got attachment metadata")
+	log.Debug().Int("size", att.Size).Msg("Got attachment metadata")
 
 	// Check if already downloaded (only for default location, not custom paths)
 	if savePath == "" && att.LocalPath != "" {
 		if _, err := os.Stat(att.LocalPath); err == nil {
-			log.Debug().Str("localPath", att.LocalPath).Msg("Attachment already downloaded")
+			log.Debug().Msg("Attachment already downloaded")
 			return att.LocalPath, nil
 		}
 	}
@@ -89,11 +84,11 @@ func (a *App) DownloadAttachment(attachmentID, savePath string) (string, error) 
 	// Get the message to find folder and UID
 	msg, err := a.messageStore.Get(att.MessageID)
 	if err != nil {
-		log.Error().Err(err).Str("messageID", att.MessageID).Msg("Failed to get message")
+		log.Error().Err(err).Str("message_ref", logging.ShortHash(att.MessageID)).Msg("Failed to get message")
 		return "", fmt.Errorf("failed to get message: %w", err)
 	}
 	if msg == nil {
-		log.Error().Str("messageID", att.MessageID).Msg("Message not found")
+		log.Error().Str("message_ref", logging.ShortHash(att.MessageID)).Msg("Message not found")
 		return "", fmt.Errorf("message not found: %s", att.MessageID)
 	}
 
@@ -112,7 +107,7 @@ func (a *App) DownloadAttachment(attachmentID, savePath string) (string, error) 
 	downloader := email.NewAttachmentDownloader(a.paths.AttachmentsPath())
 	content, err := downloader.ExtractAttachmentContent(raw, att.Filename)
 	if err != nil {
-		log.Error().Err(err).Str("filename", att.Filename).Msg("Failed to extract attachment content")
+		log.Error().Err(err).Msg("Failed to extract attachment content")
 		return "", fmt.Errorf("failed to extract attachment: %w", err)
 	}
 
@@ -121,7 +116,7 @@ func (a *App) DownloadAttachment(attachmentID, savePath string) (string, error) 
 	// Save to disk
 	localPath, err := downloader.SaveAttachment(att, content, savePath)
 	if err != nil {
-		log.Error().Err(err).Str("savePath", savePath).Msg("Failed to save attachment to disk")
+		log.Error().Err(err).Bool("custom_path", savePath != "").Msg("Failed to save attachment to disk")
 		return "", fmt.Errorf("failed to save attachment: %w", err)
 	}
 
@@ -132,7 +127,7 @@ func (a *App) DownloadAttachment(attachmentID, savePath string) (string, error) 
 		}
 	}
 
-	log.Info().Str("attachment", att.Filename).Str("path", localPath).Int("size", len(content)).Msg("Attachment downloaded")
+	log.Info().Int("size", len(content)).Msg("Attachment downloaded")
 	return localPath, nil
 }
 
@@ -166,7 +161,7 @@ func (a *App) SaveAttachmentAs(attachmentID string) (string, error) {
 		return "", fmt.Errorf("attachment not found: %s", attachmentID)
 	}
 
-	log.Debug().Str("filename", att.Filename).Str("messageID", att.MessageID).Msg("Found attachment metadata")
+	log.Debug().Str("message_ref", logging.ShortHash(att.MessageID)).Msg("Found attachment metadata")
 
 	// Get user's home directory for default save location
 	homeDir, err := os.UserHomeDir()
@@ -469,7 +464,7 @@ func (a *App) decryptMessageBody(msg *message.Message) ([]byte, error) {
 // and saves it to disk. Returns the path where the file was saved.
 func (a *App) DownloadEncryptedAttachment(messageID, filename, savePath string) (string, error) {
 	log := logging.WithComponent("app")
-	log.Debug().Str("messageID", messageID).Str("filename", filename).Msg("DownloadEncryptedAttachment called")
+	log.Debug().Str("message_ref", logging.ShortHash(messageID)).Msg("DownloadEncryptedAttachment called")
 
 	msg, err := a.messageStore.Get(messageID)
 	if err != nil {
@@ -504,7 +499,7 @@ func (a *App) DownloadEncryptedAttachment(messageID, filename, savePath string) 
 		return "", fmt.Errorf("failed to save attachment: %w", err)
 	}
 
-	log.Info().Str("attachment", filename).Str("path", localPath).Int("size", len(content)).Msg("Encrypted attachment downloaded")
+	log.Info().Int("size", len(content)).Msg("Encrypted attachment downloaded")
 	return localPath, nil
 }
 
@@ -512,7 +507,7 @@ func (a *App) DownloadEncryptedAttachment(messageID, filename, savePath string) 
 // Returns the path where the file was saved, or empty string if cancelled.
 func (a *App) SaveEncryptedAttachmentAs(messageID, filename string) (string, error) {
 	log := logging.WithComponent("app")
-	log.Debug().Str("messageID", messageID).Str("filename", filename).Msg("SaveEncryptedAttachmentAs called")
+	log.Debug().Str("message_ref", logging.ShortHash(messageID)).Msg("SaveEncryptedAttachmentAs called")
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {

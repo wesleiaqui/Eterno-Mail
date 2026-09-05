@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hkdb/aerion/internal/logging"
 	"github.com/rs/zerolog"
 	"go.mozilla.org/pkcs7"
 )
@@ -399,7 +400,7 @@ func (v *Verifier) cacheSenderCert(p7 *pkcs7.PKCS7, email string) {
 	})
 
 	if err := v.store.CacheSenderCert(email, string(certPEM)); err != nil {
-		v.log.Warn().Err(err).Str("email", email).Msg("Failed to cache sender certificate")
+		v.log.Warn().Err(err).Str("email", logging.RedactEmail(email)).Msg("Failed to cache sender certificate")
 	}
 }
 

@@ -196,6 +196,18 @@ func TestMigrationV32_LocalRecordIDsRewrittenToUUIDs(t *testing.T) {
 	if _, err := db.Exec(`ALTER TABLE messages DROP COLUMN body_failed`); err != nil {
 		t.Fatalf("drop messages.body_failed for re-migrate: %v", err)
 	}
+	// Same for v43's inbox_category on messages.
+	if _, err := db.Exec(`DROP INDEX idx_messages_inbox_category`); err != nil {
+		t.Fatalf("drop messages inbox category index for re-migrate: %v", err)
+	}
+	if _, err := db.Exec(`ALTER TABLE messages DROP COLUMN inbox_category`); err != nil {
+		t.Fatalf("drop messages.inbox_category for re-migrate: %v", err)
+	}
+	// V44 created this table and V45 added failure_type; remove both before
+	// replaying migrations 44-46.
+	if _, err := db.Exec(`DROP TABLE sender_logo_cache`); err != nil {
+		t.Fatalf("drop sender_logo_cache for re-migrate: %v", err)
+	}
 
 	// Re-run migrations — migration 32 should rewrite the seeded local- id.
 	if err := db.Migrate(); err != nil {
@@ -347,6 +359,18 @@ func TestMigrationV33_CleansExistingOrphans(t *testing.T) {
 	// And v39's body_failed on messages.
 	if _, err := db.Exec(`ALTER TABLE messages DROP COLUMN body_failed`); err != nil {
 		t.Fatalf("drop messages.body_failed for re-migrate: %v", err)
+	}
+	// And v43's inbox_category on messages.
+	if _, err := db.Exec(`DROP INDEX idx_messages_inbox_category`); err != nil {
+		t.Fatalf("drop messages inbox category index for re-migrate: %v", err)
+	}
+	if _, err := db.Exec(`ALTER TABLE messages DROP COLUMN inbox_category`); err != nil {
+		t.Fatalf("drop messages.inbox_category for re-migrate: %v", err)
+	}
+	// V44 created this table and V45 added failure_type; remove both before
+	// replaying migrations 44-46.
+	if _, err := db.Exec(`DROP TABLE sender_logo_cache`); err != nil {
+		t.Fatalf("drop sender_logo_cache for re-migrate: %v", err)
 	}
 
 	// Seed: orphan state row whose addressbook doesn't exist. Pre-migration,

@@ -10,6 +10,7 @@ import (
 	"github.com/emersion/go-imap/v2"
 	"github.com/emersion/go-imap/v2/imapclient"
 	imapPkg "github.com/hkdb/aerion/internal/imap"
+	"github.com/hkdb/aerion/internal/logging"
 	"github.com/hkdb/aerion/internal/message"
 	"github.com/hkdb/aerion/internal/smime"
 )
@@ -24,7 +25,7 @@ type ProcessedBody struct {
 	InboxCategory  string
 	Attachments    []*message.Attachment  // Extracted during parsing (no re-parse needed)
 	RawBytes       []byte                 // For on-demand attachment content fetch
-	SMIMEResult    *smime.SignatureResult  // S/MIME verification result
+	SMIMEResult    *smime.SignatureResult // S/MIME verification result
 	SMIMERawBody   []byte                 // Raw S/MIME body for on-view processing
 	SMIMEEncrypted bool                   // Whether the message is encrypted
 	PGPRawBody     []byte                 // Raw PGP body for on-view processing
@@ -57,7 +58,7 @@ func (e *Engine) FetchMessageBody(ctx context.Context, accountID, messageID stri
 	}
 
 	e.log.Debug().
-		Str("messageID", messageID).
+		Str("message_ref", logging.ShortHash(messageID)).
 		Uint32("uid", uid).
 		Str("folder", f.Path).
 		Msg("Fetching message body on-demand")
@@ -85,9 +86,9 @@ func (e *Engine) FetchMessageBody(ctx context.Context, accountID, messageID stri
 	result, ok := results[uid]
 	if !ok || result == nil {
 		// Message no longer exists on server — clean up the ghost
-		e.log.Warn().Str("messageID", messageID).Uint32("uid", uid).Msg("Message not found on server, deleting ghost")
+		e.log.Warn().Str("message_ref", logging.ShortHash(messageID)).Uint32("uid", uid).Msg("Message not found on server, deleting ghost")
 		if delErr := e.messageStore.Delete(messageID); delErr != nil {
-			e.log.Debug().Err(delErr).Str("messageID", messageID).Msg("Failed to delete ghost message")
+			e.log.Debug().Err(delErr).Str("message_ref", logging.ShortHash(messageID)).Msg("Failed to delete ghost message")
 		}
 		return nil, fmt.Errorf("message not found on server")
 	}
@@ -98,7 +99,7 @@ func (e *Engine) FetchMessageBody(ctx context.Context, accountID, messageID stri
 	}
 	if result.InboxCategory != "" {
 		if err := e.messageStore.UpdateInboxCategory(messageID, result.InboxCategory); err != nil {
-			e.log.Debug().Err(err).Str("messageID", messageID).Msg("Failed to update inbox category from body")
+			e.log.Debug().Err(err).Str("message_ref", logging.ShortHash(messageID)).Msg("Failed to update inbox category from body")
 		}
 	}
 
@@ -244,9 +245,9 @@ func (e *Engine) fetchMessageBodiesBatch(ctx context.Context, client *imapclient
 		}
 
 		if len(rawBytes) == 0 {
-			e.log.Warn().Uint32("uid", uid).Str("messageID", messageID).Msg("Empty message body — deleting ghost message")
+			e.log.Warn().Uint32("uid", uid).Str("message_ref", logging.ShortHash(messageID)).Msg("Empty message body — deleting ghost message")
 			if delErr := e.messageStore.Delete(messageID); delErr != nil {
-				e.log.Warn().Err(delErr).Str("messageID", messageID).Msg("Failed to delete ghost message")
+				e.log.Warn().Err(delErr).Str("message_ref", logging.ShortHash(messageID)).Msg("Failed to delete ghost message")
 			}
 			continue
 		}
@@ -323,10 +324,11 @@ const bodyTruncationThreshold = 0.8
 // skip the message.
 //
 // Decision table (all comparisons in bytes):
-//   reportedSize == 0          → charge   (no signal to defer on; treat as definitive)
-//   received    >= maxMsgSize  → charge   (Aerion's own cap, not server truncation; next fetch hits same wall)
-//   received    <  reported*T  → DON'T    (clear shortfall; likely server-side truncation)
-//   otherwise                  → charge   (received is close enough to expected; the empty body is real)
+//
+//	reportedSize == 0          → charge   (no signal to defer on; treat as definitive)
+//	received    >= maxMsgSize  → charge   (Aerion's own cap, not server truncation; next fetch hits same wall)
+//	received    <  reported*T  → DON'T    (clear shortfall; likely server-side truncation)
+//	otherwise                  → charge   (received is close enough to expected; the empty body is real)
 //
 // Kept as a pure function (no Engine receiver) so it can be unit-tested
 // against synthetic inputs without standing up a full sync engine.

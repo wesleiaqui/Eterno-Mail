@@ -24,6 +24,7 @@
   import { getLayoutMode } from '$lib/stores/layout.svelte'
   import { contactPhotos } from '$lib/stores/contactPhotos.svelte'
   import { domainFromEmail, senderLogos } from '$lib/stores/senderLogos.svelte'
+  import { isConfiguredAccountEmail } from '$lib/stores/accounts.svelte'
 
   interface Props {
     conversation: message.Conversation
@@ -564,7 +565,7 @@
          (falling back to the colored circle when the contact has no photo) -->
     {#if getShowMessageListCircles()}
       {@const senderEmail = conversation.participants?.[0]?.email || ''}
-      {@const avatarPhoto = getShowMessageListProfilePics() ? contactPhotos.get(senderEmail) : undefined}
+      {@const avatarPhoto = getShowMessageListProfilePics() || isConfiguredAccountEmail(senderEmail) ? contactPhotos.get(senderEmail) : undefined}
       {@const senderLogo = avatarPhoto ? undefined : senderLogos.get(domainFromEmail(senderEmail))}
       <div>
         <Avatar

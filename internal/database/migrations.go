@@ -1373,4 +1373,14 @@ var migrations = []Migration{
 			DELETE FROM sender_logo_cache WHERE data = '' AND media_type = '';
 		`,
 	},
+	{
+		Version: 46,
+		SQL: `
+			-- Earlier resolver versions used a redirect-rejecting client for favicon
+			-- sources, so their persistent negative entries may hide logos that the
+			-- current cascade can resolve. Preserve successful entries and retry
+			-- only those stale misses once.
+			DELETE FROM sender_logo_cache WHERE data = '' AND media_type = '';
+		`,
+	},
 }

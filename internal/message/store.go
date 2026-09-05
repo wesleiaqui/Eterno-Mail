@@ -206,8 +206,6 @@ func (s *Store) ListConversationsUnifiedInbox(offset, limit int, sortOrder, filt
 	return conversations, nil
 }
 
-
-
 // CountConversationsUnifiedInbox returns the total count of conversations across all inbox folders
 func (s *Store) CountConversationsUnifiedInbox(filter string) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
@@ -592,7 +590,7 @@ func (s *Store) Create(m *Message) error {
 		m.ID, m.AccountID, m.FolderID, m.UID,
 		nullString(m.MessageID), nullString(m.InReplyTo), nullString(m.References), nullString(m.ThreadID),
 		m.Subject, m.FromName, m.FromEmail,
-		nullString(m.ToList), nullString(m.CcList), nullString(m.BccList), nullString(m.ReplyTo), nullString(m.InboxCategory),
+		nullString(m.ToList), nullString(m.CcList), nullString(m.BccList), nullString(m.ReplyTo), m.InboxCategory,
 		m.Date, nullString(m.Snippet),
 		m.IsRead, m.IsStarred, m.IsAnswered, m.IsForwarded, m.IsDraft, m.IsDeleted,
 		m.Size, m.HasAttachments,
@@ -627,7 +625,7 @@ func (s *Store) Upsert(m *Message) error {
 			read_receipt_to, read_receipt_handled, received_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(folder_id, uid) DO UPDATE SET
-			id=excluded.id, account_id=excluded.account_id,
+			account_id=excluded.account_id,
 			message_id=excluded.message_id, in_reply_to=excluded.in_reply_to,
 			references_list=excluded.references_list, thread_id=excluded.thread_id,
 			subject=excluded.subject, from_name=excluded.from_name, from_email=excluded.from_email,
@@ -659,6 +657,12 @@ func (s *Store) Upsert(m *Message) error {
 		m.ReceivedAt,
 	)
 	if err != nil {
+		s.log.Error().Err(err).
+			Str("operation", "upsert messages").
+			Str("account_id", m.AccountID).
+			Str("folder_id", m.FolderID).
+			Uint32("uid", m.UID).
+			Msg("Message upsert failed")
 		return fmt.Errorf("failed to upsert message: %w", err)
 	}
 
@@ -1256,7 +1260,7 @@ func (s *Store) UpdateBodiesBatch(updates []BodyUpdate) error {
 			u.MessageID,
 		)
 		if err != nil {
-			s.log.Warn().Err(err).Str("messageID", u.MessageID).Msg("Failed to update body in batch")
+			s.log.Warn().Err(err).Str("message_ref", logging.ShortHash(u.MessageID)).Msg("Failed to update body in batch")
 			// Continue with other updates
 		}
 	}
@@ -1538,7 +1542,7 @@ func (s *Store) CountConversationsByFolder(folderID, filter string) (int, error)
 // GetConversation returns messages in a conversation/thread from the specified folder plus Sent and Drafts
 func (s *Store) GetConversation(threadID, folderID string) (*Conversation, error) {
 	s.log.Debug().
-		Str("threadID", threadID).
+		Str("thread_ref", logging.ShortHash(threadID)).
 		Str("folderID", folderID).
 		Msg("GetConversation called in store")
 
@@ -1549,7 +1553,7 @@ func (s *Store) GetConversation(threadID, folderID string) (*Conversation, error
 		var actualThreadID sql.NullString
 		err := s.db.QueryRow("SELECT thread_id FROM messages WHERE id = ?", threadID).Scan(&actualThreadID)
 		if err == nil && actualThreadID.Valid && actualThreadID.String != "" {
-			s.log.Debug().Str("uuid", threadID).Str("resolvedThreadID", actualThreadID.String).Msg("Resolved UUID to thread_id")
+			s.log.Debug().Str("id", threadID).Str("thread_ref", logging.ShortHash(actualThreadID.String)).Msg("Resolved UUID to thread_id")
 			threadID = actualThreadID.String
 		}
 	}
@@ -1565,7 +1569,7 @@ func (s *Store) GetConversation(threadID, folderID string) (*Conversation, error
 	// Normalize the thread ID for comparison
 	normalizedThreadID := normalizeMessageID(threadID)
 	s.log.Debug().
-		Str("normalizedThreadID", normalizedThreadID).
+		Str("normalized_thread_ref", logging.ShortHash(normalizedThreadID)).
 		Str("accountID", accountID).
 		Msg("GetConversation normalized")
 
@@ -1741,9 +1745,8 @@ func (s *Store) GetConversation(threadID, folderID string) (*Conversation, error
 
 		s.log.Debug().
 			Str("id", m.ID).
-			Str("messageID", m.MessageID).
-			Str("threadID", m.ThreadID).
-			Str("subject", m.Subject).
+			Str("message_ref", logging.ShortHash(m.MessageID)).
+			Str("thread_ref", logging.ShortHash(m.ThreadID)).
 			Int("bodyTextLen", len(m.BodyText)).
 			Int("bodyHTMLLen", len(m.BodyHTML)).
 			Msg("GetConversation found message")
@@ -1753,7 +1756,7 @@ func (s *Store) GetConversation(threadID, folderID string) (*Conversation, error
 
 	s.log.Debug().
 		Int("messageCount", len(c.Messages)).
-		Str("threadID", threadID).
+		Str("thread_ref", logging.ShortHash(threadID)).
 		Msg("GetConversation returning")
 
 	// Build participants from already-loaded messages (no extra query needed)

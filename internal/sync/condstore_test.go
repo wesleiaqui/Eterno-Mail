@@ -75,6 +75,36 @@ func TestShouldUseCondStore(t *testing.T) {
 	}
 }
 
+func TestCondStoreFallbackReason(t *testing.T) {
+	tests := []struct {
+		name               string
+		uidValidityChanged bool
+		prevModSeq         uint64
+		mailboxModSeq      uint64
+		supports           bool
+		preferIncremental  bool
+		existing           int
+		periodicSweep      bool
+		want               string
+	}{
+		{name: "first sync", mailboxModSeq: 10, supports: true, preferIncremental: true, want: "no_stored_modseq"},
+		{name: "idle second sync", prevModSeq: 10, mailboxModSeq: 11, supports: true, preferIncremental: true, want: ""},
+		{name: "scheduled small mailbox", prevModSeq: 10, mailboxModSeq: 11, supports: true, existing: 39, want: "below_full_reconcile_threshold"},
+		{name: "uidvalidity changed", uidValidityChanged: true, prevModSeq: 10, mailboxModSeq: 11, supports: true, preferIncremental: true, want: "uidvalidity_changed"},
+		{name: "server lacks condstore", prevModSeq: 10, mailboxModSeq: 11, preferIncremental: true, want: "condstore_unavailable"},
+		{name: "server omitted mailbox modseq", prevModSeq: 10, supports: true, preferIncremental: true, want: "no_mailbox_modseq"},
+		{name: "periodic full sweep", prevModSeq: 10, mailboxModSeq: 11, supports: true, existing: flagFullReconcileThreshold, periodicSweep: true, want: "periodic_full_sweep"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := condStoreFallbackReason(test.uidValidityChanged, test.prevModSeq, test.mailboxModSeq, test.supports, test.preferIncremental, test.existing, test.periodicSweep)
+			if got != test.want {
+				t.Fatalf("condStoreFallbackReason() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
 // TestNextModSeq_FlagSyncOK_AdvancesToMailbox: the happy path. Sync succeeded,
 // server reported a fresh HIGHESTMODSEQ — persist that, the next cycle will
 // CHANGEDSINCE from there.

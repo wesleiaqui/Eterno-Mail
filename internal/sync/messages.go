@@ -28,6 +28,11 @@ type messageSyncTimings struct {
 	search        time.Duration
 	compare       time.Duration
 	flags         time.Duration
+	flagsFetch    time.Duration
+	flagsProcess  time.Duration
+	flagsPersist  time.Duration
+	flagsRemote   int
+	flagsUpdates  int
 	fetchHeaders  time.Duration
 	headerPersist time.Duration
 	persist       time.Duration
@@ -270,8 +275,14 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	// Check if this is a Gmail account — messages hidden by Trash/Spam label
 	// still exist but are invisible in other IMAP mailbox views.
 	isGmail := false
+	trustedGmailCondstore := false
 	if acc, accErr := e.accountStore.Get(accountID); accErr == nil && acc != nil {
 		isGmail = acc.IMAPHost == "imap.gmail.com"
+		trustedGmailCondstore = isTrustedGmailCondstore(
+			acc.IMAPHost,
+			conn.Client().Caps(),
+			conn.Client().SupportsCondStore(),
+		)
 	}
 
 	// Delete removed messages
@@ -314,7 +325,8 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 	flagSyncOK := true
 	if len(existingUIDs) > 0 {
 		flagsStarted := time.Now()
-		flagSyncOK = e.runFlagSync(
+		var flagMetrics flagSyncMetrics
+		flagSyncOK, flagMetrics = e.runFlagSync(
 			ctx,
 			conn.Client().RawClient(),
 			folderID,
@@ -323,9 +335,15 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 			prevModSeq,
 			mailbox.HighestModSeq,
 			conn.Client().SupportsCondStore(),
+			trustedGmailCondstore,
 			preferIncremental,
 		)
 		timings.flags = time.Since(flagsStarted)
+		timings.flagsFetch = flagMetrics.fetch
+		timings.flagsProcess = flagMetrics.process
+		timings.flagsPersist = flagMetrics.persist
+		timings.flagsRemote = flagMetrics.remoteCount
+		timings.flagsUpdates = flagMetrics.updateCount
 	}
 
 	// Fetch new messages with incremental approach (headers first)
@@ -487,6 +505,11 @@ func (e *Engine) SyncMessages(ctx context.Context, accountID, folderID string, s
 		Int64("local_uid_ms", timings.localUIDs.Milliseconds()).
 		Int64("compare_ms", timings.compare.Milliseconds()).
 		Int64("flags_ms", timings.flags.Milliseconds()).
+		Int64("flags_fetch_ms", timings.flagsFetch.Milliseconds()).
+		Int64("flags_process_ms", timings.flagsProcess.Milliseconds()).
+		Int64("flags_persist_ms", timings.flagsPersist.Milliseconds()).
+		Int("flags_remote_count", timings.flagsRemote).
+		Int("flags_update_count", timings.flagsUpdates).
 		Int64("fetch_headers_ms", fetchHeadersOnly.Milliseconds()).
 		Int64("persist_ms", timings.persist.Milliseconds()).
 		Int64("cleanup_ms", timings.cleanup.Milliseconds()).
@@ -570,9 +593,18 @@ func (e *Engine) SyncFolderFlags(ctx context.Context, accountID, folderID string
 	}
 
 	prevModSeq := f.FlagsSyncModSeq
+	trustedGmailCondstore := false
+	if acc, accErr := e.accountStore.Get(accountID); accErr == nil && acc != nil {
+		trustedGmailCondstore = isTrustedGmailCondstore(
+			acc.IMAPHost,
+			conn.Client().Caps(),
+			conn.Client().SupportsCondStore(),
+		)
+	}
 	flagSyncOK := true
+	flagMetrics := flagSyncMetrics{}
 	if len(localUIDs) > 0 {
-		flagSyncOK = e.runFlagSync(
+		flagSyncOK, flagMetrics = e.runFlagSync(
 			ctx,
 			conn.Client().RawClient(),
 			folderID,
@@ -581,6 +613,7 @@ func (e *Engine) SyncFolderFlags(ctx context.Context, accountID, folderID string
 			prevModSeq,
 			mailbox.HighestModSeq,
 			conn.Client().SupportsCondStore(),
+			trustedGmailCondstore,
 			true, // preferIncremental: IDLE fast path
 		)
 	}
@@ -609,6 +642,11 @@ func (e *Engine) SyncFolderFlags(ctx context.Context, accountID, folderID string
 	}
 	e.log.Debug().
 		Str("folder", f.Path).
+		Int64("flags_fetch_ms", flagMetrics.fetch.Milliseconds()).
+		Int64("flags_process_ms", flagMetrics.process.Milliseconds()).
+		Int64("flags_persist_ms", flagMetrics.persist.Milliseconds()).
+		Int("flags_remote_count", flagMetrics.remoteCount).
+		Int("flags_update_count", flagMetrics.updateCount).
 		Uint64("flags_sync_modseq_before", flagsSyncModSeqBefore).
 		Uint64("flags_sync_modseq_after", f.FlagsSyncModSeq).
 		Bool("watermark_advanced", f.FlagsSyncModSeq != flagsSyncModSeqBefore).
@@ -620,9 +658,10 @@ func (e *Engine) SyncFolderFlags(ctx context.Context, accountID, folderID string
 
 // syncMessageFlags fetches and updates flags for existing messages from the IMAP server.
 // This ensures local message flags stay in sync with server changes (e.g., webmail).
-func (e *Engine) syncMessageFlags(ctx context.Context, client *imapclient.Client, folderID string, uids []uint32) error {
+func (e *Engine) syncMessageFlags(ctx context.Context, client *imapclient.Client, folderID string, uids []uint32) (flagSyncMetrics, error) {
+	metrics := flagSyncMetrics{}
 	if len(uids) == 0 {
-		return nil
+		return metrics, nil
 	}
 
 	// Fetch flags in batches to avoid overwhelming the server
@@ -630,7 +669,7 @@ func (e *Engine) syncMessageFlags(ctx context.Context, client *imapclient.Client
 	for i := 0; i < len(uids); i += flagBatchSize {
 		// Check for cancellation
 		if ctx.Err() != nil {
-			return ctx.Err()
+			return metrics, ctx.Err()
 		}
 
 		end := i + flagBatchSize
@@ -653,18 +692,24 @@ func (e *Engine) syncMessageFlags(ctx context.Context, client *imapclient.Client
 			Flags: true,
 		}
 
+		fetchStarted := time.Now()
 		fetchCmd := client.Fetch(uidSet, fetchOptions)
+		metrics.fetch += time.Since(fetchStarted)
 
 		// Collect all flag updates for batch DB update
 		var flagUpdates []message.FlagUpdate
 
 		for {
+			fetchStarted = time.Now()
 			msg := fetchCmd.Next()
+			metrics.fetch += time.Since(fetchStarted)
 			if msg == nil {
 				break
 			}
+			metrics.remoteCount++
 
 			// Collect the fetch data
+			processStarted := time.Now()
 			var fetchedUID uint32
 			var isRead, isStarred, isAnswered, isForwarded, isDraft, isDeleted bool
 
@@ -709,22 +754,30 @@ func (e *Engine) syncMessageFlags(ctx context.Context, client *imapclient.Client
 					IsDeleted:   isDeleted,
 				})
 			}
+			metrics.process += time.Since(processStarted)
 		}
 
+		fetchStarted = time.Now()
 		if err := fetchCmd.Close(); err != nil {
-			return fmt.Errorf("failed to fetch flags: %w", err)
+			metrics.fetch += time.Since(fetchStarted)
+			return metrics, fmt.Errorf("failed to fetch flags: %w", err)
 		}
+		metrics.fetch += time.Since(fetchStarted)
 
 		// Batch update all flags in a single transaction
 		if len(flagUpdates) > 0 {
+			metrics.updateCount += len(flagUpdates)
+			persistStarted := time.Now()
 			if err := e.messageStore.UpdateFlagsByUIDBatch(folderID, flagUpdates); err != nil {
-				return fmt.Errorf("failed to batch update message flags: %w", err)
+				metrics.persist += time.Since(persistStarted)
+				return metrics, fmt.Errorf("failed to batch update message flags: %w", err)
 			}
+			metrics.persist += time.Since(persistStarted)
 		}
 	}
 
 	e.log.Debug().Int("count", len(uids)).Msg("Synced message flags")
-	return nil
+	return metrics, nil
 }
 
 // fetchUIDsSince fetches UIDs of messages since the given date.

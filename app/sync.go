@@ -14,6 +14,90 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+// maxConcurrentAccountSyncs limits only simultaneous complete account syncs
+// in the master sync. It does not limit the number of configured accounts.
+const maxConcurrentAccountSyncs = 2
+
+type accountSyncJob struct {
+	accountID string
+	email     string
+}
+
+type accountSyncResult struct {
+	started bool
+	err     error
+}
+
+// runAccountSyncs runs account syncs with bounded concurrency. It deliberately
+// does not cancel sibling jobs on an error: the master sync historically
+// continued with the remaining accounts. Results retain input order so error
+// aggregation remains deterministic regardless of completion order.
+func runAccountSyncs(
+	jobs []accountSyncJob,
+	maxConcurrent int,
+	isCancelled func() bool,
+	syncFn func(accountID string) error,
+	onStarted func(accountID string, active int),
+	onFinished func(accountID string, duration time.Duration, active int),
+) ([]accountSyncResult, int) {
+	if maxConcurrent < 1 {
+		maxConcurrent = 1
+	}
+
+	results := make([]accountSyncResult, len(jobs))
+	slots := make(chan struct{}, maxConcurrent)
+	var wg gosync.WaitGroup
+	var activeMu gosync.Mutex
+	active := 0
+	maxObserved := 0
+
+	for i, job := range jobs {
+		if isCancelled() {
+			break
+		}
+
+		slots <- struct{}{}
+		// The producer may have waited for a worker to finish; check again so a
+		// cancellation during that wait never starts a queued account.
+		if isCancelled() {
+			<-slots
+			break
+		}
+
+		wg.Add(1)
+		go func(index int, job accountSyncJob) {
+			defer wg.Done()
+			defer func() { <-slots }()
+
+			activeMu.Lock()
+			active++
+			if active > maxObserved {
+				maxObserved = active
+			}
+			activeNow := active
+			activeMu.Unlock()
+			if onStarted != nil {
+				onStarted(job.accountID, activeNow)
+			}
+
+			startedAt := time.Now()
+			err := syncFn(job.accountID)
+			results[index] = accountSyncResult{started: true, err: err}
+
+			activeMu.Lock()
+			active--
+			activeNow = active
+			activeMu.Unlock()
+			if onFinished != nil {
+				onFinished(job.accountID, time.Since(startedAt), activeNow)
+			}
+		}(i, job)
+	}
+
+	wg.Wait()
+	return results, maxObserved
+}
+
 // ============================================================================
 // Sync API - Exposed to frontend via Wails bindings
 // ============================================================================
@@ -356,26 +440,52 @@ func (a *App) SyncAllComplete() error {
 	}
 
 	var errors []string
-
-	// First: Sync each email account (sequentially to avoid overwhelming IMAP)
-	// Email sync is the primary use case and runs without database contention
+	jobs := make([]accountSyncJob, 0, len(accounts))
 	for _, acc := range accounts {
-		if !acc.Enabled {
+		if acc.Enabled {
+			jobs = append(jobs, accountSyncJob{accountID: acc.ID, email: acc.Email})
+		}
+	}
+
+	// Email account syncs are bounded independently from the existing
+	// per-account folder concurrency. Background body fetches remain outside
+	// this barrier, matching SyncFolder's pre-existing asynchronous behavior.
+	isCancelled := func() bool {
+		a.syncMu.Lock()
+		defer a.syncMu.Unlock()
+		return a.syncCancelled
+	}
+	results, maxObserved := runAccountSyncs(
+		jobs,
+		maxConcurrentAccountSyncs,
+		isCancelled,
+		a.SyncAccountComplete,
+		func(accountID string, active int) {
+			log.Info().
+				Str("accountID", accountID).
+				Int("active_account_syncs", active).
+				Int("max_account_syncs", maxConcurrentAccountSyncs).
+				Msg("Master account worker started")
+		},
+		func(accountID string, duration time.Duration, active int) {
+			log.Info().
+				Str("accountID", accountID).
+				Dur("duration", duration).
+				Int("active_account_syncs", active).
+				Msg("Master account worker finished")
+		},
+	)
+
+	accountsCompleted := 0
+	accountsFailed := 0
+	for i, result := range results {
+		if !result.started {
 			continue
 		}
-
-		// Check if sync was cancelled between accounts
-		a.syncMu.Lock()
-		cancelled := a.syncCancelled
-		a.syncMu.Unlock()
-		if cancelled {
-			log.Info().Msg("Sync cancelled, stopping account loop")
-			break
-		}
-
-		if err := a.SyncAccountComplete(acc.ID); err != nil {
-			errors = append(errors, fmt.Sprintf("%s: %v", acc.Email, err))
-			// Continue with other accounts
+		accountsCompleted++
+		if result.err != nil {
+			accountsFailed++
+			errors = append(errors, fmt.Sprintf("%s: %v", jobs[i].email, result.err))
 		}
 	}
 
@@ -395,13 +505,17 @@ func (a *App) SyncAllComplete() error {
 	// accounts that already have a healthy IDLE connection.
 	a.restartIDLE()
 
+	log.Info().
+		Dur("duration", time.Since(startedAt)).
+		Int("accounts_total", len(jobs)).
+		Int("accounts_completed", accountsCompleted).
+		Int("accounts_failed", accountsFailed).
+		Int("account_sync_max_concurrent_observed", maxObserved).
+		Msg("Complete sync of all accounts and contacts finished")
+
 	if len(errors) > 0 {
 		return fmt.Errorf("sync errors: %s", strings.Join(errors, "; "))
 	}
-
-	log.Info().
-		Dur("duration", time.Since(startedAt)).
-		Msg("Complete sync of all accounts and contacts finished")
 	return nil
 }
 

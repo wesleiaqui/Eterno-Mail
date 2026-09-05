@@ -1,6 +1,10 @@
 package sync
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/emersion/go-imap/v2"
+)
 
 // TestShouldUseCondStore walks every branch of the truth table the docs
 // describe. Each "no" branch tested in isolation so a future refactor that
@@ -75,33 +79,72 @@ func TestShouldUseCondStore(t *testing.T) {
 	}
 }
 
-func TestCondStoreFallbackReason(t *testing.T) {
+func TestDecideFlagSyncMode(t *testing.T) {
 	tests := []struct {
 		name               string
 		uidValidityChanged bool
 		prevModSeq         uint64
 		mailboxModSeq      uint64
 		supports           bool
+		trustedGmail       bool
 		preferIncremental  bool
 		existing           int
 		periodicSweep      bool
-		want               string
+		wantMode           flagSyncMode
+		wantReason         string
 	}{
-		{name: "first sync", mailboxModSeq: 10, supports: true, preferIncremental: true, want: "no_stored_modseq"},
-		{name: "idle second sync", prevModSeq: 10, mailboxModSeq: 11, supports: true, preferIncremental: true, want: ""},
-		{name: "scheduled small mailbox", prevModSeq: 10, mailboxModSeq: 11, supports: true, existing: 39, want: "below_full_reconcile_threshold"},
-		{name: "uidvalidity changed", uidValidityChanged: true, prevModSeq: 10, mailboxModSeq: 11, supports: true, preferIncremental: true, want: "uidvalidity_changed"},
-		{name: "server lacks condstore", prevModSeq: 10, mailboxModSeq: 11, preferIncremental: true, want: "condstore_unavailable"},
-		{name: "server omitted mailbox modseq", prevModSeq: 10, supports: true, preferIncremental: true, want: "no_mailbox_modseq"},
-		{name: "periodic full sweep", prevModSeq: 10, mailboxModSeq: 11, supports: true, existing: flagFullReconcileThreshold, periodicSweep: true, want: "periodic_full_sweep"},
+		{name: "Gmail unchanged skips", prevModSeq: 100, mailboxModSeq: 100, supports: true, trustedGmail: true, existing: 38, wantMode: flagSyncModeSkip, wantReason: "gmail_modseq_unchanged"},
+		{name: "Gmail advanced increments", prevModSeq: 100, mailboxModSeq: 150, supports: true, trustedGmail: true, existing: 38, wantMode: flagSyncModeIncremental, wantReason: "gmail_modseq_advanced"},
+		{name: "Gmail regressed forces full", prevModSeq: 150, mailboxModSeq: 100, supports: true, trustedGmail: true, existing: 38, wantMode: flagSyncModeFull, wantReason: "modseq_regressed_or_expunge"},
+		{name: "Gmail no baseline forces full", mailboxModSeq: 150, supports: true, trustedGmail: true, existing: 38, wantMode: flagSyncModeFull, wantReason: "no_stored_modseq"},
+		{name: "Gmail no current modseq forces full", prevModSeq: 100, supports: true, trustedGmail: true, existing: 38, wantMode: flagSyncModeFull, wantReason: "no_current_modseq"},
+		{name: "Gmail sweep takes priority", prevModSeq: 100, mailboxModSeq: 100, supports: true, trustedGmail: true, existing: 38, periodicSweep: true, wantMode: flagSyncModeFull, wantReason: "periodic_full_sweep"},
+		{name: "non Gmail small mailbox retains full", prevModSeq: 100, mailboxModSeq: 100, supports: true, existing: 39, wantMode: flagSyncModeFull, wantReason: "below_full_reconcile_threshold"},
+		{name: "non Gmail large mailbox retains incremental", prevModSeq: 100, mailboxModSeq: 150, supports: true, existing: flagFullReconcileThreshold, wantMode: flagSyncModeIncremental, wantReason: "incremental"},
+		{name: "UIDValidity change takes priority", uidValidityChanged: true, prevModSeq: 100, mailboxModSeq: 100, supports: true, trustedGmail: true, wantMode: flagSyncModeFull, wantReason: "uidvalidity_changed"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := condStoreFallbackReason(test.uidValidityChanged, test.prevModSeq, test.mailboxModSeq, test.supports, test.preferIncremental, test.existing, test.periodicSweep)
-			if got != test.want {
-				t.Fatalf("condStoreFallbackReason() = %q, want %q", got, test.want)
+			mode, reason := decideFlagSyncMode(test.uidValidityChanged, test.prevModSeq, test.mailboxModSeq, test.supports, test.trustedGmail, test.preferIncremental, test.existing, test.periodicSweep)
+			if mode != test.wantMode || reason != test.wantReason {
+				t.Fatalf("decideFlagSyncMode() = (%q, %q), want (%q, %q)", mode, reason, test.wantMode, test.wantReason)
 			}
 		})
+	}
+}
+
+func TestIsTrustedGmailCondstore(t *testing.T) {
+	gmCaps := imap.CapSet{imap.Cap("X-GM-EXT-1"): {}, imap.CapCondStore: {}}
+	tests := []struct {
+		name     string
+		host     string
+		caps     imap.CapSet
+		supports bool
+		want     bool
+	}{
+		{name: "canonical host and Gmail capability", host: "imap.gmail.com", caps: gmCaps, supports: true, want: true},
+		{name: "Gmail host without Gmail capability", host: "imap.gmail.com", caps: imap.CapSet{imap.CapCondStore: {}}, supports: true, want: false},
+		{name: "Gmail capability on another host", host: "imap.example.com", caps: gmCaps, supports: true, want: false},
+		{name: "Gmail signals without CONDSTORE", host: "imap.gmail.com", caps: gmCaps, supports: false, want: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := isTrustedGmailCondstore(test.host, test.caps, test.supports); got != test.want {
+				t.Fatalf("isTrustedGmailCondstore() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestShouldCountFlagSweep(t *testing.T) {
+	if shouldCountFlagSweep(false, 100, 100, true, true, true, 10) {
+		t.Fatal("IDLE must not consume the periodic sweep counter")
+	}
+	if !shouldCountFlagSweep(false, 100, 100, true, true, false, 10) {
+		t.Fatal("scheduled Gmail small mailbox must participate in periodic sweep")
+	}
+	if shouldCountFlagSweep(false, 100, 100, true, false, false, 10) {
+		t.Fatal("scheduled non-Gmail small mailbox must retain existing sweep cadence")
 	}
 }
 

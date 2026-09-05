@@ -151,21 +151,19 @@
       standard: 'w-6 h-6',
       large: 'w-7 h-7',
     },
-    // Hidden state: zero width, negative right margin cancels the row's flex
-    // gap (gap-2/3/4/5 per density); group-hover reveals in every layout
-    // (on touch, WebKit sticky hover means a tap also reveals — accepted).
-    // No opacity states — the checkbox is always fully opaque; visibility is
-    // purely the width clip (overflow-hidden). The slide IS the reveal.
+    // Hidden state: zero width, with a negative right margin cancelling the
+    // row gap. The quick-action rail is absolute, so hovering must not expand
+    // this column and push the message content sideways.
     checkboxHidden: {
-      micro: 'w-0 h-4 -mr-2 group-hover:w-4 group-hover:mr-0',
-      compact: 'w-0 h-5 -mr-3 group-hover:w-5 group-hover:mr-0',
-      standard: 'w-0 h-6 -mr-4 group-hover:w-6 group-hover:mr-0',
-      large: 'w-0 h-7 -mr-5 group-hover:w-7 group-hover:mr-0',
+      micro: 'w-0 h-4 -mr-2',
+      compact: 'w-0 h-5 -mr-3',
+      standard: 'w-0 h-6 -mr-4',
+      large: 'w-0 h-7 -mr-5',
     },
-    // Legacy always-reserved column ("Always show checkbox" setting ON):
-    // opacity fade instead of width reveal — invisible until hover on
-    // desktop, faintly visible on narrow (#30)
-    checkboxAlways: 'opacity-0 group-hover:opacity-40 hover:!opacity-100 max-[767px]:opacity-40 max-[767px]:active:opacity-100',
+    // The checkbox column remains reserved when this preference is enabled,
+    // but it must not fade in on hover: the quick-action rail owns that
+    // interaction and revealing both made the row appear to slide sideways.
+    checkboxAlways: 'opacity-0',
     checkboxInner: {
       micro: 'w-3 h-3',
       compact: 'w-4 h-4',
@@ -178,13 +176,14 @@
       standard: 'w-4 h-4',
       large: 'w-5 h-5',
     },
-    // Keep the quick actions aligned with the row's left edge. The small
-    // inset clears the rounded border without covering the avatar.
+    // The action rail fills the same left gutter reserved by each density.
+    // This prevents a sliver of the row from showing beside the controls on
+    // hover, which made the floating stack look visually broken.
     quickActions: {
-      micro: 'left-1',
-      compact: 'left-1',
-      standard: 'left-1',
-      large: 'left-1',
+      micro: 'w-8',
+      compact: 'w-8',
+      standard: 'w-9',
+      large: 'w-11',
     },
   }
 
@@ -499,7 +498,7 @@
 
     <!-- Quick actions replace the avatar on hover without opening the row. -->
     <div
-      class="absolute top-1/2 z-20 flex -translate-y-1/2 flex-col gap-0.5 rounded-lg bg-background/90 p-1 opacity-0 pointer-events-none shadow-lg ring-1 ring-white/10 backdrop-blur-sm transition-opacity duration-150 group-hover:opacity-100 group-hover:pointer-events-auto {densityClasses.quickActions[density]}"
+      class="absolute inset-y-0 left-0 z-20 flex flex-col items-center justify-center gap-0.5 bg-transparent opacity-0 pointer-events-none transition-opacity duration-150 group-hover:opacity-100 group-hover:pointer-events-auto {densityClasses.quickActions[density]}"
       aria-label={$_('common.done')}
     >
       <button
@@ -690,15 +689,6 @@
     color: hsl(var(--foreground));
     background: hsl(var(--muted));
     transform: scale(1.06);
-  }
-
-  /* The hover action stack replaces the row-selection checkbox for the
-     duration of the hover, leaving only the three requested quick actions. */
-  :global([data-conversation-row]:hover .quick-selection-checkbox) {
-    width: 0 !important;
-    min-width: 0 !important;
-    opacity: 0 !important;
-    pointer-events: none;
   }
 
   /* Swipe-to-select feedback: nudge right, then bounce back; the checkbox

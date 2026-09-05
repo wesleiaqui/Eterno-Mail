@@ -79,6 +79,10 @@
   let selectedThreadId = $state<string | null>(null)
   let selectedConversationFolderId = $state<string | null>(null)
   let selectedConversationAccountId = $state<string | null>(null)
+  // Read-state changes are intentionally excluded from the backend's global
+  // undo stack (automatic read timers would otherwise pollute it). Keep the
+  // last explicit bulk action locally so its toast and Ctrl+Z can undo it.
+  let lastFlagUndo = $state<{ messageIds: string[], restoreRead: boolean } | null>(null)
 
   // Composer state
   let showComposer = $state(false)
@@ -1043,6 +1047,14 @@
           }
           messageListRef?.selectAll()
           return
+        case 'z':
+          e.preventDefault()
+          if (lastFlagUndo) {
+            handleUndoLastFlag()
+          } else {
+            handleUndo()
+          }
+          return
         case 'l':
           e.preventDefault()
           if (e.shiftKey) {
@@ -1485,6 +1497,19 @@
     setFocusedPane(pane)
   }
 
+  function handleMessageListActionComplete(autoSelectNext: boolean) {
+    // Archive, Done, delete and spam remove the current conversation from the
+    // active folder. Clear the viewer before the list reloads so it cannot
+    // request that now-missing thread and render an empty "(No subject)" pane.
+    if (autoSelectNext) {
+      selectedThreadId = null
+      selectedConversationFolderId = null
+      selectedConversationAccountId = null
+    } else {
+      viewerRef?.refreshFlags()
+    }
+  }
+
   // Bulk action handlers
   async function handleBulkArchive(messageIds: string[]) {
     try {
@@ -1524,7 +1549,8 @@
   async function handleBulkMarkRead(messageIds: string[]) {
     try {
       await MarkAsRead(messageIds)
-      addToast({ type: 'success', message: $_('toast.markedAsRead') })
+      lastFlagUndo = { messageIds: [...messageIds], restoreRead: false }
+      addToast({ type: 'success', message: $_('toast.markedAsRead'), duration: 10_000, actions: [{ label: $_('common.undo'), onClick: handleUndoLastFlag }] })
       messageListRef?.clearChecked()
       messageListRef?.handleActionComplete()
     } catch (err) {
@@ -1533,10 +1559,32 @@
     }
   }
 
+  async function handleUndoLastFlag() {
+    if (!lastFlagUndo) return
+    const { messageIds, restoreRead } = lastFlagUndo
+    lastFlagUndo = null
+    try {
+      if (restoreRead) {
+        await MarkAsRead(messageIds)
+        addToast({ type: 'success', message: $_('toast.markedAsRead') })
+      } else {
+        await MarkAsUnread(messageIds)
+        addToast({ type: 'success', message: $_('toast.markedAsUnread') })
+      }
+      messageListRef?.handleActionComplete()
+    } catch (err) {
+      // Keep the target available when a transient IMAP/local error occurs.
+      lastFlagUndo = { messageIds, restoreRead }
+      console.error('Undo flag change failed:', err)
+      addToast({ type: 'error', message: $_(restoreRead ? 'toast.failedToMarkAsRead' : 'toast.failedToMarkAsUnread') })
+    }
+  }
+
   async function handleBulkMarkUnread(messageIds: string[]) {
     try {
       await MarkAsUnread(messageIds)
-      addToast({ type: 'success', message: $_('toast.markedAsUnread') })
+      lastFlagUndo = { messageIds: [...messageIds], restoreRead: true }
+      addToast({ type: 'success', message: $_('toast.markedAsUnread'), duration: 10_000, actions: [{ label: $_('common.undo'), onClick: handleUndoLastFlag }] })
       messageListRef?.clearChecked()
       messageListRef?.handleActionComplete()
     } catch (err) {
@@ -1668,7 +1716,9 @@
         folderType={selectedFolderType || 'inbox'}
         onConversationSelect={handleConversationSelect}
         onReply={handleReply}
-        onRowActionComplete={() => viewerRef?.refreshFlags()}
+        onRowActionComplete={handleMessageListActionComplete}
+        onBulkMarkRead={handleBulkMarkRead}
+        onBulkArchive={handleBulkArchive}
         isFocused={getFocusedPane() === 'messageList'}
         isFlashing={isPaneFlashing('messageList')}
         showFolderToggle={getLayoutMode() === 'narrow'}

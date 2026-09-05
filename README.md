@@ -43,6 +43,10 @@ Key visual changes:
 - **Sidebar redesign:** Replaced the text-based sidebar with a modern, collapsible navigation for Home, Inbox, Calendar, Archived, Blocked, Drafts, Sent and Trash, plus a collapsible folder panel — cleaner and more space-efficient. Choose Compact, Medium or Large under Settings → General; each preset changes its expanded width, text, icons, row heights and spacing together, and the selected size is preserved after collapsing. Home, Inbox, Calendar and folder icons share a consistent visual axis, while inbox disclosure controls remain in their own column. Compose is a clear primary action, with account sync and Settings grouped in a persistent footer for quick access.
 - **Focused folder expansion:** Expanding an account list under a folder closes the other folder groups, keeping the navigation readable.
 - **Inbox Zero approach:** The email experience was restructured around the Inbox Zero methodology, helping users keep their inbox organized by encouraging archiving, categorizing, and clearing messages efficiently.
+- **Inbox category cards:** Inbox messages can be grouped into People, Notifications, News, Commercial and Read cards. Each card offers a one-click completion action, expandable content and a refined “Show all” footer that highlights the full card footer on hover.
+- **Quick message actions:** Hovering a conversation reveals Done, read/unread and delete controls in a fixed left rail without shifting the sender, avatar or message content.
+- **Bulk selection controls:** `Ctrl/Cmd+A` toggles the current list selection; selected messages display a compact action bar for completing, archiving or clearing the selection. Read-state changes offer a visible undo action and `Ctrl/Cmd+Z` restores the last explicit read/unread change.
+- **Continuous message loading:** Reaching the bottom of the message list automatically loads the next page, replacing the manual “Load more” button with a subtle loading indicator.
 - **Settings redesign:** The settings panel was reformulated with a more intuitive and organized layout, making it easier to navigate and configure accounts, appearance, and preferences.
 - **Sender logos in conversation list:** Company logos (Google, Discord, Carrefour, etc.) are now displayed alongside contact avatars in the message list, making it easier to visually identify senders at a glance. Falls back to colored initials when no logo is available.
 - **Refined conversation list layout:** Improved spacing, typography, and visual hierarchy in the message list for better readability across density modes.
@@ -56,6 +60,7 @@ Key visual changes:
 - **`\Noselect` mailboxes:** Added a check to skip the `STATUS` command on mailboxes flagged as `\Noselect` (e.g., the `[Gmail]` folder), preventing sync errors.
 - **Sync counters:** Fixed sync counters to report the actual number of stored headers (`failed=0` on success).
 - **Folder sync state preservation:** Folder discovery upserts now retain the stored IMAP flags sync mod-sequence; a regression test protects this incremental-sync state.
+- **Archive viewer handoff:** Completing, archiving, deleting or marking spam no longer leaves the conversation viewer displaying an empty removed thread while the list reloads and selects the next valid message.
 
 #### 🚀 New Features
 

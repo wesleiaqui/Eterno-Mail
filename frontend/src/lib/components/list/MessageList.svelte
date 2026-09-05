@@ -41,7 +41,9 @@
     folderType?: string
     onConversationSelect?: (threadId: string, folderId: string, accountId: string) => void
     onReply?: (mode: 'reply' | 'reply-all' | 'forward', messageId: string) => void
-    onRowActionComplete?: () => void
+    onRowActionComplete?: (autoSelectNext: boolean) => void
+    onBulkMarkRead?: (messageIds: string[]) => void
+    onBulkArchive?: (messageIds: string[]) => void
     isFocused?: boolean
     isFlashing?: boolean
     showFolderToggle?: boolean
@@ -56,6 +58,8 @@
     onConversationSelect,
     onReply,
     onRowActionComplete,
+    onBulkMarkRead,
+    onBulkArchive,
     isFocused: _isFocused = false,
     isFlashing = false,
     showFolderToggle = false,
@@ -181,6 +185,14 @@
     if (next.has(groupID)) next.delete(groupID)
     else next.add(groupID)
     collapsedInboxGroups = next
+  }
+
+  function markInboxGroupDone(group: InboxDisplayGroup, event: MouseEvent) {
+    event.stopPropagation()
+    const messageIds = group.conversations.flatMap((conversation: any) =>
+      conversation.messageIds || conversation.messages?.map((item: any) => item.id) || []
+    )
+    if (messageIds.length) onBulkMarkRead?.(messageIds)
   }
 
   // "Pessoas" is the only inbox category that is split by destination. This
@@ -1200,7 +1212,7 @@
   }
 
   export function handleActionComplete(autoSelectNext: boolean = false) {
-    onRowActionComplete?.()
+    onRowActionComplete?.(autoSelectNext)
     // Get target index BEFORE reload (for auto-select after delete/archive/spam)
     // Uses earliest checked item's index so bulk delete doesn't overshoot
     const currentIndex = getEarliestCheckedIndex()
@@ -1308,6 +1320,23 @@
 
   // Reference to the list container for scrolling
   let listContainerRef = $state<HTMLDivElement | null>(null)
+
+  function loadNextPage() {
+    if (loading || conversations.length >= totalCount) return
+    // Continue at the actual end of the loaded window. This also avoids
+    // duplicate rows after a reload that restored more than one page.
+    offset = conversations.length
+    void loadConversations()
+  }
+
+  function handleListScroll(event: Event) {
+    const container = event.currentTarget as HTMLDivElement
+    // Start loading shortly before the user reaches the end so scrolling is
+    // continuous rather than stopping at a manual "Load more" control.
+    if (container.scrollHeight - container.scrollTop - container.clientHeight < 180) {
+      loadNextPage()
+    }
+  }
 
   // Reference to the "Load more" button for keyboard navigation
   let loadMoreButtonRef = $state<HTMLButtonElement | null>(null)
@@ -1543,6 +1572,11 @@
   }
 
   export function selectAll() {
+    // Ctrl/Cmd+A toggles the complete selection so it can also dismiss it.
+    if (checkedThreadIds.size > 0) {
+      clearSelection()
+      return
+    }
     checkedThreadIds = new Set(activeList.map(c => c.threadId))
   }
 
@@ -1908,6 +1942,21 @@
     </div>
   {/if}
 
+  {#if checkedThreadIds.size > 0}
+    <div class="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-2" role="toolbar" aria-label="Ações para mensagens selecionadas">
+      <span class="mr-auto text-sm font-medium text-foreground">{checkedThreadIds.size} selecionada{checkedThreadIds.size === 1 ? '' : 's'}</span>
+      <button class="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" onclick={() => onBulkMarkRead?.(selectedMessageIds)}>
+        <Icon icon="mdi:check-circle-outline" class="h-4 w-4" /> {$_('common.done')}
+      </button>
+      <button class="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" onclick={() => onBulkArchive?.(selectedMessageIds)}>
+        <Icon icon="mdi:archive-outline" class="h-4 w-4" /> {$_('viewer.archive')}
+      </button>
+      <button class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title={$_('common.close')} aria-label={$_('common.close')} onclick={clearSelection}>
+        <Icon icon="mdi:close" class="h-4 w-4" />
+      </button>
+    </div>
+  {/if}
+
   <!-- Empty Trash bar (only shown when viewing trash folder with messages, not in search mode) -->
   {#if folderType === 'trash' && totalCount > 0 && !isSearchMode}
     <div class="flex items-center justify-end px-4 py-2 bg-muted/50 border-b border-border">
@@ -1940,7 +1989,7 @@
   {/if}
 
   <!-- Conversation List -->
-  <div bind:this={listContainerRef} class="message-list-scroll flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+  <div bind:this={listContainerRef} class="message-list-scroll flex-1 min-h-0 overflow-y-auto scrollbar-thin" onscroll={handleListScroll}>
     <div class="message-list-card" class:inbox-category-list={canUseInboxDisplay && inboxDisplayMode === 'categories'} class:inbox-chronological-list={canUseInboxDisplay && inboxDisplayMode === 'chronological'}>
     {#if loading && conversations.length === 0 && !isSearchMode}
       <div class="flex items-center justify-center h-32">
@@ -2146,24 +2195,18 @@
           {#if inboxDisplayMode === 'chronological'}
             <h3 class="inbox-chronological-heading">{group.label}</h3>
           {:else}
-            <button
-              class="inbox-category-header"
-              onclick={() => toggleInboxGroup(group.id)}
-              aria-expanded={!collapsedInboxGroups.has(group.id)}
-            >
-              <span class="inbox-category-icon">
-                <Icon icon={group.icon} class="h-4 w-4" />
-              </span>
-              <span class="min-w-0 flex-1">
-                <span class="block text-sm font-semibold text-foreground">{group.label}</span>
-                {#if group.recipient}
-                  <span class="mt-0.5 block truncate text-xs text-muted-foreground">{group.recipient}</span>
-                {/if}
-              </span>
-              <span class="inbox-category-toggle" aria-hidden="true">
-                <Icon icon={collapsedInboxGroups.has(group.id) ? 'mdi:chevron-down' : 'mdi:chevron-up'} class="h-4 w-4" />
-              </span>
-            </button>
+            <div class="inbox-category-header">
+              <button class="flex min-w-0 flex-1 items-center gap-2 text-left" onclick={() => toggleInboxGroup(group.id)} aria-expanded={!collapsedInboxGroups.has(group.id)}>
+                <span class="inbox-category-icon"><Icon icon={group.icon} class="h-4 w-4" /></span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-sm font-semibold text-foreground">{group.label}</span>
+                  {#if group.recipient}<span class="mt-0.5 block truncate text-xs text-muted-foreground">{group.recipient}</span>{/if}
+                </span>
+              </button>
+              <button type="button" class="inbox-category-toggle" title={$_('common.done')} aria-label={$_('common.done')} onclick={(event) => markInboxGroupDone(group, event)}>
+                <Icon icon="mdi:check" class="h-4 w-4" />
+              </button>
+            </div>
           {/if}
           {#if inboxDisplayMode === 'chronological' || !collapsedInboxGroups.has(group.id)}
             <div class="inbox-category-items" class:inbox-chronological-items={inboxDisplayMode === 'chronological'}>
@@ -2194,7 +2237,7 @@
               {#if !expandedInboxGroups.has(group.id) && getInboxCardVisibleCount(group.category) > 0 && group.conversations.length > getInboxCardVisibleCount(group.category)}
                 <button
                   type="button"
-                  class="mb-1 ml-3 mt-1 text-xs font-medium text-primary hover:underline"
+                  class="inbox-category-show-all"
                   onclick={() => showAllInboxConversations(group.id)}
                 >
                   {$_('inbox.showAll', { values: { count: group.conversations.length } })}
@@ -2207,16 +2250,7 @@
       {/key}
 
       {#if conversations.length < totalCount}
-        <div class="flex justify-center py-4">
-          <button
-            bind:this={loadMoreButtonRef}
-            class="text-sm text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded px-2 py-1"
-            onclick={() => { offset = conversations.length; loadConversations() }}
-            disabled={loading}
-          >
-            {loading ? $_('common.loading') : $_('messageList.loadMore', { values: { remaining: totalCount - conversations.length } })}
-          </button>
-        </div>
+        {#if loading}<div class="flex justify-center py-4 text-sm text-muted-foreground"><Icon icon="mdi:loading" class="mr-2 h-4 w-4 animate-spin" />{$_('common.loading')}</div>{/if}
       {/if}
     {:else}
       {#each conversations as conv, index (conv.threadId + '-' + (conv.accountId || accountId || ''))}
@@ -2245,23 +2279,7 @@
 
       <!-- Load more button for pagination -->
       {#if conversations.length < totalCount}
-        <div class="flex justify-center py-4">
-          <button
-            bind:this={loadMoreButtonRef}
-            class="text-sm text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded px-2 py-1"
-            onclick={() => {
-              // Continue from the true end of the loaded window, not a
-              // page-size increment — after a preserved reload (sync or
-              // action) offset is 0 while conversations holds several pages,
-              // and += PAGE_SIZE would re-fetch and append duplicate rows.
-              offset = conversations.length
-              loadConversations()
-            }}
-            disabled={loading}
-          >
-            {loading ? $_('common.loading') : $_('messageList.loadMore', { values: { remaining: totalCount - conversations.length } })}
-          </button>
-        </div>
+        {#if loading}<div class="flex justify-center py-4 text-sm text-muted-foreground"><Icon icon="mdi:loading" class="mr-2 h-4 w-4 animate-spin" />{$_('common.loading')}</div>{/if}
       {/if}
     {/if}
     </div>

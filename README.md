@@ -30,6 +30,23 @@ The following changes were made in this fork compared to the original [`hkdb/aer
 
 > **Note:** The executable name (`aerion`), Go module (`github.com/hkdb/aerion`), and frontend `package.json` (`"name": "aerion"`) were kept unchanged to preserve compatibility with internal imports and the build system.
 
+#### 🎨 UI & Visual Improvements
+
+The interface was significantly redesigned for a more modern and polished experience:
+
+| Before (Aerion original) | After (Eterno Mail) |
+| :---: | :---: |
+| ![Aerion original](docs/ss-aerion-original.png) | ![Eterno Mail](docs/ss.png) |
+
+Key visual changes:
+
+- **Sidebar redesign:** Replaced the text-based sidebar with a modern icon rail navigation (Home, Inbox, Calendar, Archived, Blocked, Drafts, Sent, Trash) plus a collapsible folder panel — cleaner and more space-efficient.
+- **Sender logos in conversation list:** Company logos (Google, Discord, Carrefour, etc.) are now displayed alongside contact avatars in the message list, making it easier to visually identify senders at a glance. Falls back to colored initials when no logo is available.
+- **Refined conversation list layout:** Improved spacing, typography, and visual hierarchy in the message list for better readability across density modes.
+- **Modernized title bar:** Centered "Eterno Mail" branding in the title bar with a cleaner, more balanced header layout.
+- **Collapsible sidebar:** Added a "Collapse sidebar" option for maximizing content area when needed.
+- **Folder organization:** Folders section with dedicated "Snoozed" and "More" options for better mailbox management.
+
 #### 🐛 Bug Fixes
 
 - **SQLite Foreign Key 787:** Fixed foreign key violation error during message upsert. The logic now preserves the existing message primary key, preventing breakage of attachment references linked by FK.

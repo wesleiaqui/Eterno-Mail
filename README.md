@@ -41,6 +41,8 @@ The interface was significantly redesigned for a more modern and polished experi
 Key visual changes:
 
 - **Sidebar redesign:** Replaced the text-based sidebar with a modern icon rail navigation (Home, Inbox, Calendar, Archived, Blocked, Drafts, Sent, Trash) plus a collapsible folder panel — cleaner and more space-efficient.
+- **Inbox Zero approach:** The email experience was restructured around the Inbox Zero methodology, helping users keep their inbox organized by encouraging archiving, categorizing, and clearing messages efficiently.
+- **Settings redesign:** The settings panel was reformulated with a more intuitive and organized layout, making it easier to navigate and configure accounts, appearance, and preferences.
 - **Sender logos in conversation list:** Company logos (Google, Discord, Carrefour, etc.) are now displayed alongside contact avatars in the message list, making it easier to visually identify senders at a glance. Falls back to colored initials when no logo is available.
 - **Refined conversation list layout:** Improved spacing, typography, and visual hierarchy in the message list for better readability across density modes.
 - **Modernized title bar:** Centered "Eterno Mail" branding in the title bar with a cleaner, more balanced header layout.
@@ -63,6 +65,8 @@ Key visual changes:
   - Integration in the `ConversationRow.svelte` component — displays company logo when no contact photo is available.
 
 - **Runtime GTK icon:** Added direct embed of the application icon (`build/appicon.png`) via `//go:embed` in `main.go`, injected as `Icon: appIcon` in the Wails Linux options. This works around icon cache issues in GTK environments (Ubuntu Budgie, Plank dock).
+
+- **Brazilian Portuguese (pt-BR) translation:** Added full localization support for Brazilian Portuguese, making the application accessible to Portuguese-speaking users.
 
 #### 🔒 Privacy & Security Improvements
 

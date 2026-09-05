@@ -40,17 +40,13 @@ The interface was significantly redesigned for a more modern and polished experi
 
 Key visual changes:
 
-- **Sidebar redesign:** Replaced the text-based sidebar with a modern navigation for Home, Inbox, Calendar, Archived, Blocked, Drafts, Sent and Trash, plus a collapsible folder panel — cleaner and more space-efficient.
-- **Complete sidebar sizing:** Choose Compact, Medium or Large under Settings → General. Each preset changes the expanded sidebar's width, text, icons, row heights and spacing together; the selected size is saved and restored after collapsing the sidebar. Medium is the balanced default.
-- **Aligned sidebar navigation:** Home, Inbox, Calendar and folder icons share a consistent visual axis, while inbox disclosure controls remain in their own column.
-- **Improved sidebar actions:** Compose is now a clear primary action, and account sync and Settings are grouped in a persistent footer for quick access.
+- **Sidebar redesign:** Replaced the text-based sidebar with a modern, collapsible navigation for Home, Inbox, Calendar, Archived, Blocked, Drafts, Sent and Trash, plus a collapsible folder panel — cleaner and more space-efficient. Choose Compact, Medium or Large under Settings → General; each preset changes its expanded width, text, icons, row heights and spacing together, and the selected size is preserved after collapsing. Home, Inbox, Calendar and folder icons share a consistent visual axis, while inbox disclosure controls remain in their own column. Compose is a clear primary action, with account sync and Settings grouped in a persistent footer for quick access.
 - **Focused folder expansion:** Expanding an account list under a folder closes the other folder groups, keeping the navigation readable.
 - **Inbox Zero approach:** The email experience was restructured around the Inbox Zero methodology, helping users keep their inbox organized by encouraging archiving, categorizing, and clearing messages efficiently.
 - **Settings redesign:** The settings panel was reformulated with a more intuitive and organized layout, making it easier to navigate and configure accounts, appearance, and preferences.
 - **Sender logos in conversation list:** Company logos (Google, Discord, Carrefour, etc.) are now displayed alongside contact avatars in the message list, making it easier to visually identify senders at a glance. Falls back to colored initials when no logo is available.
 - **Refined conversation list layout:** Improved spacing, typography, and visual hierarchy in the message list for better readability across density modes.
 - **Modernized title bar:** Centered "Eterno Mail" branding in the title bar with a cleaner, more balanced header layout.
-- **Collapsible sidebar:** Added a "Collapse sidebar" option for maximizing content area when needed.
 - **Folder organization:** Folders section with dedicated "Snoozed" and "More" options for better mailbox management.
 
 #### 🐛 Bug Fixes

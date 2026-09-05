@@ -7,6 +7,7 @@
   import { _, setLocale } from '$lib/i18n'
   import { supportedLocales } from '$lib/i18n'
   import { getIsDarkActive } from '$lib/stores/theme.svelte'
+  import { getSidebarWidth, setSidebarWidth } from '$lib/stores/uiState.svelte'
 
   interface Props {
     markAsReadDelaySeconds: number
@@ -114,6 +115,14 @@
     { value: 'yaru-dark', label: 'Yaru (Dark)' },
   ])
 
+  const sidebarWidth = $derived(getSidebarWidth())
+  const sidebarSize = $derived(sidebarWidth >= 350 ? '360' : sidebarWidth >= 310 ? '320' : '280')
+  const sidebarSizeOptions = $derived([
+    { value: '280', label: $_('settingsGeneral.sidebarCompact') },
+    { value: '320', label: $_('settingsGeneral.sidebarMedium') },
+    { value: '360', label: $_('settingsGeneral.sidebarLarge') },
+  ])
+
   function getDensityLabel(value: string): string {
     return densityOptions.find(opt => opt.value === value)?.label || value
   }
@@ -135,6 +144,10 @@
   function handleThemeChange(value: string) {
     themeMode = value
     onThemeChange?.(value)
+  }
+
+  function handleSidebarSizeChange(value: string) {
+    setSidebarWidth(Number(value))
   }
 
   function handleTitleBarChange(value: string) {
@@ -258,6 +271,21 @@
       <p class="text-xs text-muted-foreground">
         {$_('settingsGeneral.themeHelp')}
       </p>
+    </div>
+
+    <div class="space-y-2">
+      <Label>{$_('settingsGeneral.sidebarSize')}</Label>
+      <Select.Root value={sidebarSize} onValueChange={handleSidebarSizeChange}>
+        <Select.Trigger>
+          <Select.Value>{sidebarSizeOptions.find(option => option.value === sidebarSize)?.label}</Select.Value>
+        </Select.Trigger>
+        <Select.Content>
+          {#each sidebarSizeOptions as option (option.value)}
+            <Select.Item value={option.value} label={option.label} />
+          {/each}
+        </Select.Content>
+      </Select.Root>
+      <p class="text-xs text-muted-foreground">{$_('settingsGeneral.sidebarSizeHelp')}</p>
     </div>
 
     <!-- Dark mail content — only relevant when a dark theme is active -->
@@ -497,4 +525,3 @@
   </div>
 
 </div>
-

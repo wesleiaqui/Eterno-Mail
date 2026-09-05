@@ -26,11 +26,11 @@ export interface UIState {
 }
 
 // Pane width constraints
-const SIDEBAR_MIN = 180
+const SIDEBAR_MIN = 230
 const SIDEBAR_MAX = 400
 const LIST_MIN = 280
 const LIST_MAX = 600
-const SIDEBAR_LAYOUT_MIGRATION_KEY = 'eterno-mail:sidebar-layout-v3'
+const SIDEBAR_LAYOUT_MIGRATION_KEY = 'eterno-mail:sidebar-layout-v6'
 
 // Default state
 const defaultState: UIState = {
@@ -41,7 +41,7 @@ const defaultState: UIState = {
   selectedThreadId: null,
   selectedConversationAccountId: null,
   selectedConversationFolderId: null,
-  sidebarWidth: 360,
+  sidebarWidth: 320,
   listWidth: 360,
   sidebarCollapsed: false,
   expandedAccounts: {},
@@ -52,6 +52,7 @@ const defaultState: UIState = {
 
 // Current state (in-memory cache)
 let currentState: UIState = { ...defaultState }
+let sidebarWidthState = $state(defaultState.sidebarWidth)
 
 // Reactive signal to notify when UI state has been loaded
 // Sidebar can depend on this to re-initialize expanded states
@@ -84,7 +85,7 @@ export async function loadUIState(): Promise<UIState> {
         selectedConversationAccountId: state.selectedConversationAccountId || null,
         selectedConversationFolderId: state.selectedConversationFolderId || null,
         // Validate and clamp pane widths
-        sidebarWidth: clamp(state.sidebarWidth || 360, SIDEBAR_MIN, SIDEBAR_MAX),
+        sidebarWidth: clamp(state.sidebarWidth || 320, SIDEBAR_MIN, SIDEBAR_MAX),
         // Migrate the old default (420px) to the more balanced 360px width.
         // Any user-selected size is preserved.
         listWidth: clamp(state.listWidth === 420 ? 360 : state.listWidth || 360, LIST_MIN, LIST_MAX),
@@ -95,15 +96,16 @@ export async function loadUIState(): Promise<UIState> {
         collapsedFolders: state.collapsedFolders || {},
         activeExtension: state.activeExtension || 'mail',
       }
+      sidebarWidthState = currentState.sidebarWidth
 
-      // Move the former 240px sidebar to the roomier navigation layout once.
-      // Users can still resize it afterwards; collapse never overwrites that
-      // chosen expanded width.
+      // Apply the balanced default once: it enlarges text, icons, row height
+      // and spacing together without making the navigation overly wide.
       if (typeof localStorage !== 'undefined' && localStorage.getItem(SIDEBAR_LAYOUT_MIGRATION_KEY) !== 'done') {
         currentState.sidebarCollapsed = false
-        currentState.sidebarWidth = 360
+        currentState.sidebarWidth = 320
+        sidebarWidthState = 320
         localStorage.setItem(SIDEBAR_LAYOUT_MIGRATION_KEY, 'done')
-        saveUIState({ sidebarCollapsed: false, sidebarWidth: 360 })
+        saveUIState({ sidebarCollapsed: false, sidebarWidth: 320 })
       }
       activeExtensionState = currentState.activeExtension
     }
@@ -130,6 +132,7 @@ export function saveUIState(updates: Partial<UIState>): void {
   // Clamp pane widths if updated
   if (updates.sidebarWidth !== undefined) {
     currentState.sidebarWidth = clamp(updates.sidebarWidth, SIDEBAR_MIN, SIDEBAR_MAX)
+    sidebarWidthState = currentState.sidebarWidth
   }
   if (updates.listWidth !== undefined) {
     currentState.listWidth = clamp(updates.listWidth, LIST_MIN, LIST_MAX)
@@ -169,6 +172,16 @@ export function isSidebarCollapsed(): boolean {
 
 export function setSidebarCollapsed(collapsed: boolean): void {
   saveUIState({ sidebarCollapsed: collapsed })
+}
+
+// Sidebar sizing is a layout preference, so it applies immediately and uses
+// the same persisted state as manual divider resizing.
+export function getSidebarWidth(): number {
+  return sidebarWidthState
+}
+
+export function setSidebarWidth(width: number): void {
+  saveUIState({ sidebarWidth: width })
 }
 
 // Helper to check if an account is expanded (defaults to true if not set)

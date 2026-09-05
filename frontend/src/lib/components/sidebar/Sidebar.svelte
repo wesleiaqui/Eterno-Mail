@@ -19,6 +19,7 @@
   // @ts-ignore - wailsjs path
   import { formatDistanceToNow } from 'date-fns'
   import { getCurrentDateFnsLocale } from '$lib/stores/settings.svelte'
+  import { getSidebarWidth } from '$lib/stores/uiState.svelte'
 
   // Folder item type for flat navigation list
   interface FolderNavItem {
@@ -145,6 +146,9 @@
   let showSettingsDialog = $state(false)
   let showAllFolders = $state(false)
   let expandedFolderGroups = $state<Record<string, boolean>>({})
+  // Presets use the saved expanded width as their durable value. This keeps
+  // manual resizing and the Settings selector in one source of truth.
+  const sidebarDensity = $derived(getSidebarWidth() >= 350 ? 'sidebar-density-large' : getSidebarWidth() >= 310 ? 'sidebar-density-medium' : 'sidebar-density-compact')
   const settingsAccount = $derived(accountStore.accounts[0]?.account ?? null)
   const settingsPhoto = $derived(contactPhotos.get(settingsAccount?.email ?? ''))
   let editingAccount = $state<account.Account | null>(null)
@@ -305,7 +309,11 @@
 
   function toggleFolderGroup(event: MouseEvent, type: string): void {
     event.stopPropagation()
-    expandedFolderGroups[type] = !expandedFolderGroups[type]
+    const willExpand = !expandedFolderGroups[type]
+    // The account rows are a detail panel, not another permanent navigation
+    // tree. Keep one group open at a time so their avatar column cannot stack
+    // underneath several unrelated folders.
+    expandedFolderGroups = willExpand ? { [type]: true } : {}
 
     // A per-account list needs the room of the complete navigation. Opening
     // it from the rail therefore expands the sidebar as part of the action.
@@ -637,17 +645,11 @@
   }
 </script>
 
-<div class="spark-sidebar spark-sidebar-rebuilt {collapsed ? 'spark-sidebar-collapsed' : ''} relative flex flex-col h-full {isFlashing ? 'pane-focus-flash' : ''}">
+<div class="spark-sidebar spark-sidebar-rebuilt {sidebarDensity} {collapsed ? 'spark-sidebar-collapsed' : ''} relative flex flex-col h-full {isFlashing ? 'pane-focus-flash' : ''}">
   <div class="sidebar-rebuilt-toolbar">
-    <button type="button" class="sidebar-toolbar-button" onclick={syncAllAccounts} title={$_('sidebar.syncAllAccounts')} aria-label={$_('sidebar.syncAllAccounts')}>
-      <Icon icon={accountStore.isAnySyncing ? 'mdi:sync' : 'mdi:refresh'} class="h-5 w-5 {accountStore.isAnySyncing ? 'animate-spin' : ''}" />
-    </button>
-    <button type="button" class="sidebar-toolbar-button" class:sidebar-toolbar-button-active={showAllFolders} onclick={() => (showAllFolders = !showAllFolders)} title={$_('sidebar.allFolders')} aria-label={$_('sidebar.allFolders')}>
-      <Icon icon="mdi:panels" class="h-5 w-5" />
-    </button>
-    <span class="flex-1"></span>
-    <button type="button" class="sidebar-toolbar-button" onclick={onCompose} title={$_('sidebar.compose')} aria-label={$_('sidebar.compose')}>
-      <Icon icon="mdi:pencil-outline" class="h-5 w-5" />
+    <button type="button" class="sidebar-compose-button" onclick={onCompose} title={$_('sidebar.compose')} aria-label={$_('sidebar.compose')}>
+      <Icon icon="mdi:pencil-plus-outline" class="h-5 w-5" />
+      <span data-sidebar-label>{$_('sidebar.compose')}</span>
     </button>
     {#if showBackButton}
       <button type="button" class="sidebar-toolbar-button" title={$_('responsive.back')} aria-label={$_('aria.closeSidebar')} onclick={onBack}>
@@ -676,7 +678,7 @@
       </div>
     {:else}
       <nav class="sidebar-primary-navigation" aria-label={$_('sidebar.navigation')}>
-        <button type="button" class="sidebar-primary-link" onclick={handleUnifiedInboxSelect}>
+        <button type="button" class="sidebar-primary-link sidebar-home-link" onclick={handleUnifiedInboxSelect}>
           <Icon icon="mdi:home-outline" class="h-6 w-6" />
           <span data-sidebar-label>{$_('sidebar.home')}</span>
         </button>
@@ -762,15 +764,22 @@
     {/if}
   </div>
 
-  <button class="sidebar-settings-entry" type="button" data-sidebar-settings onclick={() => (showSettingsDialog = true)} title={$_('sidebar.settings')}>
-    {#if settingsAccount}
-      <Avatar email={settingsAccount.email} name={settingsAccount.name} size={28} photoData={settingsPhoto?.data} photoMediaType={settingsPhoto?.mediaType} />
-    {:else}
-      <Icon icon="mdi:cog-outline" class="h-6 w-6" />
-    {/if}
-    <span data-sidebar-label>{$_('sidebar.settings')}</span>
-    {#if contactSourcesStore.hasErrors}<span class="sidebar-settings-error"></span>{/if}
-  </button>
+  <div class="sidebar-bottom-actions">
+    <button type="button" class="sidebar-refresh-entry" onclick={toggleSync} title={accountStore.isAnySyncing ? $_('sidebar.clickToCancel') : $_('sidebar.syncAllAccounts')} aria-label={accountStore.isAnySyncing ? $_('sidebar.clickToCancel') : $_('sidebar.syncAllAccounts')}>
+      <Icon icon={accountStore.isAnySyncing ? 'mdi:sync' : 'mdi:refresh'} class="h-5 w-5 {accountStore.isAnySyncing ? 'animate-spin' : ''}" />
+      <span data-sidebar-label>{accountStore.isAnySyncing ? $_('sidebar.syncing') : $_('sidebar.syncAllAccounts')}</span>
+    </button>
+
+    <button class="sidebar-settings-entry" type="button" data-sidebar-settings onclick={() => (showSettingsDialog = true)} title={$_('sidebar.settings')}>
+      {#if settingsAccount}
+        <Avatar email={settingsAccount.email} name={settingsAccount.name} size={28} photoData={settingsPhoto?.data} photoMediaType={settingsPhoto?.mediaType} />
+      {:else}
+        <Icon icon="mdi:cog-outline" class="h-6 w-6" />
+      {/if}
+      <span data-sidebar-label>{$_('sidebar.settings')}</span>
+      {#if contactSourcesStore.hasErrors}<span class="sidebar-settings-error"></span>{/if}
+    </button>
+  </div>
 
   {#if showAllFolders}
     <aside class="sidebar-all-folders-panel" aria-label={$_('sidebar.allFolders')}>

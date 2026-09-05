@@ -320,10 +320,11 @@ func TestUpsert(t *testing.T) {
 	store := NewStore(db)
 
 	f := &Folder{
-		AccountID: "acc1",
-		Name:      "Inbox",
-		Path:      "INBOX",
-		Type:      TypeInbox,
+		AccountID:       "acc1",
+		Name:            "Inbox",
+		Path:            "INBOX",
+		Type:            TypeInbox,
+		FlagsSyncModSeq: 100,
 	}
 	if err := store.Create(f); err != nil {
 		t.Fatalf("unexpected error on create: %v", err)
@@ -351,6 +352,9 @@ func TestUpsert(t *testing.T) {
 	}
 	if got.Name != "Updated Inbox" {
 		t.Errorf("name: got %q, want %q", got.Name, "Updated Inbox")
+	}
+	if got.FlagsSyncModSeq != 100 {
+		t.Errorf("flagsSyncModSeq: got %d, want 100 (discovery Upsert must preserve it)", got.FlagsSyncModSeq)
 	}
 
 	// Verify only one folder exists

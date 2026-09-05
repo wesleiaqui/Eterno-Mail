@@ -27,7 +27,7 @@
   import { loadSettings, getThemeMode, getShowTitleBar, getNativeTitleBar, getComposerMode, getMailtoMode } from '$lib/stores/settings.svelte'
   import { loadImageAllowlist } from '$lib/stores/imageAllowlist.svelte'
   import { initTheme, applyThemeFromMode, handleSystemThemeEvent, handleMediaQueryChange } from '$lib/stores/theme.svelte'
-  import { loadUIState, saveUIState, paneConstraints, getActiveExtension, setActiveExtension, isSidebarCollapsed, setSidebarCollapsed } from '$lib/stores/uiState.svelte'
+  import { loadUIState, saveUIState, paneConstraints, getActiveExtension, setActiveExtension, getSidebarWidth, isSidebarCollapsed, setSidebarCollapsed } from '$lib/stores/uiState.svelte'
   import { setPendingDeepLink } from '$lib/stores/extensionDeepLink.svelte'
   import {
     type FocusablePane,
@@ -790,15 +790,21 @@
   }
 
   // Pane sizing state
-  let sidebarWidth = $state(360)
+  let sidebarWidth = $state(320)
   let listWidth = $state(360)
   let sidebarCollapsed = $state(true)
 
+  // Keep the divider-driven layout in sync with the size preset selected in
+  // Settings → General. Manual resizing writes to the same reactive value.
+  $effect(() => {
+    sidebarWidth = getSidebarWidth()
+  })
+
   function toggleSidebarCollapsed() {
     sidebarCollapsed = !sidebarCollapsed
-    // Keep the roomy navigation width when returning from the compact rail.
-    // The rail itself is constrained to 56px by the layout style below.
-    if (!sidebarCollapsed) sidebarWidth = Math.max(sidebarWidth, 360)
+    // Keep the selected size when the navigation is restored. The density
+    // preset controls the complete scale of the sidebar, not only its width.
+    if (!sidebarCollapsed) sidebarWidth = getSidebarWidth()
     setSidebarCollapsed(sidebarCollapsed)
     saveUIState({ sidebarWidth })
   }

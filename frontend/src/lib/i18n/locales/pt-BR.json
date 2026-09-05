@@ -168,7 +168,12 @@
     "folders": "Pastas"
   },
   "settingsGeneral": {
-    "titleBarEterno Mail": "Eterno Mail"
+    "titleBarEterno Mail": "Eterno Mail",
+    "sidebarSize": "Tamanho da lateral",
+    "sidebarSizeHelp": "Escolha a largura, textos, ícones e espaçamentos da lateral expandida. A alteração é aplicada imediatamente.",
+    "sidebarCompact": "Compacta",
+    "sidebarMedium": "Média",
+    "sidebarLarge": "Grande"
   },
   "account": {
     "googleProfilePhotoReauthorizeHelp": "Para mostrar a foto de perfil desta conta Google, clique em Reautorizar e aprove a nova permissao de perfil."

@@ -537,15 +537,25 @@
   color: hsl(var(--foreground));
 }
 
+/* The legacy sidebar applies a dark vertical gradient to .sidebar-content.
+   It made the lower part of the rebuilt sidebar appear to be a different
+   panel. The rebuilt navigation intentionally uses one continuous surface. */
+[data-theme="dark"] .spark-sidebar-rebuilt .sidebar-rebuilt-content,
+:root.dark .spark-sidebar-rebuilt .sidebar-rebuilt-content {
+  background: #15161b !important;
+}
+
 .sidebar-rebuilt-toolbar {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  min-height: 2.65rem;
-  padding: 0.3rem 0.75rem;
+  gap: 0.25rem;
+  min-height: 2.35rem;
+  padding: 0.25rem 0.6rem;
+  background: hsl(var(--background));
 }
 
-.sidebar-toolbar-button {
+.sidebar-toolbar-button,
+.sidebar-compose-button {
   display: inline-flex;
   width: 1.9rem;
   height: 1.9rem;
@@ -557,19 +567,43 @@
 }
 
 .sidebar-toolbar-button:hover,
+.sidebar-compose-button:hover,
 .sidebar-toolbar-button-active {
   background: hsl(var(--muted));
   color: hsl(var(--foreground));
 }
 
+.sidebar-compose-button {
+  width: 100%;
+  min-height: 2.35rem;
+  gap: 0.45rem;
+  padding: 0 0.6rem;
+  border-radius: 0.6rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-size: 0.84rem;
+  font-weight: 600;
+  box-shadow: 0 3px 10px hsl(var(--primary) / 0.2);
+}
+
+.sidebar-compose-button:hover {
+  background: hsl(var(--primary) / 0.9);
+  color: hsl(var(--primary-foreground));
+}
+
+.spark-sidebar-rebuilt:not(.spark-sidebar-collapsed) .sidebar-compose-button svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
 .sidebar-rebuilt-content {
-  padding: 0.1rem 0.7rem 0.65rem !important;
+  padding: 0.05rem 0.55rem 0.5rem !important;
 }
 
 .spark-sidebar-rebuilt:not(.spark-sidebar-collapsed) .sidebar-rebuilt-content {
   /* The thumb must stay outside the account labels instead of overlaying the
      last characters when a group is expanded. */
-  padding-right: 0.95rem !important;
+  padding-right: 0.75rem !important;
   scrollbar-gutter: stable;
 }
 
@@ -577,29 +611,31 @@
   display: flex;
   min-height: 100%;
   flex-direction: column;
-  gap: 0.28rem;
+  gap: 0.16rem;
 }
 
 .sidebar-primary-link,
 .sidebar-more-button,
+.sidebar-refresh-entry,
 .sidebar-settings-entry,
 .sidebar-collapse-nav-button {
   display: flex;
   width: 100%;
-  min-height: 2.35rem;
+  min-height: 2.05rem;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.38rem 0.55rem;
-  border-radius: 0.62rem;
+  gap: 0.5rem;
+  padding: 0.28rem 0.45rem;
+  border-radius: 0.55rem;
   color: hsl(var(--muted-foreground));
-  font-size: 0.92rem;
-  line-height: 1.1rem;
+  font-size: 0.82rem;
+  line-height: 1rem;
   text-align: left;
   transition: background-color 140ms ease, color 140ms ease;
 }
 
 .sidebar-primary-link:hover,
 .sidebar-more-button:hover,
+.sidebar-refresh-entry:hover,
 .sidebar-settings-entry:hover,
 .sidebar-collapse-nav-button:hover {
   background: hsl(var(--muted));
@@ -609,6 +645,12 @@
 .sidebar-primary-link-selected {
   background: hsl(var(--primary) / 0.13);
   color: hsl(var(--primary));
+}
+
+/* Folder rows reserve a leading chevron column. Reserve that same column for
+   the top-level destinations so every primary icon shares one visual axis. */
+.spark-sidebar-rebuilt:not(.spark-sidebar-collapsed) .sidebar-primary-navigation > .sidebar-primary-link {
+  padding-left: 1.3rem;
 }
 
 .sidebar-folder-group {
@@ -627,7 +669,7 @@
   display: inline-flex;
   width: 0.85rem;
   min-width: 0.85rem;
-  min-height: 2.35rem;
+  min-height: 2.05rem;
   align-items: center;
   justify-content: center;
   border-radius: 0.45rem;
@@ -658,7 +700,18 @@
 .sidebar-inbox-toggle {
   position: relative;
   z-index: 1;
+  width: 1.25rem;
+  min-width: 1.25rem;
+  flex: 0 0 1.25rem;
+  margin-left: 0 !important;
+  padding: 0 !important;
   cursor: pointer;
+}
+
+/* The inbox disclosure occupies the same column as a folder chevron; its
+   inbox icon therefore begins on the common primary-icon axis. */
+.sidebar-inbox-entry {
+  gap: 0 !important;
 }
 
 .sidebar-inbox-toggle::before {
@@ -687,19 +740,19 @@
   gap: 0.08rem;
   /* Match the account rows directly below Caixa de entrada. The disclosure
      arrow belongs to the folder row, not to its account list. */
-  margin: 0.08rem 0 0.28rem 0.8rem;
+  margin: 0.04rem 0 0.18rem 0.72rem;
 }
 
 .sidebar-folder-account {
   display: flex;
   width: 100%;
-  min-height: 1.72rem;
+  min-height: 1.45rem;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.1rem 0.26rem;
-  border-radius: 0.55rem;
+  gap: 0.4rem;
+  padding: 0.05rem 0.2rem;
+  border-radius: 0.45rem;
   color: hsl(var(--muted-foreground));
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   text-align: left;
 }
 
@@ -715,36 +768,35 @@
 }
 
 .sidebar-primary-separator {
-  height: 0.8rem;
+  height: 0.55rem;
 }
 
 .sidebar-primary-heading {
-  margin: 0.8rem 0 0.28rem;
-  padding: 0 0.3rem;
+  margin: 0.55rem 0 0.16rem;
+  padding: 0 0.25rem;
   color: hsl(var(--muted-foreground) / 0.72);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   font-weight: 500;
 }
 
 .sidebar-more-button {
-  margin-top: 0.35rem;
-  background: hsl(var(--muted));
+  margin-top: 0.2rem;
 }
 
 .sidebar-collapse-nav-button {
-  margin-top: 0.18rem;
+  margin-top: 0.1rem;
   color: hsl(var(--muted-foreground));
 }
 
 .sidebar-unified-section {
-  margin: 0.12rem 0 0.3rem;
+  margin: 0.06rem 0 0.18rem;
 }
 
 .sidebar-inbox-entry {
-  min-height: 2.4rem;
-  padding: 0.38rem 0.55rem;
+  min-height: 2.1rem;
+  padding: 0.28rem 0.45rem;
   color: hsl(var(--foreground));
-  font-size: 0.92rem;
+  font-size: 0.82rem;
 }
 
 .sidebar-inbox-entry.bg-primary\/10 {
@@ -755,14 +807,15 @@
 .sidebar-inbox-accounts {
   display: grid;
   gap: 0.1rem;
-  margin: 0.18rem 0 0.38rem 0.8rem;
+  margin: 0.08rem 0 0.24rem 0.72rem;
 }
 
 .sidebar-inbox-account {
-  min-height: 1.72rem;
-  padding: 0.1rem 0.26rem;
+  min-height: 1.45rem;
+  gap: 0.4rem;
+  padding: 0.05rem 0.2rem;
   color: hsl(var(--muted-foreground));
-  font-size: 0.7rem;
+  font-size: 0.64rem;
 }
 
 .sidebar-inbox-account.bg-primary\/10 {
@@ -770,13 +823,23 @@
   color: hsl(var(--primary));
 }
 
+.sidebar-bottom-actions {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.55rem 0.45rem;
+  background: hsl(var(--background));
+}
+
+.sidebar-refresh-entry,
 .sidebar-settings-entry {
   position: relative;
-  flex: 0 0 auto;
-  min-height: 2.45rem;
-  margin: 0.45rem 0.7rem 0.6rem;
-  width: calc(100% - 2rem);
+  min-height: 2.05rem;
+  margin: 0;
+  width: 100%;
   color: hsl(var(--muted-foreground));
+}
+
+.sidebar-refresh-entry {
+  margin-bottom: 0.18rem;
 }
 
 .sidebar-settings-error {
@@ -842,7 +905,14 @@
 
 [data-theme="dark"] .spark-sidebar-rebuilt,
 :root.dark .spark-sidebar-rebuilt {
-  background: #202124;
+  background: #15161b;
+}
+
+[data-theme="dark"] .sidebar-rebuilt-toolbar,
+[data-theme="dark"] .sidebar-bottom-actions,
+:root.dark .sidebar-rebuilt-toolbar,
+:root.dark .sidebar-bottom-actions {
+  background: #15161b !important;
 }
 
 :root.dark .sidebar-all-folders-panel {
@@ -852,6 +922,7 @@
 
 :root.dark .sidebar-primary-link,
 :root.dark .sidebar-more-button,
+:root.dark .sidebar-refresh-entry,
 :root.dark .sidebar-settings-entry,
 :root.dark .sidebar-collapse-nav-button,
 :root.dark .sidebar-inbox-account {
@@ -860,6 +931,7 @@
 
 :root.dark .sidebar-primary-link:hover,
 :root.dark .sidebar-more-button:hover,
+:root.dark .sidebar-refresh-entry:hover,
 :root.dark .sidebar-settings-entry:hover,
 :root.dark .sidebar-collapse-nav-button:hover {
   background: #383a3e;
@@ -885,13 +957,7 @@
 /* The desktop toolbar keeps a flexible spacer between its actions. Once the
    rail hides those actions, that spacer must disappear as well; otherwise it
    pushes Refresh off the shared icon axis. */
-.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar > .flex-1 {
-  display: none;
-}
-
-/* Overrides the old dark-rail selector that gives its first button 40px. */
-.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar > .sidebar-toolbar-button,
-.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar > .sidebar-toolbar-button:first-child {
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-compose-button {
   width: 2.2rem;
   min-width: 2.2rem;
   height: 2.2rem;
@@ -900,14 +966,15 @@
   padding: 0;
   border-radius: 0.45rem;
   box-shadow: none;
+  justify-content: center;
 }
 
-.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar > .sidebar-toolbar-button svg {
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-compose-button svg {
   width: 1.2rem;
   height: 1.2rem;
 }
 
-.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-rebuilt-toolbar > .sidebar-toolbar-button:not(:first-child) {
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-compose-button [data-sidebar-label] {
   display: none;
 }
 
@@ -1058,15 +1125,25 @@
   display: none;
 }
 
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-bottom-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+  padding: 0.35rem 0 0.55rem;
+}
+
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-refresh-entry,
 .spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-settings-entry {
   width: 2.1rem;
   min-height: 2.1rem;
   height: 2.1rem;
-  margin: 0.4rem auto 0.55rem;
+  margin: 0;
   padding: 0;
   justify-content: center;
 }
 
+.spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-refresh-entry [data-sidebar-label],
 .spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-settings-entry [data-sidebar-label],
 .spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-settings-error,
 .spark-sidebar-rebuilt.spark-sidebar-collapsed .sidebar-all-folders-panel {
@@ -1075,17 +1152,149 @@
 
 /* Win over the generic legacy sidebar spacing for the new navigation. */
 .spark-sidebar-rebuilt:not(.spark-sidebar-collapsed) .sidebar-inbox-entry {
-  min-height: 2.4rem;
+  min-height: 2.1rem;
 }
 
 .spark-sidebar-rebuilt:not(.spark-sidebar-collapsed) .sidebar-inbox-account {
-  min-height: 1.72rem;
+  min-height: 1.45rem;
 }
 
-.spark-sidebar-rebuilt .sidebar-primary-link > svg:not(.sidebar-primary-chevron),
-.spark-sidebar-rebuilt .sidebar-more-button > svg {
+.spark-sidebar-rebuilt:not(.spark-sidebar-collapsed) .sidebar-primary-link > svg:not(.sidebar-primary-chevron),
+.spark-sidebar-rebuilt:not(.spark-sidebar-collapsed) .sidebar-more-button > svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* Sidebar size presets. Compact is the base above; medium and large enlarge
+   the complete navigation rhythm, not only its outer width. */
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-rebuilt-toolbar {
+  min-height: 2.65rem;
+  padding: 0.3rem 0.75rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-compose-button {
+  min-height: 2.55rem;
+  gap: 0.55rem;
+  padding-inline: 0.75rem;
+  font-size: 0.92rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-compose-button svg,
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-primary-link > svg:not(.sidebar-primary-chevron),
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-more-button > svg {
   width: 1.2rem;
   height: 1.2rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-rebuilt-content {
+  padding: 0.1rem 0.7rem 0.65rem !important;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-primary-navigation {
+  gap: 0.28rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-primary-link,
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-more-button,
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-refresh-entry,
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-settings-entry,
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-collapse-nav-button {
+  min-height: 2.35rem;
+  gap: 0.65rem;
+  padding: 0.38rem 0.55rem;
+  font-size: 0.92rem;
+  line-height: 1.1rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-folder-toggle {
+  min-height: 2.35rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-inbox-entry {
+  min-height: 2.4rem;
+  padding: 0.38rem 0.55rem;
+  font-size: 0.92rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-inbox-account,
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-folder-account {
+  min-height: 1.72rem;
+  font-size: 0.7rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-primary-heading {
+  margin-top: 0.8rem;
+  font-size: 0.82rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-medium:not(.spark-sidebar-collapsed) .sidebar-bottom-actions {
+  padding: 0.45rem 0.7rem 0.6rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-rebuilt-toolbar {
+  min-height: 2.95rem;
+  padding: 0.38rem 0.85rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-compose-button {
+  min-height: 2.75rem;
+  gap: 0.65rem;
+  padding-inline: 0.85rem;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-compose-button svg,
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-primary-link > svg:not(.sidebar-primary-chevron),
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-more-button > svg {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-rebuilt-content {
+  padding: 0.18rem 0.8rem 0.8rem !important;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-primary-navigation {
+  gap: 0.36rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-primary-link,
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-more-button,
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-refresh-entry,
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-settings-entry,
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-collapse-nav-button {
+  min-height: 2.65rem;
+  gap: 0.72rem;
+  padding: 0.44rem 0.65rem;
+  border-radius: 0.7rem;
+  font-size: 1rem;
+  line-height: 1.2rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-folder-toggle {
+  min-height: 2.65rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-inbox-entry {
+  min-height: 2.7rem;
+  padding: 0.44rem 0.65rem;
+  font-size: 1rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-inbox-account,
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-folder-account {
+  min-height: 1.95rem;
+  font-size: 0.78rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-primary-heading {
+  margin-top: 0.95rem;
+  font-size: 0.88rem;
+}
+
+.spark-sidebar-rebuilt.sidebar-density-large:not(.spark-sidebar-collapsed) .sidebar-bottom-actions {
+  padding: 0.55rem 0.8rem 0.7rem;
 }
 
 /* Custom scrollbar */

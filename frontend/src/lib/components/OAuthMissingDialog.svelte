@@ -15,7 +15,6 @@
   interface OAuthStatus {
     google: boolean
     microsoft: boolean
-    googleTesting: boolean
   }
 
   interface Props {
@@ -64,10 +63,6 @@
           <li class="flex items-center gap-2">
             <Icon icon={iconFor(oauthStatus.google)} class={iconClassFor(oauthStatus.google)} width="18" height="18" />
             <span>Google</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <Icon icon={iconFor(oauthStatus.googleTesting)} class={iconClassFor(oauthStatus.googleTesting)} width="18" height="18" />
-            <span>Google (Extensions)</span>
           </li>
         </ul>
         <p class="mb-3">{$_('oauthMissing.implication')}</p>

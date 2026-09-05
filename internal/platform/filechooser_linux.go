@@ -330,7 +330,7 @@ func PortalOpenURI(uri string) error {
 		return fmt.Errorf("OpenURI portal call failed: %w", call.Err)
 	}
 
-	log.Debug().Str("uri", uri).Msg("Opened URI via portal")
+	log.Debug().Msg("Opened URI via portal")
 	return nil
 }
 

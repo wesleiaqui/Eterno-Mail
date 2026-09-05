@@ -2,15 +2,19 @@ package oauth2
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hkdb/aerion/internal/logging"
 	"github.com/rs/zerolog"
 )
+
+var ErrAuthorizationCancelled = errors.New("authorization cancelled")
 
 // CallbackResult represents the result of an OAuth callback
 type CallbackResult struct {
@@ -22,13 +26,16 @@ type CallbackResult struct {
 
 // CallbackServer is a temporary HTTP server that handles OAuth callbacks
 type CallbackServer struct {
-	log      zerolog.Logger
-	server   *http.Server
-	listener net.Listener
-	resultCh chan CallbackResult
-	done     chan struct{}
-	mu       sync.Mutex
-	started  bool
+	log       zerolog.Logger
+	server    *http.Server
+	listeners []net.Listener
+	resultCh  chan CallbackResult
+	done      chan struct{}
+	mu        sync.Mutex
+	started   bool
+	stopped   bool
+	accepting atomic.Bool
+	listen    func(network, address string) (net.Listener, error)
 }
 
 // NewCallbackServer creates a new OAuth callback server
@@ -37,48 +44,66 @@ func NewCallbackServer() *CallbackServer {
 		log:      logging.WithComponent("oauth2-callback"),
 		resultCh: make(chan CallbackResult, 1),
 		done:     make(chan struct{}),
+		listen:   net.Listen,
 	}
 }
 
 // Start starts the callback server on an available port
 // Returns the port number the server is listening on
-func (s *CallbackServer) Start(ctx context.Context) (int, error) {
+func (s *CallbackServer) Start(_ context.Context, redirectHost string) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.started {
 		return 0, fmt.Errorf("callback server already started")
 	}
+	if s.stopped {
+		return 0, fmt.Errorf("callback server cannot be restarted after Stop")
+	}
 
-	// Find an available port by binding to :0
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	// Always bind IPv4 first. For localhost redirects, also accept IPv6 on the
+	// same port when available so a browser resolving localhost to ::1 reaches
+	// the callback. Google uses an explicit IPv4 loopback redirect instead.
+	listener, err := s.listen("tcp4", "127.0.0.1:0")
 	if err != nil {
 		return 0, fmt.Errorf("failed to find available port: %w", err)
 	}
-	s.listener = listener
-
 	port := listener.Addr().(*net.TCPAddr).Port
+	s.listeners = []net.Listener{listener}
+	if redirectHost == "localhost" {
+		if listener6, err := s.listen("tcp6", fmt.Sprintf("[::1]:%d", port)); err == nil {
+			s.listeners = append(s.listeners, listener6)
+		} else {
+			s.log.Debug().Err(err).Msg("IPv6 loopback unavailable; using IPv4 localhost callback")
+		}
+	}
 
 	// Create HTTP server with routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("/callback", s.handleCallback)
 	mux.HandleFunc("/", s.handleRoot)
 
-	s.server = &http.Server{
+	server := &http.Server{
 		Handler:      mux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-
-	// Start server in background
-	go func() {
-		s.log.Debug().Int("port", port).Msg("Starting OAuth callback server")
-		if err := s.server.Serve(listener); err != nil && err != http.ErrServerClosed {
-			s.log.Error().Err(err).Msg("Callback server error")
-		}
-	}()
-
+	s.server = server
 	s.started = true
+	s.accepting.Store(true)
+
+	// Start each listener with the immutable local server reference. Stop may
+	// clear s.server immediately after Start returns, so goroutines must never
+	// dereference that mutable field.
+	for _, l := range s.listeners {
+		go func(listener net.Listener) {
+			s.log.Debug().Int("port", port).Msg("Starting OAuth callback server")
+			if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
+				s.log.Error().Err(err).Msg("Callback server error")
+			}
+		}(l)
+	}
+
 	return port, nil
 }
 
@@ -104,20 +129,26 @@ func (s *CallbackServer) WaitForCallback(ctx context.Context) (*CallbackResult, 
 		return nil, ctx.Err()
 
 	case <-s.done:
-		return nil, fmt.Errorf("callback server was stopped")
+		return nil, ErrAuthorizationCancelled
 	}
 }
 
 // Stop stops the callback server
 func (s *CallbackServer) Stop() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if !s.started {
+		s.mu.Unlock()
 		return
 	}
 
 	s.log.Debug().Msg("Stopping OAuth callback server")
+	server := s.server
+	listeners := s.listeners
+	s.server = nil
+	s.listeners = nil
+	s.started = false
+	s.stopped = true
+	s.accepting.Store(false)
 
 	// Signal done
 	select {
@@ -126,25 +157,29 @@ func (s *CallbackServer) Stop() {
 	default:
 		close(s.done)
 	}
+	s.mu.Unlock()
 
 	// Shutdown server
-	if s.server != nil {
+	if server != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		_ = s.server.Shutdown(ctx)
-		s.server = nil
+		_ = server.Shutdown(ctx)
 	}
 
-	if s.listener != nil {
-		s.listener.Close()
-		s.listener = nil
+	// Shutdown closes listeners it has already accepted; explicit close also
+	// covers the Start→Stop race before Serve begins. Closing twice is harmless.
+	for _, listener := range listeners {
+		_ = listener.Close()
 	}
-
-	s.started = false
 }
 
 // handleCallback handles the OAuth callback request
 func (s *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request) {
+	if !s.accepting.Load() {
+		http.Error(w, "OAuth callback server is no longer active", http.StatusServiceUnavailable)
+		return
+	}
+
 	query := r.URL.Query()
 
 	result := CallbackResult{

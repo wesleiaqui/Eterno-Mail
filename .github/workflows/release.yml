@@ -28,12 +28,6 @@ jobs:
             platform: windows
             arch: arm64
     runs-on: ${{ matrix.os }}
-    env:
-      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-      MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
-      GOOGLE_TESTING_CLIENT_ID: ${{ secrets.GOOGLE_TESTING_CLIENT_ID }}
-      GOOGLE_TESTING_CLIENT_SECRET: ${{ secrets.GOOGLE_TESTING_CLIENT_SECRET }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -81,19 +75,6 @@ jobs:
             mv build/bin/eterno-mail build/bin/eterno-mail-${{ github.ref_name }}-linux-x86_64
           elif [ "${{ matrix.arch }}" = "arm64" ]; then
             mv build/bin/eterno-mail build/bin/eterno-mail-${{ github.ref_name }}-linux-aarch64
-          fi
-
-          # Build OAuth credentials shim binary
-          if [ "${{ matrix.arch }}" = "amd64" ]; then
-            CGO_ENABLED=0 GOARCH=amd64 go build \
-              -ldflags "-X 'main.GoogleClientID=$GOOGLE_CLIENT_ID' -X 'main.GoogleClientSecret=$GOOGLE_CLIENT_SECRET' -X 'main.MicrosoftClientID=$MICROSOFT_CLIENT_ID' -X 'main.GoogleTestingClientID=$GOOGLE_TESTING_CLIENT_ID' -X 'main.GoogleTestingClientSecret=$GOOGLE_TESTING_CLIENT_SECRET'" \
-              -o build/bin/flathub-build-env-${{ github.ref_name }}-linux-x86_64 \
-              cmd/aerion-creds/main.go
-          elif [ "${{ matrix.arch }}" = "arm64" ]; then
-            CGO_ENABLED=0 GOARCH=arm64 go build \
-              -ldflags "-X 'main.GoogleClientID=$GOOGLE_CLIENT_ID' -X 'main.GoogleClientSecret=$GOOGLE_CLIENT_SECRET' -X 'main.MicrosoftClientID=$MICROSOFT_CLIENT_ID' -X 'main.GoogleTestingClientID=$GOOGLE_TESTING_CLIENT_ID' -X 'main.GoogleTestingClientSecret=$GOOGLE_TESTING_CLIENT_SECRET'" \
-              -o build/bin/flathub-build-env-${{ github.ref_name }}-linux-aarch64 \
-              cmd/aerion-creds/main.go
           fi
 
           # Create distribution tarball (complete package for manual installation)

@@ -56,6 +56,17 @@ class OAuthStore {
 
   // Event listener cleanup tracking
   private eventsInitialized = false
+  private reauthorizeWaiter: { accountId: string; resolve: () => void; reject: (error: Error) => void; timeout: ReturnType<typeof setTimeout> } | null = null
+
+  private finishReauthorize(error?: Error): void {
+    const waiter = this.reauthorizeWaiter
+    if (!waiter) return
+    this.reauthorizeWaiter = null
+    clearTimeout(waiter.timeout)
+    this.reset()
+    if (error) waiter.reject(error)
+    else waiter.resolve()
+  }
 
   /**
    * Initialize event listeners for OAuth events from backend.
@@ -81,18 +92,30 @@ class OAuthStore {
         expiresIn: data.expiresIn,
       }
       this.flowError = null
+
+      const waiter = this.reauthorizeWaiter
+      if (waiter) {
+        SavePendingOAuthTokens(waiter.accountId)
+          .then(() => this.finishReauthorize())
+          .catch((err) => this.finishReauthorize(err instanceof Error ? err : new Error(String(err))))
+      }
     })
 
     EventsOn('oauth:error', (data: { provider: string; error: string }) => {
+      const message = data.error.includes('timed out')
+        ? 'Authorization timed out. Please try again.'
+        : data.error
       this.flowState = 'error'
-      this.flowError = data.error
+      this.flowError = message
       this.flowResult = null
+      this.finishReauthorize(new Error(message || 'OAuth flow failed'))
     })
 
     EventsOn('oauth:cancelled', () => {
       this.flowState = 'cancelled'
       this.flowError = null
       this.flowResult = null
+      this.finishReauthorize(new Error('Authorization cancelled.'))
     })
 
     // Listen for reauth required events (token refresh failed)
@@ -185,8 +208,9 @@ class OAuthStore {
   /**
    * Cancel any in-progress OAuth flow.
    */
-  cancelFlow(): void {
-    CancelOAuthFlow()
+  async cancelFlow(): Promise<void> {
+    await CancelOAuthFlow()
+    this.finishReauthorize(new Error('Authorization cancelled.'))
     this.reset()
   }
 
@@ -250,41 +274,12 @@ class OAuthStore {
     // Start the OAuth flow
     await ReauthorizeAccount(accountId)
 
-    // Wait for the OAuth flow to complete
     return new Promise((resolve, reject) => {
-      const checkInterval = setInterval(() => {
-        if (this.flowState === 'success' && this.flowResult) {
-          clearInterval(checkInterval)
-          // Save the pending tokens to the existing account
-          SavePendingOAuthTokens(accountId)
-            .then(() => {
-              this.reset()
-              resolve()
-            })
-            .catch((err) => {
-              this.reset()
-              reject(err)
-            })
-        } else if (this.flowState === 'error') {
-          clearInterval(checkInterval)
-          const error = this.flowError || 'OAuth flow failed'
-          this.reset()
-          reject(new Error(error))
-        } else if (this.flowState === 'cancelled') {
-          clearInterval(checkInterval)
-          this.reset()
-          reject(new Error('OAuth flow was cancelled'))
-        }
-      }, 100)
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        clearInterval(checkInterval)
-        if (this.flowState === 'pending') {
-          this.reset()
-          reject(new Error('OAuth flow timed out'))
-        }
+      const timeout = setTimeout(() => {
+        void this.cancelFlow()
+        this.finishReauthorize(new Error('Authorization timed out. Please try again.'))
       }, 5 * 60 * 1000)
+      this.reauthorizeWaiter = { accountId, resolve, reject, timeout }
     })
   }
 

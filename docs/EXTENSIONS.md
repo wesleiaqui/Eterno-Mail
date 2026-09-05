@@ -1056,14 +1056,14 @@ provider, err := oauth2.GetProviderForClientConfig("google-contacts")
 When you ship a new first-party extension that needs its own OAuth project:
 
 1. Create a Google Cloud project (or Azure AD app registration) with the scopes your extension needs.
-2. Define ldflag-injected vars in `extensions/<name>/creds.go` (e.g., `GoogleClientID`, `GoogleClientSecret`, `MicrosoftClientID`). See [`extensions/contacts/creds.go`](../extensions/contacts/creds.go) for the canonical pattern.
+2. Define ldflag-injected public client-ID vars in `extensions/<name>/creds.go` when needed. A generic `ClientSecret` is appropriate for confidential custom providers. Google Desktop may require a value with that label, but it is not confidential when distributed in a desktop app.
 3. Return them from the extension's `OAuthClients()` as `[]coreapi.OAuthProviderRegistration` keyed by `<provider>-<extensionID>`. The host iterates this list at startup and registers each entry into the global `ClientConfigForID` resolver chain.
 4. Inject the actual values at build time: typically a per-extension `.env` file (`extensions/<name>/.env`) consumed by the Makefile via `-ldflags '-X github.com/hkdb/aerion/extensions/<name>.GoogleClientID=...'`.
 5. Optionally also expose an "Eterno Mail - {Google,Microsoft}" option in the extension slot's dropdown (see [§ User-supplied OAuth credentials](#user-supplied-oauth-credentials-override-ui)) so users on builds with shipped credentials can opt into them without pasting anything. The option only appears when the corresponding shipped creds were injected at build time. Choosing it clears any user-typed creds on the slot; the resolver then falls through to the shipped values via the provider chain.
 
 Once the extension's slot is populated, `ClientConfigForID("<provider>-<extensionID>")` returns configured credentials and the Auth Broker routes the extension's scope requests to that client. Empty entries are safe — extensions can declare all their slots unconditionally and rely on build-time injection to fill in only the ones with credentials.
 
-Eterno Mail core's mail credentials follow a separate path: they're loaded from the `aerion-creds` shim binary (or build-time ldflags) at startup. See [`internal/oauth2/config.go`](../internal/oauth2/config.go). Extension credentials do NOT use the shim — they live in their own extension package.
+Eterno Mail core's public Google and Microsoft client IDs have source defaults in [`internal/oauth2/public_clients.go`](../internal/oauth2/public_clients.go), with optional build-time overrides for development. Extension credentials do not use a runtime helper — they live in their own extension package.
 
 ### Mapping legacy provider names
 
@@ -1960,7 +1960,7 @@ Phase 2b introduces write capability to extensions. Reads continue through Etern
 
 ### Per-extension OAuth client configs
 
-Each first-party extension that needs OAuth writes owns its OWN client config slot, with its own credentials, injected at build time from the extension's package — Eterno Mail core compiles in only `*-mail`.
+Each first-party extension that needs OAuth has its own client config slot. Eterno Mail's public provider defaults are centralized in core rather than injected as extension secrets.
 
 ```
 google-mail            ← Eterno Mail core (mail + contacts READ via existing grant)
@@ -1975,12 +1975,11 @@ Each extension's package contains:
 - `extensions/<name>/manifest.json` — declares the extension
 - `extensions/<name>/manifest.go` — embeds the manifest JSON
 
-**No per-extension OAuth credentials live in extension packages.** All slot resolution is centralized in [`internal/oauth2/core_provider.go`](../internal/oauth2/core_provider.go), backed by three build-time ldflags variable pairs in `internal/oauth2/config.go`:
+**No per-extension OAuth credentials live in extension packages.** All slot resolution is centralized in [`internal/oauth2/core_provider.go`](../internal/oauth2/core_provider.go), backed by public source defaults in `internal/oauth2/public_clients.go` and optional development overrides:
 
 | Variable | Slots backed | Surfaced in picker as | Notes |
 |---|---|---|---|
-| `GoogleClientID` / `GoogleClientSecret` | `google-mail` | "Eterno Mail - Google" | Mail's Google-verified project. Also routable for scopes that an extension manifest lists in `first_party_uses_core_for_scopes` (today: contacts.readonly). |
-| `GoogleTestingClientID` / `GoogleTestingClientSecret` | `google-contacts`, `google-calendar` | "Eterno Mail - Google (Testing)" | **Single shared un-Google-verified test project** that backs every first-party extension needing broader Google scopes (contacts.readwrite, full Calendar). When the mail project eventually gets verified for those scopes, the default in the picker UI switches to "Eterno Mail - Google" and this slot becomes a fallback. |
+| `GoogleClientID` | `google-mail`, `google-contacts`, `google-calendar` | "Eterno Mail - Google" | Public Desktop client. Availability of broader Google scopes is governed by the official Google project; no testing client is silently distributed. |
 | `MicrosoftClientID` | `microsoft-mail`, `microsoft-contacts`, `microsoft-calendar` | "Eterno Mail - Microsoft" | One Azure AD app registration covers all three surfaces. Microsoft Graph doesn't gate scopes behind verification, so adding `Contacts.ReadWrite` / `Calendars.ReadWrite` to the existing mail registration is free. |
 
 ldflags injection happens via the root `Makefile`'s LDFLAGS rules from the root `.env` / `.env.local`. Extension packages stay focused on domain logic — no `creds.go`, no `OAuthClients()`, no per-extension env file. If a slot's underlying variable is empty, the slot resolves to `(zero, false)` and the picker UI omits the corresponding option.

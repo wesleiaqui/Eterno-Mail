@@ -24,7 +24,8 @@ MODULE := github.com/hkdb/aerion
 
 # Build flags for injecting OAuth credentials at compile time.
 #
-#   GOOGLE_CLIENT_ID/SECRET   — mail's Google-verified client. Also backs
+#   GOOGLE_CLIENT_ID          — optional development override for the public
+#                               Google Desktop client. Also backs
 #                               first-party extensions for any scopes their
 #                               manifest declares in
 #                               first_party_uses_core_for_scopes (today:
@@ -35,18 +36,16 @@ MODULE := github.com/hkdb/aerion
 #                               microsoft-calendar (Microsoft Graph
 #                               doesn't gate scopes behind verification).
 #                               Surfaced as "Aerion - Microsoft".
-#   GOOGLE_TESTING_CLIENT_ID/SECRET — shared un-Google-verified test
-#                               project for extensions that need broader
-#                               scopes than the mail project carries
-#                               (contacts.readwrite, full Calendar).
-#                               Single client backs google-contacts AND
-#                               google-calendar slots. Surfaced as
-#                               "Aerion - Google (Testing)".
-LDFLAGS := -X '$(MODULE)/internal/oauth2.GoogleClientID=$(GOOGLE_CLIENT_ID)' \
-           -X '$(MODULE)/internal/oauth2.GoogleClientSecret=$(GOOGLE_CLIENT_SECRET)' \
-           -X '$(MODULE)/internal/oauth2.MicrosoftClientID=$(MICROSOFT_CLIENT_ID)' \
-           -X '$(MODULE)/internal/oauth2.GoogleTestingClientID=$(GOOGLE_TESTING_CLIENT_ID)' \
-           -X '$(MODULE)/internal/oauth2.GoogleTestingClientSecret=$(GOOGLE_TESTING_CLIENT_SECRET)'
+LDFLAGS :=
+ifneq ($(strip $(GOOGLE_CLIENT_ID)),)
+LDFLAGS += -X '$(MODULE)/internal/oauth2.GoogleClientID=$(GOOGLE_CLIENT_ID)'
+endif
+ifneq ($(strip $(GOOGLE_CLIENT_SECRET)),)
+LDFLAGS += -X '$(MODULE)/internal/oauth2.GoogleClientSecret=$(GOOGLE_CLIENT_SECRET)'
+endif
+ifneq ($(strip $(MICROSOFT_CLIENT_ID)),)
+LDFLAGS += -X '$(MODULE)/internal/oauth2.MicrosoftClientID=$(MICROSOFT_CLIENT_ID)'
+endif
 
 # Wails build tags
 BUILD_TAGS := webkit2_41
@@ -70,10 +69,6 @@ all: build
 # Build production binary
 build:
 	@echo "Building Aerion..."
-	@if [ -z "$(GOOGLE_CLIENT_ID)" ] && [ -z "$(MICROSOFT_CLIENT_ID)" ]; then \
-		echo "Warning: No OAuth credentials configured. Gmail/Outlook OAuth will not work."; \
-		echo "See .env.example for required variables."; \
-	fi
 	wails build -ldflags "$(LDFLAGS)" -tags $(BUILD_TAGS)
 ifeq ($(UNAME_S),Darwin)
 	@echo "Ad-hoc signing Aerion.app (required for macOS notifications)..."
@@ -292,7 +287,7 @@ help:
 	@echo "  PREFIX             - Installation prefix (default: /usr/local)"
 	@echo "  DESTDIR            - Staging directory for packaging"
 	@echo "  GOOGLE_CLIENT_ID     - Google OAuth Client ID"
-	@echo "  GOOGLE_CLIENT_SECRET - Google OAuth Client Secret (optional)"
+	@echo "  GOOGLE_CLIENT_SECRET - Google Desktop OAuth configuration"
 	@echo "  MICROSOFT_CLIENT_ID  - Microsoft OAuth Client ID"
 	@echo ""
 	@echo "See .env.example for details on obtaining OAuth credentials."

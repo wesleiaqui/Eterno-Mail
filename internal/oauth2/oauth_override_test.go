@@ -37,9 +37,10 @@ func TestGetProvider_OverrideMatrix(t *testing.T) {
 		{"microsoft/override only", "microsoft", "microsoft-mail", "", "", "USER-MS", "USER-MS-SECRET", "USER-MS", "USER-MS-SECRET", true},
 		{"microsoft/override wins over shipped", "microsoft", "microsoft-mail", "SHIPPED-MS", "", "USER-MS", "USER-MS-SECRET", "USER-MS", "USER-MS-SECRET", true},
 
-		// Google — both ID and secret are configurable.
+		// Google Desktop client uses its configured client_secret; user overrides
+		// remain supported for custom provider configuration.
 		{"google/neither", "google", "google-mail", "", "", "", "", "", "", false},
-		{"google/shipped only", "google", "google-mail", "SHIPPED-GOOG", "SHIPPED-GOOG-SECRET", "", "", "SHIPPED-GOOG", "SHIPPED-GOOG-SECRET", true},
+		{"google/shipped desktop client", "google", "google-mail", "SHIPPED-GOOG", "SHIPPED-GOOG-CONFIG", "", "", "SHIPPED-GOOG", "SHIPPED-GOOG-CONFIG", true},
 		{"google/override only", "google", "google-mail", "", "", "USER-GOOG", "USER-GOOG-SECRET", "USER-GOOG", "USER-GOOG-SECRET", true},
 		{"google/override wins over shipped", "google", "google-mail", "SHIPPED-GOOG", "SHIPPED-GOOG-SECRET", "USER-GOOG", "USER-GOOG-SECRET", "USER-GOOG", "USER-GOOG-SECRET", true},
 	}

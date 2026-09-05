@@ -43,6 +43,7 @@
     onPasswordChange: (value: string) => void
     onSyncPeriodChange: (value: string) => void
     onReauthorize?: () => void
+    onCancelReauthorize?: () => void
   }
 
   let {
@@ -66,6 +67,7 @@
     onPasswordChange,
     onSyncPeriodChange,
     onReauthorize,
+    onCancelReauthorize,
   }: Props = $props()
 
   function getSyncPeriodLabel(value: string): string {
@@ -207,6 +209,11 @@
                   {$_('account.reauthorize')}
                 {/if}
               </Button>
+              {#if reauthorizing}
+                <Button variant="ghost" size="sm" onclick={onCancelReauthorize}>
+                  Cancel
+                </Button>
+              {/if}
             {/if}
           </div>
         </div>
@@ -214,6 +221,9 @@
           <p class="text-xs text-muted-foreground">
             {$_('account.reauthorizeHelp')}
           </p>
+        {/if}
+        {#if reauthorizing}
+          <p class="text-xs text-muted-foreground">Complete authorization in your browser, or cancel this request.</p>
         {/if}
         {#if isGoogleOAuthAccount}
           <div class="flex gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">

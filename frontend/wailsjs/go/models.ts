@@ -532,7 +532,6 @@ export namespace app {
 	export class OAuthBuildStatus {
 	    google: boolean;
 	    microsoft: boolean;
-	    googleTesting: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new OAuthBuildStatus(source);
@@ -542,7 +541,6 @@ export namespace app {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.google = source["google"];
 	        this.microsoft = source["microsoft"];
-	        this.googleTesting = source["googleTesting"];
 	    }
 	}
 	export class OAuthCredsChoice {

@@ -47,13 +47,6 @@ fi
 echo "✅ All runtimes installed"
 echo ""
 
-# Check for OAuth credentials
-if [ -z "$GOOGLE_CLIENT_ID" ] && [ -z "$MICROSOFT_CLIENT_ID" ]; then
-    echo "⚠️  Warning: No OAuth credentials found"
-    echo "Gmail and Outlook OAuth will not work in the built app"
-    echo ""
-fi
-
 # Build the binary on the host first
 echo ""
 echo "Building Eterno Mail binary on host..."

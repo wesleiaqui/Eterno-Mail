@@ -11,6 +11,7 @@ type ProviderConfig struct {
 	Scopes           []string // Required OAuth scopes
 	ClientID         string   // OAuth client ID
 	ClientSecret     string   // OAuth client secret (may be empty for public clients)
+	LoopbackHost     string   // Host used in the loopback redirect URI
 	UserinfoEndpoint string   // Optional: userinfo endpoint (OIDC). Set for custom
 	//                         providers discovered via OIDC so the account email can
 	//                         be fetched. Shipped providers (google/microsoft) leave
@@ -37,7 +38,8 @@ func GoogleProvider() ProviderConfig {
 			"openid", // OpenID Connect
 		},
 		ClientID:     GoogleClientID,
-		ClientSecret: GoogleClientSecret,
+		ClientSecret: GoogleClientSecret, // Required by this Google Desktop client; PKCE remains enabled.
+		LoopbackHost: "127.0.0.1",
 	}
 }
 
@@ -60,6 +62,7 @@ func MicrosoftProvider() ProviderConfig {
 		},
 		ClientID:     MicrosoftClientID,
 		ClientSecret: "", // Public client, no secret needed
+		LoopbackHost: "localhost",
 	}
 }
 
@@ -77,6 +80,7 @@ func GoogleContactsOnlyProvider() ProviderConfig {
 		},
 		ClientID:     GoogleClientID,
 		ClientSecret: GoogleClientSecret,
+		LoopbackHost: "127.0.0.1",
 	}
 }
 
@@ -97,6 +101,7 @@ func GoogleCalendarProvider() ProviderConfig {
 		},
 		ClientID:     GoogleClientID,
 		ClientSecret: GoogleClientSecret,
+		LoopbackHost: "127.0.0.1",
 	}
 }
 

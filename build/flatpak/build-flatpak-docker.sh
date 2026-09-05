@@ -28,13 +28,6 @@ if ! docker info &> /dev/null; then
     exit 1
 fi
 
-# Check for OAuth credentials
-if [ -z "$GOOGLE_CLIENT_ID" ] && [ -z "$MICROSOFT_CLIENT_ID" ]; then
-    echo "⚠️  Warning: No OAuth credentials found"
-    echo "Gmail and Outlook OAuth will not work in the built app"
-    echo ""
-fi
-
 echo "Building Docker image (this may take a few minutes on first run)..."
 docker build -t aerion-flatpak-builder -f build/flatpak/Dockerfile build/flatpak
 
@@ -50,7 +43,6 @@ docker run --rm \
     -v "$(pwd):/workspace" \
     -w /workspace \
     -e GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
-    -e GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET}" \
     -e MICROSOFT_CLIENT_ID="${MICROSOFT_CLIENT_ID}" \
     aerion-flatpak-builder \
     bash -c "

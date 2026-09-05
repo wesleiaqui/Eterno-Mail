@@ -4,7 +4,6 @@ AGENTS.md
 context
 aerion
 aerion.exe
-aerion-creds
 
 # Wails build artifacts
 build/bin/

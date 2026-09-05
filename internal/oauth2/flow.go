@@ -22,7 +22,7 @@ type AuthSession struct {
 	Provider       string          `json:"provider"`
 	State          string          `json:"state"`
 	CodeVerifier   string          `json:"codeVerifier"` // PKCE
-	RedirectPort   int             `json:"redirectPort"`
+	RedirectURI    string          `json:"redirectURI"`
 	CreatedAt      time.Time       `json:"createdAt"`
 	ProviderConfig *ProviderConfig `json:"-"` // Optional custom provider config
 }
@@ -106,8 +106,12 @@ func (m *Manager) startAuthFlowInternal(ctx context.Context, providerName string
 	}
 
 	// Start callback server
+	redirectHost := provider.LoopbackHost
+	if redirectHost == "" {
+		redirectHost = "localhost"
+	}
 	m.callbackServer = NewCallbackServer()
-	port, err := m.callbackServer.Start(ctx)
+	port, err := m.callbackServer.Start(ctx, redirectHost)
 	if err != nil {
 		return "", fmt.Errorf("failed to start callback server: %w", err)
 	}
@@ -117,13 +121,13 @@ func (m *Manager) startAuthFlowInternal(ctx context.Context, providerName string
 		Provider:       providerName,
 		State:          state,
 		CodeVerifier:   verifier,
-		RedirectPort:   port,
+		RedirectURI:    loopbackRedirectURI(redirectHost, port),
 		CreatedAt:      time.Now(),
 		ProviderConfig: customConfig,
 	}
 
 	// Build authorization URL
-	authURL := buildAuthURL(provider, state, challenge, port)
+	authURL := buildAuthURL(provider, state, challenge, m.activeSession.RedirectURI)
 
 	m.log.Info().
 		Str("provider", providerName).
@@ -171,7 +175,7 @@ func (m *Manager) WaitForCallback(ctx context.Context) (*TokenResponse, string, 
 	}
 
 	// Exchange code for tokens
-	tokens, err := m.exchangeCode(provider, result.Code, session.CodeVerifier, session.RedirectPort)
+	tokens, err := m.exchangeCode(provider, result.Code, session.CodeVerifier, session.RedirectURI)
 	if err != nil {
 		return nil, "", fmt.Errorf("token exchange failed: %w", err)
 	}
@@ -280,9 +284,7 @@ func (m *Manager) HasActiveSession() bool {
 }
 
 // exchangeCode exchanges an authorization code for tokens
-func (m *Manager) exchangeCode(provider ProviderConfig, code, codeVerifier string, port int) (*TokenResponse, error) {
-	redirectURI := fmt.Sprintf("http://localhost:%d/callback", port)
-
+func (m *Manager) exchangeCode(provider ProviderConfig, code, codeVerifier, redirectURI string) (*TokenResponse, error) {
 	data := url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {code},
@@ -395,9 +397,7 @@ func (m *Manager) getUserEmail(provider ProviderConfig, tokens *TokenResponse) (
 }
 
 // buildAuthURL constructs the authorization URL with all required parameters
-func buildAuthURL(provider ProviderConfig, state, codeChallenge string, port int) string {
-	redirectURI := fmt.Sprintf("http://localhost:%d/callback", port)
-
+func buildAuthURL(provider ProviderConfig, state, codeChallenge, redirectURI string) string {
 	params := url.Values{
 		"client_id":             {provider.ClientID},
 		"response_type":         {"code"},
@@ -438,6 +438,10 @@ func buildAuthURL(provider ProviderConfig, state, codeChallenge string, port int
 
 	authURL := provider.AuthURL + "?" + params.Encode()
 	return authURL
+}
+
+func loopbackRedirectURI(host string, port int) string {
+	return fmt.Sprintf("http://%s:%d/callback", host, port)
 }
 
 // generateCodeVerifier creates a cryptographically random code verifier for PKCE

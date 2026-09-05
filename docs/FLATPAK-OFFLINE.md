@@ -39,13 +39,12 @@ the frontend is built first, then embedded by Go. No Wails CLI is required in
 the sandbox. GitHub release builds pin their separate Wails CLI installation to
 v2.15.0.
 
-## OAuth credentials shim
+## Public OAuth client configuration
 
-The release manifest also declares one hash-pinned `aerion-creds` binary per
-architecture. CI builds it from `cmd/aerion-creds/main.go` with OAuth values
-injected through linker flags, then the main application reads it at runtime.
-The currently declared GitHub Release URLs return 404 because no Eterno Mail
-release exists yet. More importantly, this is a precompiled, credential-bearing
-binary rather than a source-built Flatpak module. It is a Flathub review
-blocker and must be replaced or explicitly approved before submission; this
-stage does not change the OAuth design.
+Google and Microsoft desktop OAuth client IDs are public configuration and are
+intentionally included in source for reproducible Flatpak builds. Google may
+also require the value it labels `client_secret` for a Desktop client; that
+value is not confidential in a distributed desktop application. Its final
+publication strategy remains an explicit release decision. User tokens are
+never included. The build has no credential helper or precompiled OAuth
+artifact.

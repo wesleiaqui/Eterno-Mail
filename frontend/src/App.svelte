@@ -156,7 +156,7 @@
 
   // Launch-time OAuth credentials warning state
   let showOAuthMissingDialog = $state(false)
-  let oauthBuildStatus = $state({ google: true, microsoft: true, googleTesting: true })
+  let oauthBuildStatus = $state({ google: true, microsoft: true })
   let pendingOAuthWarning = $state(false)
 
   // What's New (per-version) dialog state
@@ -411,12 +411,12 @@
 
     // OAuth credentials warning: surface missing provider creds on every
     // launch unless the user has explicitly opted out. The dialog shows
-    // all three providers with a missing/present indicator, so the
+    // both official providers with a missing/present indicator, so the
     // trigger fires when ANY of them is missing. Actual opening is
     // deferred via $effect so Terms can resolve first.
     try {
       const status = await GetOAuthBuildStatus()
-      const anyMissing = !status.google || !status.microsoft || !status.googleTesting
+      const anyMissing = !status.google || !status.microsoft
       if (anyMissing) {
         const disabled = await GetOAuthWarningDisabled()
         if (!disabled) {

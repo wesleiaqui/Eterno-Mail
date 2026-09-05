@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -77,6 +78,10 @@ func (a *App) StartOAuthFlow(provider string) error {
 		defer recoverPanic("app.oauth", "OAuth callback")
 		tokens, email, err := a.oauth2Manager.WaitForCallback(a.ctx)
 		if err != nil {
+			if errors.Is(err, oauth2.ErrAuthorizationCancelled) {
+				log.Info().Str("provider", provider).Msg("OAuth authorization cancelled")
+				return
+			}
 			log.Error().Err(err).Str("provider", provider).Msg("OAuth callback failed")
 			wailsRuntime.EventsEmit(a.ctx, "oauth:error", map[string]interface{}{
 				"provider": provider,
@@ -312,6 +317,10 @@ func (a *App) StartCustomOAuthFlow(authURL, tokenURL, userinfoURL string, scopes
 		defer recoverPanic("app.oauth", "Custom OAuth callback")
 		tokens, email, err := a.oauth2Manager.WaitForCallback(a.ctx)
 		if err != nil {
+			if errors.Is(err, oauth2.ErrAuthorizationCancelled) {
+				log.Info().Msg("Custom OAuth authorization cancelled")
+				return
+			}
 			log.Error().Err(err).Str("provider", customOAuthProviderName).Msg("Custom OAuth callback failed")
 			wailsRuntime.EventsEmit(a.ctx, "oauth:error", map[string]interface{}{
 				"provider": customOAuthProviderName,
@@ -583,14 +592,11 @@ func (a *App) GetConfiguredOAuthProviders() []string {
 // warning when one or more providers are missing — sign-in for those
 // providers will silently fail otherwise. See OAuthMissingDialog.
 //
-// IsProviderConfigured() only checks the ClientID, but Google is a
-// confidential client (needs Secret too) and so is Google's testing slot
-// (used by extensions). Microsoft is a public client and only needs the
-// ClientID. The fields below honor each provider's actual requirement.
+// Google and Microsoft are public desktop clients. Their availability depends
+// on a client ID only; their Authorization Code flows are protected by PKCE.
 type OAuthBuildStatus struct {
-	Google        bool `json:"google"`
-	Microsoft     bool `json:"microsoft"`
-	GoogleTesting bool `json:"googleTesting"`
+	Google    bool `json:"google"`
+	Microsoft bool `json:"microsoft"`
 }
 
 // GetOAuthBuildStatus reports per-provider OAuth credential availability so the
@@ -598,9 +604,8 @@ type OAuthBuildStatus struct {
 // app start; the result is build-constant for the running process.
 func (a *App) GetOAuthBuildStatus() OAuthBuildStatus {
 	return OAuthBuildStatus{
-		Google:        oauth2.GoogleClientID != "" && oauth2.GoogleClientSecret != "",
-		Microsoft:     oauth2.MicrosoftClientID != "",
-		GoogleTesting: oauth2.GoogleTestingClientID != "" && oauth2.GoogleTestingClientSecret != "",
+		Google:    oauth2.IsGoogleConfigured(),
+		Microsoft: oauth2.IsMicrosoftConfigured(),
 	}
 }
 

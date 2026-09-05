@@ -389,14 +389,24 @@
     } catch (err) {
       console.error('Failed to re-authorize:', err)
       reauthorizeSuccess = false
-      addToast({
-        type: 'error',
-        message: $_('toast.failedToReauthorize'),
-        duration: 8000,
-      })
+      if (err instanceof Error && err.message === 'Authorization cancelled.') {
+        addToast({ type: 'info', message: 'Authorization cancelled.', duration: 4000 })
+      } else if (err instanceof Error && err.message.startsWith('Authorization timed out.')) {
+        addToast({ type: 'error', message: err.message, duration: 8000 })
+      } else {
+        addToast({
+          type: 'error',
+          message: $_('toast.failedToReauthorize'),
+          duration: 8000,
+        })
+      }
     } finally {
       reauthorizing = false
     }
+  }
+
+  async function handleCancelReauthorize() {
+    await oauthStore.cancelFlow()
   }
 </script>
 
@@ -458,6 +468,7 @@
               onPasswordChange={(v) => password = v}
               onSyncPeriodChange={(v) => syncPeriodDays = v}
               onReauthorize={handleReauthorize}
+              onCancelReauthorize={handleCancelReauthorize}
             />
           </Tabs.Content>
 

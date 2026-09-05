@@ -3,7 +3,96 @@
 # Eterno Mail - An Open Source Lightweight E-Mail Client
 Reformulated by Weslei.
 
+> **Fork of the original project [Aerion](https://github.com/hkdb/aerion) (v0.3.3) by [hkdb / 3DF](https://3df.io).**
+> This fork keeps the original Go module (`github.com/hkdb/aerion`) for internal compatibility and preserves all upstream features, while adding the custom improvements documented below.
+
 ![screenshot](docs/ss.png)
+
+
+### 🔄 Changes from the original project (Aerion)
+---
+
+The following changes were made in this fork compared to the original [`hkdb/aerion`](https://github.com/hkdb/aerion) v0.3.3 repository:
+
+#### 🏷️ Rebranding & Visual Identity
+
+| Aspect | Original (Aerion) | This fork (Eterno Mail) |
+| :--- | :--- | :--- |
+| Product name | Aerion | **Eterno Mail** |
+| Application identifier | `io.github.hkdb.Aerion` | `io.github.hkdb.EternoMail` |
+| Window title (`main.go`) | `"Aerion"` | `"Eterno Mail"` |
+| `wails.json` — `companyName` | `3DF` | `Eterno Mail` |
+| `wails.json` — `productName` | `Aerion` | `Eterno Mail` |
+| CNAME (GitHub Pages) | `aerion.3df.io` | `app.weslleys.com` |
+| Desktop entry (`.desktop`) | `Name=Aerion` | `Name=Eterno Mail` |
+| Flatpak metainfo | `<name>Aerion</name>` | `<name>Eterno Mail</name>` |
+| Linux install icon | `io.github.hkdb.Aerion.png` | `io.github.hkdb.EternoMail.png` |
+
+> **Note:** The executable name (`aerion`), Go module (`github.com/hkdb/aerion`), and frontend `package.json` (`"name": "aerion"`) were kept unchanged to preserve compatibility with internal imports and the build system.
+
+#### 🐛 Bug Fixes
+
+- **SQLite Foreign Key 787:** Fixed foreign key violation error during message upsert. The logic now preserves the existing message primary key, preventing breakage of attachment references linked by FK.
+- **IMAP connection pool:** Implemented strict slot reservation in the connection pool during the handshake phase, preventing overflow when multiple connections are established in parallel (`MaxConnections=3` enforced).
+- **`\Noselect` mailboxes:** Added a check to skip the `STATUS` command on mailboxes flagged as `\Noselect` (e.g., the `[Gmail]` folder), preventing sync errors.
+- **Sync counters:** Fixed sync counters to report the actual number of stored headers (`failed=0` on success).
+
+#### 🚀 New Features
+
+- **Sender Logos:** Added a complete caching and display system for company/sender logos in the conversation list:
+  - New backend package: `internal/senderlogo` — fetches and stores logos based on the sender's email domain.
+  - New frontend store: `frontend/src/lib/stores/senderLogos.svelte.ts` — manages logo state in Svelte.
+  - New Wails binding: `app/sender_logo.go` — bridge between backend and frontend.
+  - Integration in the `ConversationRow.svelte` component — displays company logo when no contact photo is available.
+
+- **Runtime GTK icon:** Added direct embed of the application icon (`build/appicon.png`) via `//go:embed` in `main.go`, injected as `Icon: appIcon` in the Wails Linux options. This works around icon cache issues in GTK environments (Ubuntu Budgie, Plank dock).
+
+#### 🔒 Privacy & Security Improvements
+
+- **PII redaction in logs:** Implemented `RedactEmail` and `ShortHash` functions in the `internal/logging` package that automatically mask:
+  - IMAP/SMTP usernames
+  - Email addresses
+  - Account names
+  - `Message-ID` and `Thread-ID`
+  - Email subjects
+  - Attachment metadata
+
+#### 🖥️ Platform Robustness
+
+- **Linux container support (Distrobox):** Added safe fallback for D-Bus sleep/wake signals in containerized environments. When the system D-Bus bus is unavailable (e.g., inside Distrobox), the application degrades gracefully instead of crashing.
+- **Log noise reduction:**
+  - Suppressed timezone push warnings when the calendar extension is disabled.
+  - Silenced sender logo fetch attempts for invalid domains.
+  - Consolidated FTS startup scans into a single query per folder.
+
+#### ⚡ Performance & Observability Improvements
+
+- **Sync instrumentation:** Added detailed phase-timing to the master sync, enabling monitoring of time spent in each phase:
+  - `folder sync`, `LIST/LSUB/STATUS`, `message sync`, `pool wait`
+- **Explicit CONDSTORE:** Reasons for full reconcile fallback are now explicitly logged: `below_full_reconcile_threshold`, `no_stored_modseq`, `uidvalidity_changed`, `condstore_unavailable`, `periodic_full_sweep`.
+- **FTS optimization:** Full-Text Search startup queries consolidated into a single query per folder, reducing startup overhead.
+
+#### 🗃️ Tests & Database
+
+- **Migration tests:** Added automated tests for upgrade paths V31/V42 → current schema, including integrity and foreign key validation.
+
+#### 📦 Dependency Updates
+
+| Dependency | Original Version | Current Version |
+| :--- | :--- | :--- |
+| `wailsapp/wails/v2` | v2.13.0 | **v2.15.0** |
+| `golang.org/x/crypto` | v0.51.0 | **v0.53.0** |
+| `golang.org/x/net` | v0.54.0 | **v0.56.0** |
+| `golang.org/x/sys` | v0.44.0 | **v0.46.0** |
+| `golang.org/x/text` | v0.37.0 | **v0.39.0** |
+
+#### 📝 Documentation Changes
+
+- **README.md:** Full rebranding to "Eterno Mail", added "Reformulated by Weslei" credit.
+- **SECURITY.md:** Product name updated to "Eterno Mail" (report email kept: `aerion@3df.io`).
+- **CONTRIBUTING.md:** Product references updated to "Eterno Mail".
+- **CHANGELOG.md:** Specific references updated (CASA Tier 2, Flathub, refocus).
+- **Makefile:** Linux install/uninstall targets updated to `io.github.hkdb.EternoMail.*`, with cleanup routine for legacy artifacts (`io.github.hkdb.Aerion.*`).
 
 
 ### ❓ Why?

@@ -208,6 +208,10 @@ func TestMigrationV32_LocalRecordIDsRewrittenToUUIDs(t *testing.T) {
 	if _, err := db.Exec(`DROP TABLE sender_logo_cache`); err != nil {
 		t.Fatalf("drop sender_logo_cache for re-migrate: %v", err)
 	}
+	// Same for v47's folder flags sync modseq.
+	if _, err := db.Exec(`ALTER TABLE folders DROP COLUMN flags_sync_modseq`); err != nil {
+		t.Fatalf("drop folders.flags_sync_modseq for re-migrate: %v", err)
+	}
 
 	// Re-run migrations — migration 32 should rewrite the seeded local- id.
 	if err := db.Migrate(); err != nil {
@@ -371,6 +375,10 @@ func TestMigrationV33_CleansExistingOrphans(t *testing.T) {
 	// replaying migrations 44-46.
 	if _, err := db.Exec(`DROP TABLE sender_logo_cache`); err != nil {
 		t.Fatalf("drop sender_logo_cache for re-migrate: %v", err)
+	}
+	// Same for v47's folder flags sync modseq.
+	if _, err := db.Exec(`ALTER TABLE folders DROP COLUMN flags_sync_modseq`); err != nil {
+		t.Fatalf("drop folders.flags_sync_modseq for re-migrate: %v", err)
 	}
 
 	// Seed: orphan state row whose addressbook doesn't exist. Pre-migration,

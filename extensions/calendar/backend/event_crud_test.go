@@ -64,6 +64,9 @@ func TestSerializeVEVENT_NonRecurring(t *testing.T) {
 }
 
 func TestSerializeVEVENT_AllDay(t *testing.T) {
+	SetConfiguredTimezone("UTC")
+	t.Cleanup(func() { SetConfiguredTimezone("") })
+
 	start := time.Date(2026, 6, 5, 0, 0, 0, 0, time.UTC).Unix()
 	end := time.Date(2026, 6, 6, 0, 0, 0, 0, time.UTC).Unix()
 	blob, err := serializeVEVENT("alld@aerion", EventInput{
@@ -79,6 +82,9 @@ func TestSerializeVEVENT_AllDay(t *testing.T) {
 	// DATE form should appear (no T separator, has VALUE=DATE param).
 	if !strings.Contains(blob, "DTSTART;VALUE=DATE:20260605") {
 		t.Errorf("blob missing DATE-form DTSTART:\n%s", blob)
+	}
+	if !strings.Contains(blob, "DTEND;VALUE=DATE:20260606") {
+		t.Errorf("blob missing DATE-form DTEND:\n%s", blob)
 	}
 }
 

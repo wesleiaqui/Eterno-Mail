@@ -211,7 +211,7 @@ func (p *Pool) GetConnection(ctx context.Context, accountID string) (*PooledConn
 		return conn, true
 	}
 
-	acquireLoop:
+acquireLoop:
 	for {
 		poolLockStarted := time.Now()
 		p.mu.Lock()
@@ -222,7 +222,12 @@ func (p *Pool) GetConnection(ctx context.Context, accountID string) (*PooledConn
 		if conns, ok := p.connections[accountID]; ok {
 			for _, conn := range conns {
 				connectionLockStarted := time.Now()
-				conn.mu.Lock()
+				// Do not wait for a connection currently doing a slow health
+				// check while holding p.mu: another idle connection may be
+				// immediately available in this pool.
+				if !conn.mu.TryLock() {
+					continue
+				}
 				connectionLockWait += time.Since(connectionLockStarted)
 				if !conn.inUse {
 					conn.inUse = true

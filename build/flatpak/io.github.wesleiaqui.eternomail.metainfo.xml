@@ -309,6 +309,20 @@
   </provides>
 
   <releases>
+    <release version="0.3.4" date="2026-09-06">
+      <description>
+        <ul>
+          <li>Added unified Drafts, Sent, Trash, Starred, Archived, Spam and All Mail views across enabled accounts</li>
+          <li>Added Gmail-compatible virtual Archived views with per-account navigation</li>
+          <li>Improved draft reliability, canonical draft editing and sender identity persistence</li>
+          <li>Improved detached composer draft persistence and safe Save &amp; Close behavior</li>
+          <li>Added automatic and manual GitHub release update checks</li>
+          <li>Added Priority, Categories and Chronological inbox display modes</li>
+          <li>Improved conversation viewer action tooltips and interface polish</li>
+          <li>Improved KDE Wayland and X11 titlebar compatibility</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.3.3" date="2026-08-06">
       <description>
         <ul>

@@ -23,11 +23,10 @@ func (a *App) SaveUIState(state *appstate.UIState) error {
 // App Info API - Exposed to frontend via Wails bindings
 // ============================================================================
 
-// Version is the Eterno Mail release version. Bump on each release; consumed by
-// the About dialog via GetAppInfo() and by the --version CLI flag in main.go.
-// (wails.json, frontend/package.json, and metainfo.xml each carry their own
-// version strings for their respective tooling.)
-const Version = "0.3.3"
+// Version is the runtime Eterno Mail release version. main.go initializes it
+// from the repository's embedded VERSION file, which is the single source of
+// truth for the running app, About dialog, CLI --version and update checker.
+var Version = "development"
 
 // AppInfo contains application metadata
 type AppInfo struct {

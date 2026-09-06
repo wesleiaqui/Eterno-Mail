@@ -29,6 +29,18 @@ var assets embed.FS
 //go:embed build/appicon.png
 var appIcon []byte
 
+// embeddedVersion comes from the repository VERSION file so runtime version
+// consumers cannot drift from the release version prepared at the repository root.
+//
+//go:embed VERSION
+var embeddedVersion string
+
+func init() {
+	if version := strings.TrimSpace(embeddedVersion); version != "" {
+		app.Version = version
+	}
+}
+
 // Command-line flags
 var (
 	debugMode   = flag.Bool("debug", false, "Enable debug logging")

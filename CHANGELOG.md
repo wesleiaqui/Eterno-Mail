@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## Eterno Mail — v0.3.4
+
+- Added unified Drafts, Sent, Trash, Starred, Archived, Spam/Blocked and All Mail views across enabled accounts.
+- Added account-specific special-folder drill-down and Gmail-compatible virtual Archived views.
+- Improved draft safety with canonical draft references, sender identity persistence and attachment-safe Save & Close.
+- Improved detached composer persistence so quick closes no longer lose or duplicate pending drafts.
+- Added automatic background and manual GitHub release update checks.
+- Added Priority, Categories and Chronological inbox display selection.
+- Added localized tooltips to conversation viewer actions.
+- Improved KDE Wayland/X11 titlebar compatibility.
+- Updated public project documentation and interface refinements.
+
+
 ## Eterno Mail — v0.3.3 development
 
 - Introduced Eterno Mail branding, public legal documentation and updated public links.

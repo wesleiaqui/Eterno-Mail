@@ -47,7 +47,7 @@ echo ""
 echo "Packaging into Flatpak..."
 echo ""
 
-flatpak-builder --force-clean --user --install-deps-from=flathub \
+flatpak-builder --disable-rofiles-fuse --force-clean --user --install-deps-from=flathub \
     --repo=repo build-dir build/flatpak/io.github.wesleiaqui.eternomail-dev.yml
 
 # Create bundle for distribution/testing on other machines

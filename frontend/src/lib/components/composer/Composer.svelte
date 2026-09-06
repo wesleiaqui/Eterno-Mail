@@ -130,6 +130,9 @@
 
   // Attachments
   let attachments = $state<ComposerAttachment[]>([])
+  // Increment on every regular-attachment set change. This keeps the draft
+  // fingerprint small while distinguishing replacement files with the same name.
+  let attachmentRevision = 0
   let isDraggingOver = $state(false)
 
   // Inline images (embedded in HTML body)
@@ -575,8 +578,38 @@
   // Get a content hash to detect meaningful changes
   function getContentHash(): string {
     const bodyContent = isPlainTextMode ? plainTextContent : (editor?.getHTML() || '')
-    const attachmentNames = attachments.map(a => a.filename).join(',')
-    return `${toRecipients.length}|${ccRecipients.length}|${bccRecipients.length}|${subject}|${bodyContent}|${attachmentNames}|${isPlainTextMode}`
+    const selectedIdentity = identities.find(i => i.id === selectedIdentityId)
+    const normalizeAddress = (recipient: smtp.Address) => ({
+      name: (recipient.name || '').trim(),
+      address: (recipient.address || '').trim(),
+    })
+
+    return JSON.stringify({
+      from: {
+        identityId: selectedIdentityId,
+        name: selectedIdentity?.name || '',
+        address: selectedIdentity?.email || '',
+      },
+      to: toRecipients.map(normalizeAddress),
+      cc: ccRecipients.map(normalizeAddress),
+      bcc: bccRecipients.map(normalizeAddress),
+      subject,
+      body: bodyContent,
+      plainText: isPlainTextMode,
+      attachmentRevision,
+      requestReadReceipt,
+      signMessage,
+      encryptMessage,
+      pgpSignMessage,
+      pgpEncryptMessage,
+      inReplyTo: inReplyTo || '',
+      references,
+    })
+  }
+
+  function updateAttachments(nextAttachments: ComposerAttachment[]) {
+    attachments = nextAttachments
+    attachmentRevision += 1
   }
 
   // Schedule a draft save (debounced)
@@ -594,6 +627,7 @@
     }
 
     saveTimeoutId = setTimeout(async () => {
+      saveTimeoutId = null
       // Only save if there's content
       if (!hasContent()) {
         return
@@ -612,27 +646,35 @@
   // Guard to prevent concurrent save requests (which cause orphaned drafts)
   let isSaving = false
   let discarding = false
-  let savingComplete: Promise<void> = Promise.resolve()
+  type DraftSaveResult = 'saved' | 'unchanged' | 'failed' | 'discarding'
+  let savingComplete: Promise<DraftSaveResult> = Promise.resolve('unchanged')
 
-  // Actually save the draft
-  async function saveDraft() {
-    if (discarding) return
-    if (!hasContent()) return
+  // Save the current snapshot. Callers receive an explicit result so a close
+  // cannot mistake a failed or in-progress save for a successful one.
+  async function saveDraft(): Promise<DraftSaveResult> {
+    if (discarding) return 'discarding'
 
-    // If a save is already in flight, skip — next edit will trigger a fresh save
-    if (isSaving) return
+    // Do not start concurrent saves. Callers that need a definitive result wait
+    // here, then compare the latest editor state before deciding what to do.
+    if (isSaving) return savingComplete
 
     // Check again for content changes before saving
     const currentHash = getContentHash()
+    // A new empty composer needs no draft. An existing draft that was cleared
+    // must still be updated so its old content cannot reappear after closing.
+    if (!hasContent() && !currentDraftId) {
+      return 'unchanged'
+    }
     if (currentHash === lastContent && currentDraftId) {
-      return  // No changes since last save
+      return 'unchanged'
     }
 
-    let resolveSaving: () => void
-    savingComplete = new Promise<void>(resolve => { resolveSaving = resolve })
+    let resolveSaving!: (result: DraftSaveResult) => void
+    savingComplete = new Promise<DraftSaveResult>(resolve => { resolveSaving = resolve })
 
     isSaving = true
     saveStatus = 'saving'
+    let saveResult: DraftSaveResult = 'failed'
     try {
       const message = buildMessage()
       const result = await api.saveDraft(activeAccountId, message, currentDraftId || '')
@@ -641,13 +683,55 @@
       saveStatus = 'saved'
       syncStatus = result.syncStatus as 'pending' | 'synced' | 'failed'
       lastSavedAt = new Date()
+      saveResult = 'saved'
     } catch (err) {
       console.error('Failed to save draft:', err)
       saveStatus = 'error'
     } finally {
       isSaving = false
-      resolveSaving!()
+      resolveSaving(saveResult)
     }
+    return saveResult
+  }
+
+  // A save already in flight may have captured an older snapshot. Continue
+  // until the currently visible state is accounted for, including an existing
+  // draft that has been cleared to empty, or persistence explicitly fails.
+  async function saveLatestDraftForClose(): Promise<boolean> {
+    while (true) {
+      if (discarding) {
+        return false
+      }
+
+      // Capture and await this exact operation before checking the editor. An
+      // empty current state must not bypass an older save that is still running.
+      if (isSaving) {
+        const inFlightSave = savingComplete
+        const result = await inFlightSave
+        if (result === 'failed' || result === 'discarding') {
+          return false
+        }
+        continue
+      }
+
+      const currentHash = getContentHash()
+      if (currentHash === lastContent && currentDraftId) {
+        return true
+      }
+
+      // No persisted draft and no meaningful content is the only empty state
+      // that can close without a save.
+      if (!hasContent() && !currentDraftId) {
+        return true
+      }
+
+      const result = await saveDraft()
+      if (result === 'failed' || result === 'discarding') {
+        return false
+      }
+    }
+
+    return true
   }
 
   // Load blocked remote images in the composer editor
@@ -1044,12 +1128,12 @@
           htmlBody = htmlBody.replaceAll(`cid:${att.content_id}`, dataUrl)
         } else if (!att.inline) {
           // Regular attachment
-          attachments = [...attachments, {
+          updateAttachments([...attachments, {
             filename: att.filename,
             contentType: att.content_type,
             size: base64Data.length,
             data: base64Data,
-          }]
+          }])
         }
       }
       // Ensure new inline images get unique CIDs
@@ -1259,14 +1343,24 @@
   // Save & Close: Save current content as draft, then close
   async function handleSaveAndClose() {
     closeLoading = 'save'
-    try {
-      if (hasContent()) {
-        await saveDraft()
-      }
-    } catch (err) {
-      console.error('Failed to save draft:', err)
-      // Still close even if save fails
+    if (saveTimeoutId) {
+      clearTimeout(saveTimeoutId)
+      saveTimeoutId = null
     }
+
+    const saved = await saveLatestDraftForClose()
+    if (!saved) {
+      closeLoading = null
+      addToast({
+        type: 'error',
+        message: $_('composer.saveFailed'),
+      })
+      // Reset detached-window close requests while leaving the dialog open for
+      // retry, keep editing, or an explicit discard.
+      onCloseHandled?.()
+      return
+    }
+
     showCloseConfirm = false
     closeLoading = null
     onCloseHandled?.()
@@ -1528,12 +1622,12 @@
 
     try {
       const data = await readFileAsBase64(file)
-      attachments = [...attachments, {
+      updateAttachments([...attachments, {
         filename: file.name,
         contentType: file.type || 'application/octet-stream',
         size: file.size,
         data,
-      }]
+      }])
       scheduleDraftSave()
     } catch (err) {
       console.error('Failed to read dropped file:', err)
@@ -1585,12 +1679,12 @@
           addToast({ type: 'error', message: $_('composer.attachmentTooLarge') })
           continue
         }
-        attachments = [...attachments, {
+        updateAttachments([...attachments, {
           filename: att.filename,
           contentType: att.contentType,
           size: att.size,
           data: att.data,
-        }]
+        }])
       } catch {
         // Direct read failed — if Flatpak, show permission info dialog
         if (await api.isFlatpak()) {
@@ -1636,7 +1730,7 @@
           })
         }
         if (newAttachments.length > 0) {
-          attachments = [...attachments, ...newAttachments]
+          updateAttachments([...attachments, ...newAttachments])
           scheduleDraftSave()
         }
       } catch (err) {
@@ -1651,7 +1745,7 @@
   }
 
   function removeAttachment(index: number) {
-    attachments = attachments.filter((_, i) => i !== index)
+    updateAttachments(attachments.filter((_, i) => i !== index))
     scheduleDraftSave()
   }
 
@@ -1707,7 +1801,7 @@
         }
       }
       if (newAttachments.length > 0) {
-        attachments = [...attachments, ...newAttachments]
+        updateAttachments([...attachments, ...newAttachments])
         scheduleDraftSave()
       }
       return
@@ -1729,12 +1823,12 @@
               addToast({ type: 'error', message: $_('composer.attachmentTooLarge') })
               continue
             }
-            attachments = [...attachments, {
+            updateAttachments([...attachments, {
               filename: att.filename,
               contentType: att.contentType,
               size: att.size,
               data: att.data,
-            }]
+            }])
           } catch {
             directReadFailed = true
             break

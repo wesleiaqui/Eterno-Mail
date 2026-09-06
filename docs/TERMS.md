@@ -8,7 +8,7 @@ By downloading, installing, or using Eterno Mail ("the Application"), you agree 
 
 ## Description of Service
 
-Eterno Mail is an open-source desktop email client. The official Eterno Mail website is [https://app.weslleys.com/](https://app.weslleys.com/). Eterno Mail allows you to:
+Eterno Mail is an open-source desktop email client. The official Eterno Mail documentation is hosted at [https://docs.weslleys.com/](https://docs.weslleys.com/). Eterno Mail allows you to:
 
 - Connect to email accounts via IMAP/SMTP
 - Send and receive emails
@@ -124,4 +124,4 @@ These Terms constitute the entire agreement between you and the developers of Et
 
 If you have questions about these Terms of Use, please use:
 
-Use the [Eterno Mail website](https://app.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail).
+Use the [Eterno Mail documentation](https://docs.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail).

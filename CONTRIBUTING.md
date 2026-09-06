@@ -10,11 +10,11 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 ### Reporting Bugs
 
-To report a bug, contact the maintainers through the [Eterno Mail website](https://app.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail). Include a clear description and steps to reproduce it.
+To report a bug, contact the maintainers through the [Eterno Mail documentation](https://docs.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail). Include a clear description and steps to reproduce it.
 
 ### Suggesting Features
 
-Submit feature suggestions through the [Eterno Mail website](https://app.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail). Describe whether the request is a new feature or an enhancement.
+Submit feature suggestions through the [Eterno Mail documentation](https://docs.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail). Describe whether the request is a new feature or an enhancement.
 
 ### Translation Pull Requests
 
@@ -206,7 +206,7 @@ make flatpak
 
 ## Questions?
 
-- Contact the maintainers through the [Eterno Mail website](https://app.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail).
+- Contact the maintainers through the [Eterno Mail documentation](https://docs.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail).
 
 ## License
 

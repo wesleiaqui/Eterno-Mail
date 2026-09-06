@@ -202,7 +202,7 @@ Although Linux is a first-class citizen here, it also works on:
 ### 📖 Documentation
 ---
 
-- [Eterno Mail Website](https://app.weslleys.com/)
+- [Eterno Mail Documentation](https://docs.weslleys.com/)
 
 
 ### ⚗️ Tech Stack

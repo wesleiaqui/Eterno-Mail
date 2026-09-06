@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Eterno Mail ("we," "our," or "the Application") is an open-source desktop email client. The official Eterno Mail website is [https://app.weslleys.com/](https://app.weslleys.com/). This Privacy Policy explains how Eterno Mail handles your information. Because Eterno Mail is a desktop application that runs entirely on your computer, our approach to privacy is fundamentally different from cloud-based services.
+Eterno Mail ("we," "our," or "the Application") is an open-source desktop email client. The official Eterno Mail documentation is hosted at [https://docs.weslleys.com/](https://docs.weslleys.com/). This Privacy Policy explains how Eterno Mail handles your information. Because Eterno Mail is a desktop application that runs entirely on your computer, our approach to privacy is fundamentally different from cloud-based services.
 
 **Key Point:** Eterno Mail does not operate any servers that collect, store, or process your data. All your information stays on your device.
 
@@ -121,4 +121,4 @@ Eterno Mail is open-source software. You can review exactly how we handle your d
 
 If you have questions about this Privacy Policy, please use:
 
-Use the [Eterno Mail website](https://app.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail).
+Use the [Eterno Mail documentation](https://docs.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail).

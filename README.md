@@ -82,6 +82,18 @@ Key visual changes:
 
 - **Brazilian Portuguese (pt-BR) translation:** Added full localization support for Brazilian Portuguese, making the application accessible to Portuguese-speaking users.
 
+- **Unified special folders across accounts:** Top-level Drafts, Sent, Trash, Starred, Archived, Spam/Blocked and All Mail views aggregate their matching folders from every enabled account while keeping per-account drill-down available. Gmail-style Archive is handled as a virtual archived view rather than assuming Gmail exposes a physical Archive mailbox.
+
+- **Safer draft lifecycle:** Draft editing resolves canonical draft references, preserves the selected sender identity, keeps attachment edits on the same draft, and prevents Save & Close from closing when the latest content has not been persisted successfully. Detached composer windows hand pending draft synchronization back to the long-lived main process so quick closes do not lose or duplicate drafts.
+
+- **Inbox display modes:** The Inbox can be switched between Priority, Categories and Chronological organization from a compact display picker.
+
+- **Built-in release update checks:** Eterno Mail can check the official GitHub Releases feed in the background, notify when a newer release is available, let users check manually from Settings → About, and allow automatic checks to be disabled.
+
+- **KDE Wayland/X11 titlebar compatibility:** Window decoration handling includes a conservative native-titlebar fallback for KDE/Wayland sessions while preserving the custom titlebar where it behaves correctly.
+
+- **Viewer action tooltips:** Conversation toolbar actions show immediate localized labels on hover or keyboard focus, making icon-only controls easier to understand.
+
 #### 🔒 Privacy & Security Improvements
 
 - **PII redaction in logs:** Implemented `RedactEmail` and `ShortHash` functions in the `internal/logging` package that automatically mask:
@@ -176,6 +188,10 @@ Although Linux is a first-class citizen here, it also works on:
     - Mail.com 🧪
     - Mailbox.org
 - Unified Inbox (Color Code Accounts)
+- Unified Special Folders (Drafts, Sent, Trash, Starred, Archived, Spam/Blocked and All Mail)
+- Inbox Display Modes (Priority, Categories and Chronological)
+- Draft Safety with Canonical Draft Editing, Sender Identity Persistence and Detached Composer Recovery
+- Automatic GitHub Release Update Notifications and Manual Update Checks
 - Conversation Threads
 - Basic Removal of Tracking Elements in Mail Content
 - WYSIWYG Detachable Composer ([TipTap Editor](https://github.com/ueberdosis/tiptap))

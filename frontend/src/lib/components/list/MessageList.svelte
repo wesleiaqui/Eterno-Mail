@@ -1786,7 +1786,7 @@
             class="group -ml-2 rounded-lg px-2 py-1 text-left transition-colors hover:bg-muted/70"
             onclick={() => (showInboxDisplayPicker = true)}
             aria-haspopup="dialog"
-            aria-label="Escolher exibição da caixa de entrada"
+            aria-label={$_('inbox.chooseDisplay')}
           >
             <span class="flex items-center gap-1 text-base font-semibold text-foreground whitespace-nowrap">
               {$_('sidebar.inbox')}
@@ -1920,41 +1920,80 @@
   </div>
 
   {#if showInboxDisplayPicker}
-    <div class="absolute inset-0 z-40 flex items-start justify-center p-4 pt-20">
+    <div class="absolute inset-0 z-40 flex items-start justify-center p-3 pt-[clamp(3.75rem,9vh,5rem)]">
       <button
         type="button"
-        class="absolute inset-0 cursor-default bg-background/70 backdrop-blur-[2px]"
+        class="absolute inset-0 cursor-default bg-background/78 backdrop-blur-sm"
         aria-label={$_('aria.dismiss')}
         onclick={() => (showInboxDisplayPicker = false)}
       ></button>
+
       <dialog
         open
-        class="relative z-10 m-0 w-full max-w-[620px] rounded-2xl border border-border bg-card p-5 text-left shadow-2xl"
+        class="relative z-10 m-0 w-full max-w-[420px] overflow-hidden rounded-[18px] border border-border/80 bg-card/95 p-0 text-left shadow-[0_20px_65px_rgba(0,0,0,0.36)] backdrop-blur-xl"
         aria-labelledby="inbox-display-title"
       >
-        <div class="mb-5 flex items-center justify-between">
-          <div>
-            <h3 id="inbox-display-title" class="text-lg font-semibold text-foreground">{$_('inbox.displayTitle')}</h3>
-            <p class="mt-1 text-sm text-muted-foreground">{$_('inbox.displayDescription')}</p>
+        <div class="flex items-start justify-between gap-3 border-b border-border/65 px-4 py-3.5">
+          <div class="flex min-w-0 items-start gap-3">
+            <span class="flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Icon icon="mdi:inbox-multiple-outline" class="h-[18px] w-[18px]" />
+            </span>
+            <div class="min-w-0">
+              <h3 id="inbox-display-title" class="text-[16px] font-semibold leading-5 text-foreground">
+                {$_('inbox.displayTitle')}
+              </h3>
+              <p class="mt-0.5 text-[12px] leading-4 text-muted-foreground">
+                {$_('inbox.displayDescription')}
+              </p>
+            </div>
           </div>
-          <button class="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground" onclick={() => (showInboxDisplayPicker = false)} aria-label={$_('aria.dismiss')}>
-            <Icon icon="mdi:close" class="h-5 w-5" />
+
+          <button
+            class="-mr-1 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            onclick={() => (showInboxDisplayPicker = false)}
+            aria-label={$_('aria.dismiss')}
+          >
+            <Icon icon="mdi:close" class="h-[18px] w-[18px]" />
           </button>
         </div>
-        <div class="grid grid-cols-3 gap-3">
+
+        <div
+          class="grid gap-2 p-3"
+          style="grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));"
+        >
           {#each inboxDisplayOptions as option (option.id)}
             <button
-              class="group rounded-xl border p-3 text-left transition-all {inboxDisplayMode === option.id ? 'border-primary bg-primary/10 ring-1 ring-primary/40' : 'border-border bg-muted/25 hover:border-primary/45 hover:bg-muted/60'}"
+              aria-pressed={inboxDisplayMode === option.id}
+              class="group relative min-h-[132px] rounded-[14px] border p-2.5 text-left transition-all duration-150 {inboxDisplayMode === option.id ? 'border-primary/80 bg-primary/[0.075] shadow-[0_0_0_1px_hsl(var(--primary)/0.14)]' : 'border-border/80 bg-muted/[0.14] hover:border-primary/40 hover:bg-muted/40'}"
               onclick={() => setInboxDisplayMode(option.id)}
             >
-              <span class="mb-4 flex h-20 items-center justify-center rounded-lg bg-background/60 text-muted-foreground group-hover:text-primary {inboxDisplayMode === option.id ? 'text-primary' : ''}">
-                <Icon icon={option.icon} class="h-10 w-10" />
+              <div class="flex min-h-5 items-center justify-between gap-2">
+                {#if option.id === 'categories'}
+                  <span class="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/[0.07] px-1.5 py-[2px] text-[9px] font-medium uppercase leading-none tracking-[0.07em] text-primary">
+                    <span class="h-1 w-1 rounded-full bg-primary"></span>
+                    {$_('inbox.mostUsed')}
+                  </span>
+                {:else}
+                  <span></span>
+                {/if}
+
+                {#if inboxDisplayMode === option.id}
+                  <span class="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Icon icon="mdi:check" class="h-3 w-3" />
+                  </span>
+                {/if}
+              </div>
+
+              <span class="mt-2 flex h-10 items-center justify-center rounded-[10px] border border-border/55 bg-background/45 text-muted-foreground transition-colors group-hover:text-primary {inboxDisplayMode === option.id ? 'border-primary/20 bg-primary/[0.05] text-primary' : ''}">
+                <Icon icon={option.icon} class="h-6 w-6" />
               </span>
-              <span class="flex items-center gap-1.5 font-semibold text-foreground">
-                {#if inboxDisplayMode === option.id}<Icon icon="mdi:check-circle" class="h-4 w-4 text-primary" />{/if}
+
+              <span class="mt-2 block text-[12.5px] font-semibold leading-4 text-foreground">
                 {option.label}
               </span>
-              <span class="mt-1 block text-xs leading-4 text-muted-foreground">{option.description}</span>
+              <span class="mt-1 block text-[10.5px] leading-[14px] text-muted-foreground">
+                {option.description}
+              </span>
             </button>
           {/each}
         </div>

@@ -1008,7 +1008,44 @@
         .body { font-size: 12px; }
         .body img { max-width: 100%; height: auto; }
         @page { margin: 14mm; }
-      </style></head>
+
+  :global(.viewer-toolbar-action) {
+    position: relative;
+  }
+
+  :global(.viewer-toolbar-action::after) {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 0.5rem);
+    z-index: 80;
+    transform: translate(-50%, -2px);
+    width: max-content;
+    max-width: 13rem;
+    padding: 0.32rem 0.5rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.4rem;
+    background: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+    font-size: 0.7rem;
+    font-weight: 500;
+    line-height: 1rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+  }
+
+  :global(.viewer-toolbar-action:hover::after),
+  :global(.viewer-toolbar-action:focus-visible::after) {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+  }
+
+</style></head>
       <body><h1>${escapeHtmlText(subject)}</h1>${blocks.join('')}</body></html>`
 
     const frame = document.createElement('iframe')
@@ -1324,8 +1361,8 @@
       <div class="flex items-center gap-2">
         {#if showBackButton}
           <button
-            class="p-2 rounded-md hover:bg-muted transition-colors mr-1"
-            title={$_('responsive.back')}
+            class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors mr-1"
+            data-tooltip={$_('responsive.back')}
             aria-label={$_('aria.backToList')}
             onclick={onBack}
           >
@@ -1334,30 +1371,33 @@
           <div class="w-px h-5 bg-border mx-1"></div>
         {/if}
         <button
-          class="p-2 rounded-md bg-muted/70 hover:bg-muted transition-colors"
-          title={$_('common.done')}
+          class="viewer-toolbar-action p-2 rounded-md bg-muted/70 hover:bg-muted transition-colors"
+          data-tooltip={$_('common.done')}
           aria-label={$_('common.done')}
           onclick={handleDone}
         >
           <Icon icon="mdi:check" class="w-5 h-5 text-muted-foreground" />
         </button>
         <button
-          class="p-2 rounded-md hover:bg-muted transition-colors"
-          title={$_('viewer.reply')}
+          class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+          data-tooltip={$_('viewer.reply')}
+          aria-label={$_('viewer.reply')}
           onclick={handleReply}
         >
           <Icon icon="mdi:reply" class="w-5 h-5 text-muted-foreground" />
         </button>
         <button
-          class="p-2 rounded-md hover:bg-muted transition-colors"
-          title={$_('viewer.replyAll')}
+          class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+          data-tooltip={$_('viewer.replyAll')}
+          aria-label={$_('viewer.replyAll')}
           onclick={handleReplyAll}
         >
           <Icon icon="mdi:reply-all" class="w-5 h-5 text-muted-foreground" />
         </button>
         <button
-          class="p-2 rounded-md hover:bg-muted transition-colors"
-          title={$_('viewer.forward')}
+          class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+          data-tooltip={$_('viewer.forward')}
+          aria-label={$_('viewer.forward')}
           onclick={handleForward}
         >
           <Icon icon="mdi:share" class="w-5 h-5 text-muted-foreground" />
@@ -1365,22 +1405,25 @@
 
         <div class="w-px h-5 bg-border mx-1"></div>
         <button
-          class="p-2 rounded-md hover:bg-muted transition-colors"
-          title={$_('viewer.archive')}
+          class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+          data-tooltip={$_('viewer.archive')}
+          aria-label={$_('viewer.archive')}
           onclick={handleArchive}
         >
           <Icon icon="mdi:archive-outline" class="w-5 h-5 text-muted-foreground" />
         </button>
         <button
-          class="p-2 rounded-md hover:bg-muted transition-colors"
-          title={$_(isTrashFolder ? 'viewer.deletePermanently' : 'viewer.delete')}
+          class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+          data-tooltip={$_(isTrashFolder ? 'viewer.deletePermanently' : 'viewer.delete')}
+          aria-label={$_(isTrashFolder ? 'viewer.deletePermanently' : 'viewer.delete')}
           onclick={handleDelete}
         >
           <Icon icon={isTrashFolder ? 'mdi:delete-forever' : 'mdi:delete-outline'} class="w-5 h-5 text-muted-foreground" />
         </button>
         <button
-          class="p-2 rounded-md hover:bg-muted transition-colors"
-          title={$_(isSpamFolder ? 'viewer.markAsNotSpam' : 'viewer.markAsSpam')}
+          class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+          data-tooltip={$_(isSpamFolder ? 'viewer.markAsNotSpam' : 'viewer.markAsSpam')}
+          aria-label={$_(isSpamFolder ? 'viewer.markAsNotSpam' : 'viewer.markAsSpam')}
           onclick={handleSpam}
         >
           <Icon icon={isSpamFolder ? 'mdi:email-check-outline' : 'mdi:alert-octagon-outline'} class="w-5 h-5 text-muted-foreground" />
@@ -1389,15 +1432,17 @@
         <div class="w-px h-5 bg-border mx-1"></div>
 
         <button
-          class="p-2 rounded-md hover:bg-muted transition-colors"
-          title={$_(allStarred ? 'viewer.removeStar' : 'viewer.star')}
+          class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+          data-tooltip={$_(allStarred ? 'viewer.removeStar' : 'viewer.star')}
+          aria-label={$_(allStarred ? 'viewer.removeStar' : 'viewer.star')}
           onclick={handleStar}
         >
           <Icon icon={allStarred ? 'mdi:star' : 'mdi:star-outline'} class="w-5 h-5 {allStarred ? 'text-yellow-500' : 'text-muted-foreground'}" />
         </button>
         <button
-          class="p-2 rounded-md hover:bg-muted transition-colors"
-          title={$_(allRead ? 'viewer.markAsUnread' : 'viewer.markAsRead')}
+          class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+          data-tooltip={$_(allRead ? 'viewer.markAsUnread' : 'viewer.markAsRead')}
+          aria-label={$_(allRead ? 'viewer.markAsUnread' : 'viewer.markAsRead')}
           onclick={handleMarkRead}
         >
           <Icon icon={allRead ? 'mdi:email-open-outline' : 'mdi:email-outline'} class="w-5 h-5 text-muted-foreground" />
@@ -1407,30 +1452,34 @@
       <div class="flex items-center gap-2">
         {#if conversation.messages && conversation.messages.length > 1}
           <button
-            class="p-2 rounded-md hover:bg-muted transition-colors"
-            title={$_('viewer.expandAll')}
+            class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+            data-tooltip={$_('viewer.expandAll')}
+            aria-label={$_('viewer.expandAll')}
             onclick={expandAll}
           >
             <Icon icon="mdi:unfold-more-horizontal" class="w-5 h-5 text-muted-foreground" />
           </button>
           <button
-            class="p-2 rounded-md hover:bg-muted transition-colors"
-            title={$_('viewer.collapseAll')}
+            class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+            data-tooltip={$_('viewer.collapseAll')}
+            aria-label={$_('viewer.collapseAll')}
             onclick={collapseAll}
           >
             <Icon icon="mdi:unfold-less-horizontal" class="w-5 h-5 text-muted-foreground" />
           </button>
         {/if}
         <button
-          class="p-2 rounded-md hover:bg-muted transition-colors"
-          title={inFocusMode && focusModeKind === 'thread' ? $_('viewer.exitFocus') : $_('viewer.focusThread')}
+          class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+          data-tooltip={inFocusMode && focusModeKind === 'thread' ? $_('viewer.exitFocus') : $_('viewer.focusThread')}
+          aria-label={inFocusMode && focusModeKind === 'thread' ? $_('viewer.exitFocus') : $_('viewer.focusThread')}
           onclick={onToggleThreadFocus}
         >
           <Icon icon={inFocusMode && focusModeKind === 'thread' ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'} class="w-5 h-5 text-muted-foreground" />
         </button>
         <button
-          class="p-2 rounded-md hover:bg-muted transition-colors"
-          title={$_('viewer.print')}
+          class="viewer-toolbar-action p-2 rounded-md hover:bg-muted transition-colors"
+          data-tooltip={$_('viewer.print')}
+          aria-label={$_('viewer.print')}
           onclick={handlePrint}
         >
           <Icon icon="mdi:printer-outline" class="w-5 h-5 text-muted-foreground" />

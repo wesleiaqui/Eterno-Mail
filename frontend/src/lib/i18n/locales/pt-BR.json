@@ -136,7 +136,28 @@
     "emailCount": "{count} e-mails",
     "showAccounts": "Mostrar e-mails de contas",
     "commercial": "Comercial",
-    "other": "Outros e-mails"
+    "other": "Outros e-mails",
+    "mostUsed": "Mais usado",
+    "chooseDisplay": "Escolher exibição da caixa de entrada"
+  },
+  "updates": {
+    "sectionTitle": "Atualizações",
+    "sectionDescription": "Receba um aviso quando uma nova versão do Eterno Mail for publicada.",
+    "availableTitle": "Atualização disponível",
+    "availableDescription": "O Eterno Mail {version} já está disponível.",
+    "versionTransition": "{current} → {latest}",
+    "viewRelease": "Ver versão",
+    "later": "Depois",
+    "skipVersion": "Ignorar esta versão",
+    "automatic": "Verificar atualizações automaticamente",
+    "automaticHelp": "Consulta as Releases do GitHub em segundo plano e avisa quando uma versão mais nova for publicada.",
+    "checkNow": "Verificar agora",
+    "checking": "Verificando...",
+    "upToDate": "Você está usando a versão mais recente.",
+    "availableInSettings": "A versão {version} está disponível.",
+    "checkFailed": "Não foi possível verificar atualizações.",
+    "lastChecked": "Última verificação: {time}",
+    "neverChecked": "Ainda não verificado"
   },
   "viewer": {
     "selectConversation": "Selecione uma conversa para ler",

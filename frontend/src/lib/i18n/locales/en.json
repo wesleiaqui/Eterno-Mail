@@ -139,7 +139,28 @@
     "emailCount": "{count} emails",
     "showAccounts": "Show emails from accounts",
     "commercial": "Commercial",
-    "other": "Other emails"
+    "other": "Other emails",
+    "mostUsed": "Most used",
+    "chooseDisplay": "Choose inbox display"
+  },
+  "updates": {
+    "sectionTitle": "Updates",
+    "sectionDescription": "Get notified when a new Eterno Mail release is published.",
+    "availableTitle": "Update available",
+    "availableDescription": "Eterno Mail {version} is now available.",
+    "versionTransition": "{current} → {latest}",
+    "viewRelease": "View release",
+    "later": "Later",
+    "skipVersion": "Skip this version",
+    "automatic": "Check for updates automatically",
+    "automaticHelp": "Checks GitHub Releases quietly in the background and notifies you when a newer version is published.",
+    "checkNow": "Check now",
+    "checking": "Checking...",
+    "upToDate": "You're using the latest version.",
+    "availableInSettings": "Version {version} is available.",
+    "checkFailed": "Couldn't check for updates.",
+    "lastChecked": "Last checked: {time}",
+    "neverChecked": "Not checked yet"
   },
   "viewer": {
     "selectConversation": "Select a conversation to read",

@@ -119,6 +119,8 @@ export function CancelFolderSync(arg1:string,arg2:string):Promise<void>;
 
 export function CancelOAuthFlow():Promise<void>;
 
+export function CheckForUpdates():Promise<string>;
+
 export function CheckRecipientCerts(arg1:Array<string>):Promise<Record<string, boolean>>;
 
 export function CheckRecipientPGPKeys(arg1:Array<string>):Promise<Record<string, boolean>>;
@@ -227,6 +229,8 @@ export function GetAttachment(arg1:string):Promise<message.Attachment>;
 
 export function GetAttachments(arg1:string):Promise<Array<message.Attachment>>;
 
+export function GetAutoCheckUpdates():Promise<boolean>;
+
 export function GetAutoDetectedFolders(arg1:string):Promise<Record<string, string>>;
 
 export function GetAutostart():Promise<boolean>;
@@ -292,6 +296,8 @@ export function GetInlineAttachments(arg1:string):Promise<Record<string, string>
 export function GetLanguage():Promise<string>;
 
 export function GetLastSeenVersion():Promise<string>;
+
+export function GetLastUpdateCheck():Promise<string>;
 
 export function GetLinkedAccountsForContactSync():Promise<Array<app.LinkedAccountInfo>>;
 
@@ -360,6 +366,8 @@ export function GetShowMessageListProfilePics():Promise<boolean>;
 export function GetShowTitleBar():Promise<boolean>;
 
 export function GetShowViewerCircles():Promise<boolean>;
+
+export function GetSkippedUpdateVersion():Promise<string>;
 
 export function GetSourceAddressbooks(arg1:string):Promise<Array<carddav.Addressbook>>;
 
@@ -577,6 +585,8 @@ export function SetAlwaysLoadImages(arg1:boolean):Promise<void>;
 
 export function SetAlwaysShowMessageCheckbox(arg1:boolean):Promise<void>;
 
+export function SetAutoCheckUpdates(arg1:boolean):Promise<void>;
+
 export function SetAutostart(arg1:boolean):Promise<void>;
 
 export function SetComposerFormat(arg1:string):Promise<void>;
@@ -600,6 +610,8 @@ export function SetExtensionEnabled(arg1:string,arg2:boolean):Promise<void>;
 export function SetLanguage(arg1:string):Promise<void>;
 
 export function SetLastSeenVersion(arg1:string):Promise<void>;
+
+export function SetLastUpdateCheck(arg1:string):Promise<void>;
 
 export function SetMailtoMode(arg1:string):Promise<void>;
 
@@ -636,6 +648,8 @@ export function SetShowMessageListProfilePics(arg1:boolean):Promise<void>;
 export function SetShowTitleBar(arg1:boolean):Promise<void>;
 
 export function SetShowViewerCircles(arg1:boolean):Promise<void>;
+
+export function SetSkippedUpdateVersion(arg1:string):Promise<void>;
 
 export function SetSpellcheckEnabled(arg1:boolean):Promise<void>;
 

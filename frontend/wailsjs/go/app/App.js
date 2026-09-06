@@ -198,6 +198,10 @@ export function CancelOAuthFlow() {
   return window['go']['app']['App']['CancelOAuthFlow']();
 }
 
+export function CheckForUpdates() {
+  return window['go']['app']['App']['CheckForUpdates']();
+}
+
 export function CheckRecipientCerts(arg1) {
   return window['go']['app']['App']['CheckRecipientCerts'](arg1);
 }
@@ -414,6 +418,10 @@ export function GetAttachments(arg1) {
   return window['go']['app']['App']['GetAttachments'](arg1);
 }
 
+export function GetAutoCheckUpdates() {
+  return window['go']['app']['App']['GetAutoCheckUpdates']();
+}
+
 export function GetAutoDetectedFolders(arg1) {
   return window['go']['app']['App']['GetAutoDetectedFolders'](arg1);
 }
@@ -544,6 +552,10 @@ export function GetLanguage() {
 
 export function GetLastSeenVersion() {
   return window['go']['app']['App']['GetLastSeenVersion']();
+}
+
+export function GetLastUpdateCheck() {
+  return window['go']['app']['App']['GetLastUpdateCheck']();
 }
 
 export function GetLinkedAccountsForContactSync() {
@@ -680,6 +692,10 @@ export function GetShowTitleBar() {
 
 export function GetShowViewerCircles() {
   return window['go']['app']['App']['GetShowViewerCircles']();
+}
+
+export function GetSkippedUpdateVersion() {
+  return window['go']['app']['App']['GetSkippedUpdateVersion']();
 }
 
 export function GetSourceAddressbooks(arg1) {
@@ -1114,6 +1130,10 @@ export function SetAlwaysShowMessageCheckbox(arg1) {
   return window['go']['app']['App']['SetAlwaysShowMessageCheckbox'](arg1);
 }
 
+export function SetAutoCheckUpdates(arg1) {
+  return window['go']['app']['App']['SetAutoCheckUpdates'](arg1);
+}
+
 export function SetAutostart(arg1) {
   return window['go']['app']['App']['SetAutostart'](arg1);
 }
@@ -1160,6 +1180,10 @@ export function SetLanguage(arg1) {
 
 export function SetLastSeenVersion(arg1) {
   return window['go']['app']['App']['SetLastSeenVersion'](arg1);
+}
+
+export function SetLastUpdateCheck(arg1) {
+  return window['go']['app']['App']['SetLastUpdateCheck'](arg1);
 }
 
 export function SetMailtoMode(arg1) {
@@ -1232,6 +1256,10 @@ export function SetShowTitleBar(arg1) {
 
 export function SetShowViewerCircles(arg1) {
   return window['go']['app']['App']['SetShowViewerCircles'](arg1);
+}
+
+export function SetSkippedUpdateVersion(arg1) {
+  return window['go']['app']['App']['SetSkippedUpdateVersion'](arg1);
 }
 
 export function SetSpellcheckEnabled(arg1) {

@@ -14,6 +14,7 @@
   import TermsDialog from './lib/components/TermsDialog.svelte'
   import OAuthMissingDialog from './lib/components/OAuthMissingDialog.svelte'
   import WhatsNewDialog from './lib/components/WhatsNewDialog.svelte'
+  import UpdateAvailableNotice from './lib/components/UpdateAvailableNotice.svelte'
   import CertificateDialog from './lib/components/settings/CertificateDialog.svelte'
   import ExtensionSettingsDialog from './lib/components/settings/ExtensionSettingsDialog.svelte'
   import ExtensionRail from './lib/components/rail/ExtensionRail.svelte'
@@ -26,6 +27,7 @@
   import { addToast } from '$lib/stores/toast'
   import { loadSettings, getThemeMode, getShowTitleBar, getNativeTitleBar, getComposerMode, getMailtoMode } from '$lib/stores/settings.svelte'
   import { loadImageAllowlist } from '$lib/stores/imageAllowlist.svelte'
+  import { initializeUpdateChecker } from '$lib/stores/updateChecker.svelte'
   import { initTheme, applyThemeFromMode, handleSystemThemeEvent, handleMediaQueryChange } from '$lib/stores/theme.svelte'
   import { loadUIState, saveUIState, paneConstraints, getActiveExtension, setActiveExtension, getSidebarWidth, isSidebarCollapsed, setSidebarCollapsed } from '$lib/stores/uiState.svelte'
   import { setPendingDeepLink } from '$lib/stores/extensionDeepLink.svelte'
@@ -394,6 +396,10 @@
     // Load application settings (including theme mode) and apply theme
     const storedThemeMode = await loadSettings()
     await initTheme(storedThemeMode, GetSystemTheme)
+
+    // Release checks are deliberately non-blocking. The checker waits a few
+    // seconds before contacting GitHub and silently tolerates offline mode.
+    void initializeUpdateChecker()
 
     try {
       effectiveTitleBarMode = (await GetWindowDecorationStatus()).effective_mode
@@ -1790,6 +1796,9 @@
 {#if isResizingSidebar || isResizingList}
   <div class="fixed inset-0 cursor-col-resize z-50"></div>
 {/if}
+
+<!-- New-release notice stays out of the way of launch-critical dialogs. -->
+<UpdateAvailableNotice hidden={showTermsDialog || showOAuthMissingDialog || showWhatsNewDialog || showCertDialog || showFlatpakFsDialog} />
 
 <!-- Toast notifications -->
 <ToastContainer />

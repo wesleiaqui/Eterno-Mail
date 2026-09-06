@@ -309,6 +309,16 @@
   </provides>
 
   <releases>
+    <release version="0.3.5" date="2026-09-06">
+      <description>
+        <ul>
+          <li>Fixed first-launch interaction becoming unresponsive after dismissing startup dialogs</li>
+          <li>Improved startup dialog sequencing and modal input cleanup</li>
+          <li>Fixed Enter and Space activation for focused interface buttons</li>
+          <li>Improved external-link handling in startup dialogs</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.3.4" date="2026-09-06">
       <description>
         <ul>

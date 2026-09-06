@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Eterno Mail — v0.3.5
+
+- Fixed first-launch interaction becoming blocked after dismissing the startup dialogs.
+- Fixed Enter and Space activation for focused interface buttons.
+- Improved startup dialog sequencing and cleanup to prevent stale modal input locks.
+- Improved external-link handling in the Terms and OAuth dialogs.
+- Updated the What's New dialog to use the actual runtime version.
+- Improved Flatpak development builds inside container environments.
+
 ## Eterno Mail — v0.3.4
 
 - Added unified Drafts, Sent, Trash, Starred, Archived, Spam/Blocked and All Mail views across enabled accounts.

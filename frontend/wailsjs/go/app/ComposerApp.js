@@ -86,6 +86,10 @@ export function GetThemeMode() {
   return window['go']['app']['ComposerApp']['GetThemeMode']();
 }
 
+export function GetWindowDecorationStatus() {
+  return window['go']['app']['ComposerApp']['GetWindowDecorationStatus']();
+}
+
 export function HasPGPKey(arg1) {
   return window['go']['app']['ComposerApp']['HasPGPKey'](arg1);
 }

@@ -25,6 +25,7 @@ var assets embed.FS
 // appIcon is passed to GTK directly so Linux uses the current branded icon
 // for the running window instead of a stale icon cached for the desktop entry.
 // The matching desktop entry is io.github.wesleiaqui.eternomail.desktop.
+//
 //go:embed build/appicon.png
 var appIcon []byte
 
@@ -101,15 +102,20 @@ func runMainMode(mailtoData *app.MailtoData, rawMailtoArg string) {
 	}
 	defer lock.Unlock()
 
-	// Read native title bar setting before Wails init (Frameless is init-time only)
-	nativeTitleBar := false
+	// Resolve window decoration before Wails init (Frameless is init-time only).
+	// The effective mode may differ from the saved preference on KDE/Wayland.
+	nativeTitleBar, showTitleBar := false, true
 	if paths, err := platform.GetPaths(); err == nil {
-		nativeTitleBar = settings.ReadNativeTitleBar(paths.DatabasePath())
+		nativeTitleBar, showTitleBar = settings.ReadTitleBarSettings(paths.DatabasePath())
 	}
+	preference := platform.TitleBarPreference(nativeTitleBar, showTitleBar)
+	capabilities := platform.CurrentWindowDecorationCapabilities()
+	effectiveMode := platform.ResolveTitleBarMode(preference, capabilities)
 
 	// Create an instance of the app structure
 	application := app.NewApp(DebugMode, *dbusNotify)
 	application.SingleInstanceLock = lock
+	application.WindowDecorationStatus = platform.NewWindowDecorationStatus(preference, effectiveMode, capabilities)
 
 	// Store mailto data if provided (will be used after startup)
 	if mailtoData != nil {
@@ -136,7 +142,7 @@ func runMainMode(mailtoData *app.MailtoData, rawMailtoArg string) {
 		Height:                   800,
 		MinWidth:                 360,
 		MinHeight:                400,
-		Frameless:                !nativeTitleBar,
+		Frameless:                effectiveMode != platform.TitleBarModeNative,
 		StartHidden:              true, // Hide until frontend is ready to prevent white flash
 		EnableDefaultContextMenu: true,
 		AssetServer: &assetserver.Options{
@@ -210,11 +216,15 @@ func runComposerMode() {
 		title = "Edit Draft"
 	}
 
-	// Read native title bar setting before Wails init (Frameless is init-time only)
-	composerNativeTitleBar := false
+	// Resolve decorations with the same pre-Wails decision as the main window.
+	composerNativeTitleBar, composerShowTitleBar := false, true
 	if paths, err := platform.GetPaths(); err == nil {
-		composerNativeTitleBar = settings.ReadNativeTitleBar(paths.DatabasePath())
+		composerNativeTitleBar, composerShowTitleBar = settings.ReadTitleBarSettings(paths.DatabasePath())
 	}
+	composerPreference := platform.TitleBarPreference(composerNativeTitleBar, composerShowTitleBar)
+	composerCapabilities := platform.CurrentWindowDecorationCapabilities()
+	composerEffectiveMode := platform.ResolveTitleBarMode(composerPreference, composerCapabilities)
+	composerApp.WindowDecorationStatus = platform.NewWindowDecorationStatus(composerPreference, composerEffectiveMode, composerCapabilities)
 
 	// Create a custom asset handler that serves composer.html instead of index.html
 	composerAssetHandler := &composerAssetHandler{assets: assets}
@@ -226,7 +236,7 @@ func runComposerMode() {
 		Height:                   600,
 		MinWidth:                 500,
 		MinHeight:                400,
-		Frameless:                !composerNativeTitleBar,
+		Frameless:                composerEffectiveMode != platform.TitleBarModeNative,
 		StartHidden:              true, // Hide until frontend is ready to prevent white flash
 		EnableDefaultContextMenu: true,
 		AssetServer: &assetserver.Options{

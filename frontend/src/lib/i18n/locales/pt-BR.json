@@ -171,6 +171,7 @@
   "settingsGeneral": {
     "titleBarEterno": "Eterno Mail",
     "titleBarEternoDesc": "Usar a barra de título do aplicativo",
+    "titleBarCompatibilityWayland": "As decorações personalizadas da janela não são compatíveis com a sessão KDE Wayland atual. A barra de título do sistema será usada.",
     "sidebarSize": "Tamanho da lateral",
     "sidebarSizeHelp": "Escolha a largura, textos, ícones e espaçamentos da lateral expandida. A alteração é aplicada imediatamente.",
     "sidebarCompact": "Compacta",

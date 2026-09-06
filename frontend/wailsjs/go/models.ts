@@ -2414,6 +2414,29 @@ export namespace pgp {
 
 }
 
+export namespace platform {
+	
+	export class WindowDecorationStatus {
+	    preference_mode: string;
+	    effective_mode: string;
+	    frameless_supported: boolean;
+	    native_fallback_required: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new WindowDecorationStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.preference_mode = source["preference_mode"];
+	        this.effective_mode = source["effective_mode"];
+	        this.frameless_supported = source["frameless_supported"];
+	        this.native_fallback_required = source["native_fallback_required"];
+	    }
+	}
+
+}
+
 export namespace senderlogo {
 	
 	export class SenderLogo {

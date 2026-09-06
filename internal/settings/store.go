@@ -809,20 +809,42 @@ func (s *Store) SetDarkComposerBody(enabled bool) error {
 	return s.Set(KeyDarkComposerBody, value)
 }
 
-// ReadNativeTitleBar opens the database directly to read the native_titlebar setting.
-// Used in main.go before wails.Run() when the full DB isn't initialized yet.
-// Returns false on any error (first run, missing DB, etc.).
-func ReadNativeTitleBar(dbPath string) bool {
+// ReadTitleBarSettings opens the database directly before Wails starts.
+// Defaults preserve the existing first-run custom-titlebar behavior.
+func ReadTitleBarSettings(dbPath string) (nativeTitleBar, showTitleBar bool) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
-		return false
+		return false, true
 	}
 	defer db.Close()
 
-	var value string
-	err = db.QueryRow("SELECT value FROM settings WHERE key = ?", KeyNativeTitleBar).Scan(&value)
+	rows, err := db.Query("SELECT key, value FROM settings WHERE key IN (?, ?)", KeyNativeTitleBar, KeyShowTitleBar)
 	if err != nil {
-		return false
+		return false, true
 	}
-	return value == "true"
+	defer rows.Close()
+
+	showTitleBar = true
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			return false, true
+		}
+		switch key {
+		case KeyNativeTitleBar:
+			nativeTitleBar = value == "true"
+		case KeyShowTitleBar:
+			showTitleBar = value == "true"
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, true
+	}
+	return nativeTitleBar, showTitleBar
+}
+
+// ReadNativeTitleBar is retained for callers that only need the legacy flag.
+func ReadNativeTitleBar(dbPath string) bool {
+	nativeTitleBar, _ := ReadTitleBarSettings(dbPath)
+	return nativeTitleBar
 }

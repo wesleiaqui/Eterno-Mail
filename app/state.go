@@ -54,6 +54,12 @@ func (a *App) IsFlatpak() bool {
 	return platform.IsFlatpak()
 }
 
+// GetWindowDecorationStatus returns the persisted preference and effective
+// decoration decision used when this window was created.
+func (a *App) GetWindowDecorationStatus() platform.WindowDecorationStatus {
+	return a.WindowDecorationStatus
+}
+
 // GetPendingMailto returns and clears any pending mailto: URL data.
 // This is used when Aerion is launched with a mailto: URL argument.
 func (a *App) GetPendingMailto() *MailtoData {

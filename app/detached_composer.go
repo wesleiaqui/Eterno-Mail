@@ -99,6 +99,9 @@ type ComposerApp struct {
 	// Paths
 	paths *platform.Paths
 
+	// WindowDecorationStatus is the pre-Wails decision for this composer window.
+	WindowDecorationStatus platform.WindowDecorationStatus
+
 	// Draft IMAP sync goroutine tracking
 	draftSyncCancel context.CancelFunc
 	draftSyncDone   chan struct{}
@@ -528,6 +531,11 @@ func (c *ComposerApp) GetShowTitleBar() (bool, error) {
 // GetNativeTitleBar returns whether the native OS title bar is enabled.
 func (c *ComposerApp) GetNativeTitleBar() (bool, error) {
 	return c.settingsStore.GetNativeTitleBar()
+}
+
+// GetWindowDecorationStatus returns the decision used to create this window.
+func (c *ComposerApp) GetWindowDecorationStatus() platform.WindowDecorationStatus {
+	return c.WindowDecorationStatus
 }
 
 // GetThemeMode returns the current theme mode setting.

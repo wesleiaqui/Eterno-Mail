@@ -17,6 +17,7 @@ import {pgp} from '../models';
 import {smime} from '../models';
 import {senderlogo} from '../models';
 import {appstate} from '../models';
+import {platform} from '../models';
 import {sync} from '../models';
 import {draft} from '../models';
 
@@ -385,6 +386,8 @@ export function GetUnifiedInboxConversations(arg1:number,arg2:number,arg3:string
 export function GetUnifiedInboxCount(arg1:string):Promise<number>;
 
 export function GetUnifiedInboxUnreadCount():Promise<number>;
+
+export function GetWindowDecorationStatus():Promise<platform.WindowDecorationStatus>;
 
 export function HasPGPKey(arg1:string):Promise<boolean>;
 

@@ -424,6 +424,7 @@
     "display": "Display",
     "titleBar": "Title bar",
     "titleBarHelp": "Choose the title bar style (native requires restart)",
+    "titleBarCompatibilityWayland": "Custom window decorations are not supported by the current KDE Wayland session. The system title bar will be used.",
     "titleBarEterno": "Eterno Mail",
     "titleBarEternoDesc": "Use application title bar",
     "titleBarNative": "Native",

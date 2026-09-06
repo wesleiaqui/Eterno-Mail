@@ -734,6 +734,10 @@ export function GetUnifiedInboxUnreadCount() {
   return window['go']['app']['App']['GetUnifiedInboxUnreadCount']();
 }
 
+export function GetWindowDecorationStatus() {
+  return window['go']['app']['App']['GetWindowDecorationStatus']();
+}
+
 export function HasPGPKey(arg1) {
   return window['go']['app']['App']['HasPGPKey'](arg1);
 }

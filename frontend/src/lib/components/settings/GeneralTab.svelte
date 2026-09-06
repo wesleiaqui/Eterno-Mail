@@ -15,6 +15,7 @@
     themeMode: string
     nativeTitleBar: boolean
     showTitleBar: boolean
+    nativeFallbackRequired: boolean
     runBackground: boolean
     startHidden: boolean
     autostart: boolean
@@ -42,6 +43,7 @@
     themeMode = $bindable(),
     nativeTitleBar = $bindable(),
     showTitleBar = $bindable(),
+    nativeFallbackRequired,
     runBackground = $bindable(),
     startHidden = $bindable(),
     autostart = $bindable(),
@@ -236,6 +238,11 @@
       <p class="text-xs text-muted-foreground">
         {$_('settingsGeneral.titleBarHelp')}
       </p>
+      {#if nativeFallbackRequired && !nativeTitleBar}
+        <p class="text-xs text-muted-foreground">
+          {$_('settingsGeneral.titleBarCompatibilityWayland')}
+        </p>
+      {/if}
     </div>
 
     <div class="space-y-2">

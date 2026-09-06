@@ -2,7 +2,7 @@
   // Load offline icon data before anything else
   import './lib/iconify-offline'
 
-  import { onMount, untrack } from 'svelte'
+  import { onMount, tick, untrack } from 'svelte'
   import Icon from '@iconify/svelte'
   import TitleBar from './lib/components/common/TitleBar.svelte'
   import Sidebar from './lib/components/sidebar/Sidebar.svelte'
@@ -44,11 +44,11 @@
   import { dispatchExtensionShortcut } from '$lib/stores/extensionShortcuts.svelte'
   import { initLayout, getLayoutMode, getResponsiveView, showViewer, hideViewer, showSidebar, hideSidebar, isResponsive } from '$lib/stores/layout.svelte'
   // @ts-ignore - wailsjs path
-  import { PrepareReply, GetPendingMailto, GetDraft, MarkAsRead, MarkAsUnread, Star, Unstar, Archive, MarkAsSpam, MarkAsNotSpam, Undo, GetTermsAccepted, SetTermsAccepted, RefreshWindowConstraints, AcceptCertificate, GetStartHiddenActive, CloseWindow, QuitApp, OpenComposerWindow, GetSystemTheme, NotifyStartupComplete, GetOAuthBuildStatus, GetOAuthWarningDisabled, SetOAuthWarningDisabled, GetLastSeenVersion, SetLastSeenVersion, GetAppInfo } from '../wailsjs/go/app/App.js'
+  import { PrepareReply, GetPendingMailto, GetDraft, MarkAsRead, MarkAsUnread, Star, Unstar, Archive, MarkAsSpam, MarkAsNotSpam, Undo, GetTermsAccepted, SetTermsAccepted, RefreshWindowConstraints, AcceptCertificate, GetStartHiddenActive, CloseWindow, QuitApp, OpenComposerWindow, GetSystemTheme, NotifyStartupComplete, GetOAuthBuildStatus, GetOAuthWarningDisabled, SetOAuthWarningDisabled, GetLastSeenVersion, SetLastSeenVersion, GetAppInfo, GetWindowDecorationStatus } from '../wailsjs/go/app/App.js'
   // @ts-ignore - wailsjs path
   import { smtp, folder, certificate } from '../wailsjs/go/models'
   // @ts-ignore - wailsjs runtime
-  import { WindowShow, WindowHide, EventsOn } from '../wailsjs/runtime/runtime'
+  import { WindowShow, EventsOn } from '../wailsjs/runtime/runtime'
   import { _ } from '$lib/i18n'
 
   // Component refs for keyboard navigation. Plain `let` (not $state) is
@@ -60,6 +60,7 @@
   let messageListRef: MessageList | null = null
   let viewerRef: ConversationViewer | null = null
   let messageListContainerRef: HTMLElement | null = null
+  let effectiveTitleBarMode = $state('native')
 
   // React to theme mode changes from settings store
   $effect(() => {
@@ -394,6 +395,21 @@
     const storedThemeMode = await loadSettings()
     await initTheme(storedThemeMode, GetSystemTheme)
 
+    try {
+      effectiveTitleBarMode = (await GetWindowDecorationStatus()).effective_mode
+    } catch (err) {
+      console.error('Failed to load window decoration status:', err)
+    }
+
+    // Frameless is selected before Wails starts from this same persisted
+    // setting. Keep the window hidden until the frontend has applied it too,
+    // otherwise native-mode windows briefly render the custom title bar.
+    const shouldStartHidden = await GetStartHiddenActive()
+    await tick()
+    if (!shouldStartHidden) {
+      WindowShow()
+    }
+
     // Load image allowlist cache for synchronous checks in EmailBody
     loadImageAllowlist()
 
@@ -501,18 +517,6 @@
     if (splash) {
       splash.hidden = true
       setTimeout(() => splash.remove(), 250)
-    }
-
-    // main.ts called WindowShow() at module load so the splash was visible
-    // during slow startup work (migrations etc.). If the user has start-
-    // hidden background mode, undo that now. Otherwise the window is already
-    // visible — calling WindowShow again is harmless.
-    const shouldStartHidden = await GetStartHiddenActive()
-    if (shouldStartHidden) {
-      WindowHide()
-    }
-    if (!shouldStartHidden) {
-      WindowShow()
     }
 
     // Clear the desktop-environment startup indicator. Called after WindowShow()
@@ -1626,7 +1630,7 @@
 
 <div class="flex flex-col h-full w-full overflow-hidden bg-background">
   <!-- Custom Title Bar -->
-  {#if getShowTitleBar() && !getNativeTitleBar()}
+  {#if getShowTitleBar() && !getNativeTitleBar() && effectiveTitleBarMode === 'custom'}
     <TitleBar onClose={handleClose} />
   {/if}
 

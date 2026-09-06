@@ -5,16 +5,16 @@ import { mount } from 'svelte'
 // @ts-ignore - wailsjs path
 import { IsReady } from '../wailsjs/go/app/App'
 // @ts-ignore - wailsjs path
-import { EventsOn, WindowShow } from '../wailsjs/runtime/runtime'
+import { EventsOn } from '../wailsjs/runtime/runtime'
 
 // Linear bootstrap. Each step waits for the previous to complete; no
 // concurrent retries woven between them. The inline splash markup in
 // index.html is visible from the moment the WebView paints, so the user
-// sees feedback for the entire bootstrap window (runtime inject → window
-// show → i18n load → backend ready → app mount).
+// keeps the native window hidden until App.svelte has loaded the persisted
+// decoration mode. Showing it earlier can render the custom title bar with a
+// native frame before the settings IPC calls complete.
 async function bootstrap(): Promise<void> {
   await waitForRuntime()
-  WindowShow()
   await initI18n()
   await waitForBackendReady()
   mount(App, { target: document.getElementById('app')! })

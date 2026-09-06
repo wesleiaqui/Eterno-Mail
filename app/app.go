@@ -352,6 +352,10 @@ type App struct {
 
 	// Window hidden state (background mode)
 	windowHidden bool
+
+	// WindowDecorationStatus is decided before Wails creates the window and is
+	// exposed to the frontend so it never contradicts native decoration state.
+	WindowDecorationStatus platform.WindowDecorationStatus
 }
 
 // NewApp creates a new App application struct

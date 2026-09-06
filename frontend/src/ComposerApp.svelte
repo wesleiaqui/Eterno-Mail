@@ -13,7 +13,7 @@
   import { getShowTitleBar, getNativeTitleBar, setShowTitleBar, setNativeTitleBar, setDarkComposerBody } from '$lib/stores/settings.svelte'
   import { initTheme, handleThemeChanged, type ThemeMode } from '$lib/stores/theme.svelte'
   // @ts-ignore - wailsjs imports
-  import { GetComposeMode, PrepareReply, GetDraft, CloseWindow, GetThemeMode, GetSystemTheme, GetShowTitleBar, GetNativeTitleBar, GetDarkComposerBody, RefreshWindowConstraints, NotifyStartupComplete } from '../wailsjs/go/app/ComposerApp.js'
+  import { GetComposeMode, PrepareReply, GetDraft, CloseWindow, GetThemeMode, GetSystemTheme, GetShowTitleBar, GetNativeTitleBar, GetDarkComposerBody, GetWindowDecorationStatus, RefreshWindowConstraints, NotifyStartupComplete } from '../wailsjs/go/app/ComposerApp.js'
   // @ts-ignore - wailsjs imports
   import { smtp, app } from '../wailsjs/go/models'
   // @ts-ignore - wailsjs runtime
@@ -28,6 +28,7 @@
   // Window state
   let isMaximized = $state(false)
   let isHovering = $state(false)
+  let effectiveTitleBarMode = $state('native')
 
   // Close request state - triggers Composer's close dialog
   let closeRequested = $state(false)
@@ -62,10 +63,11 @@
   onMount(async () => {
     // Load title bar settings so the composer respects the user's preference
     try {
-      const [stb, ntb, dcb] = await Promise.all([GetShowTitleBar(), GetNativeTitleBar(), GetDarkComposerBody()])
+      const [stb, ntb, dcb, decorationStatus] = await Promise.all([GetShowTitleBar(), GetNativeTitleBar(), GetDarkComposerBody(), GetWindowDecorationStatus()])
       setShowTitleBar(stb ?? true)
       setNativeTitleBar(ntb ?? false)
       setDarkComposerBody(dcb ?? false)
+      effectiveTitleBarMode = decorationStatus.effective_mode
     } catch (err) {
       console.error('Failed to load title bar settings:', err)
     }
@@ -181,7 +183,7 @@
 
 <div class="h-screen flex flex-col bg-background text-foreground">
   <!-- Custom Title Bar for frameless window -->
-  {#if getShowTitleBar() && !getNativeTitleBar()}
+  {#if getShowTitleBar() && !getNativeTitleBar() && effectiveTitleBarMode === 'custom'}
     <header class="h-10 flex items-center justify-between bg-muted/50 border-b border-border select-none shrink-0">
       <!-- Drag region - left side with title -->
       <div class="flex-1 flex items-center gap-2 px-3 h-full" style="--wails-draggable: drag">

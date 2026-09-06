@@ -6,6 +6,7 @@ import {smtp} from '../models';
 import {message} from '../models';
 import {pgp} from '../models';
 import {smime} from '../models';
+import {platform} from '../models';
 import {draft} from '../models';
 import {contact} from '../models';
 import {context} from '../models';
@@ -51,6 +52,8 @@ export function GetShowTitleBar():Promise<boolean>;
 export function GetSystemTheme():Promise<string>;
 
 export function GetThemeMode():Promise<string>;
+
+export function GetWindowDecorationStatus():Promise<platform.WindowDecorationStatus>;
 
 export function HasPGPKey(arg1:string):Promise<boolean>;
 

@@ -186,11 +186,62 @@
     setTimeout(() => QuitApp(), 100)
   }
 
+  // bits-ui modal primitives temporarily set body pointer-events to none.
+  // Opening the next startup modal in the same reactive turn as the previous
+  // one closes can race that cleanup and leave the whole app non-interactive.
+  // Give modal teardown two browser frames before advancing the launch queue.
+  function nextAnimationFrame(): Promise<void> {
+    return new Promise(resolve => requestAnimationFrame(() => resolve()))
+  }
+
+  async function waitForStartupModalCleanup() {
+    await tick()
+    await nextAnimationFrame()
+    await nextAnimationFrame()
+  }
+
+  function releaseStaleStartupPointerLock() {
+    if (document.body.style.pointerEvents === 'none') {
+      document.body.style.removeProperty('pointer-events')
+    }
+  }
+
+  let startupDialogAdvancing = false
+
+  async function advanceStartupDialogs() {
+    if (startupDialogAdvancing) return
+    startupDialogAdvancing = true
+
+    try {
+      await waitForStartupModalCleanup()
+
+      if (showTermsDialog || showOAuthMissingDialog || showWhatsNewDialog) {
+        return
+      }
+
+      releaseStaleStartupPointerLock()
+
+      if (pendingOAuthWarning) {
+        pendingOAuthWarning = false
+        showOAuthMissingDialog = true
+        return
+      }
+
+      if (pendingWhatsNew) {
+        pendingWhatsNew = false
+        showWhatsNewDialog = true
+      }
+    } finally {
+      startupDialogAdvancing = false
+    }
+  }
+
   // Handle terms acceptance
   async function handleTermsAccepted() {
     try {
       await SetTermsAccepted(true)
       showTermsDialog = false
+      void advanceStartupDialogs()
     } catch (err) {
       console.error('Failed to save terms acceptance:', err)
     }
@@ -206,37 +257,24 @@
         console.error('Failed to persist OAuth warning preference:', err)
       }
     }
+
     showOAuthMissingDialog = false
+    void advanceStartupDialogs()
   }
 
   // What's New acknowledgement — records the current version as seen.
   // Called ONLY on explicit OK click; ESC/outside-click leaves the version
-  // unrecorded so the dialog fires again on next launch.
+  // unrecorded so the dialog fires again next launch.
   async function acknowledgeWhatsNew() {
     try {
       await SetLastSeenVersion(whatsNewVersion)
     } catch (err) {
       console.error('Failed to persist last-seen version:', err)
     }
+
     showWhatsNewDialog = false
+    void advanceStartupDialogs()
   }
-
-  // Reactive sequencing: Terms → OAuth warning → What's New.
-  // Each gates on the previous being closed so users see them one at a
-  // time, never stacked.
-  $effect(() => {
-    if (!showTermsDialog && pendingOAuthWarning && !showOAuthMissingDialog) {
-      showOAuthMissingDialog = true
-      pendingOAuthWarning = false
-    }
-  })
-
-  $effect(() => {
-    if (!showTermsDialog && !showOAuthMissingDialog && pendingWhatsNew && !showWhatsNewDialog) {
-      showWhatsNewDialog = true
-      pendingWhatsNew = false
-    }
-  })
 
   // Certificate TOFU handlers for background sync
   async function handleBgCertAcceptOnce() {
@@ -408,13 +446,11 @@
     }
 
     // Frameless is selected before Wails starts from this same persisted
-    // setting. Keep the window hidden until the frontend has applied it too,
-    // otherwise native-mode windows briefly render the custom title bar.
+    // setting. Keep the window hidden while launch-critical dialog state is
+    // prepared as well. Revealing the GTK/WebKit window before a first-run
+    // portal/focus trap is mounted can leave an invisible modal layer owning
+    // pointer input on the first launch.
     const shouldStartHidden = await GetStartHiddenActive()
-    await tick()
-    if (!shouldStartHidden) {
-      WindowShow()
-    }
 
     // Load image allowlist cache for synchronous checks in EmailBody
     loadImageAllowlist()
@@ -466,6 +502,19 @@
       }
     } catch (err) {
       console.error('Failed to check What\'s New state:', err)
+    }
+
+    // Start/continue the launch-dialog queue. If Terms is currently open,
+    // this is a no-op; accepting Terms will continue the queue.
+    void advanceStartupDialogs()
+
+    // Flush launch-dialog state (Terms -> OAuth warning -> What's New) into
+    // the DOM before the native window becomes visible. This makes first-run
+    // focus/pointer ownership deterministic on GTK/WebKit, especially under
+    // KDE Wayland.
+    await tick()
+    if (!shouldStartHidden) {
+      WindowShow()
     }
 
     // Load persisted UI state
@@ -1371,19 +1420,10 @@
     // locally so they don't depend on this dispatch).
     switch (e.key) {
       case 'Enter':
-        // Only let buttons handle Enter if they're in the focused pane
-        // This prevents sidebar buttons from intercepting Enter when messageList is focused
+        // A focused native button owns Enter. Do not swallow its activation
+        // based on the app's separate pane-navigation state.
         if (document.activeElement?.tagName === 'BUTTON') {
-          const btn = document.activeElement as HTMLElement
-          const inMessageList = btn.closest('[data-pane="messageList"]')
-          const inViewer = btn.closest('[data-pane="viewer"]')
-          // Only let button handle Enter if it's in the currently focused pane
-          if ((focusedPane === 'messageList' && inMessageList) ||
-              (focusedPane === 'viewer' && inViewer)) {
-            return
-          }
-          // Otherwise, prevent button click and handle with our logic
-          e.preventDefault()
+          return
         }
         if (focusedPane === 'sidebar' && sidebarRef?.hasFocusedAccount()) {
           e.preventDefault()
@@ -1397,18 +1437,10 @@
         }
         return
       case ' ':  // Space - toggle checkbox on focused message, or expand/collapse account
-        // Only let buttons handle Space if they're in the focused pane
+        // A focused native button owns Space as well.
         if (document.activeElement?.tagName === 'BUTTON') {
-          const btn = document.activeElement as HTMLElement
-          const inMessageList = btn.closest('[data-pane="messageList"]')
-          const inViewer = btn.closest('[data-pane="viewer"]')
-          if ((focusedPane === 'messageList' && inMessageList) ||
-              (focusedPane === 'viewer' && inViewer)) {
-            return
-          }
-          e.preventDefault()
+          return
         }
-        e.preventDefault()
         if (focusedPane === 'sidebar' && sidebarRef?.hasFocusedAccount()) {
           sidebarRef.toggleFocusedAccount()
         } else if (focusedPane === 'sidebar' && sidebarRef?.hasSelectedFolderWithChildren()) {
@@ -1832,25 +1864,34 @@
   </div>
 {/if}
 
-<!-- Terms Acceptance Dialog -->
-<TermsDialog bind:open={showTermsDialog} onAccept={handleTermsAccepted} />
+<!-- Launch-critical dialogs are mounted only while active. Keeping inactive
+     portal/focus-trap roots out of the DOM prevents a stale invisible overlay
+     from intercepting pointer input during first-run startup. -->
+{#if showTermsDialog}
+  <TermsDialog bind:open={showTermsDialog} onAccept={handleTermsAccepted} />
+{/if}
 
 <!-- Launch-time OAuth credentials warning. Shows on every launch when one
      or more provider credentials weren't compiled in, unless the user
      opts out via "Don't show again". -->
-<OAuthMissingDialog
-  bind:open={showOAuthMissingDialog}
-  oauthStatus={oauthBuildStatus}
-  onDismiss={dismissOAuthWarning}
-/>
+{#if showOAuthMissingDialog}
+  <OAuthMissingDialog
+    bind:open={showOAuthMissingDialog}
+    oauthStatus={oauthBuildStatus}
+    onDismiss={dismissOAuthWarning}
+  />
+{/if}
 
 <!-- Per-version release announcement. OK click records acknowledgement;
      closing without OK leaves the version unrecorded so the dialog
      fires again next launch. -->
-<WhatsNewDialog
-  bind:open={showWhatsNewDialog}
-  onAcknowledge={acknowledgeWhatsNew}
-/>
+{#if showWhatsNewDialog}
+  <WhatsNewDialog
+    bind:open={showWhatsNewDialog}
+    version={whatsNewVersion}
+    onAcknowledge={acknowledgeWhatsNew}
+  />
+{/if}
 
 <!-- Certificate TOFU Dialog (for background sync cert errors) -->
 <CertificateDialog
@@ -1868,7 +1909,7 @@
       <AlertDialog.Title>{$_('attachment.flatpakOpenTitle')}</AlertDialog.Title>
       <AlertDialog.Description>
         <p class="mb-3">{$_('attachment.flatpakOpenDescription')}</p>
-        <pre class="mb-3 rounded bg-muted p-2 text-sm overflow-x-auto"><code>flatpak override --user --filesystem=home com.aerion.Aerion</code></pre>
+        <pre class="mb-3 rounded bg-muted p-2 text-sm overflow-x-auto"><code>flatpak override --user --filesystem=home io.github.wesleiaqui.eternomail</code></pre>
         <p class="mb-3 text-sm text-destructive">{$_('attachment.flatpakOpenSecurityWarning')}</p>
         <p class="text-sm text-muted-foreground">{$_('attachment.flatpakOpenAlternative')}</p>
       </AlertDialog.Description>

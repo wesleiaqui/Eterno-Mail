@@ -9,7 +9,7 @@
   import Switch from '$lib/components/ui/switch/Switch.svelte'
   import Icon from '@iconify/svelte'
   // @ts-ignore - wailsjs path
-  import { BrowserOpenURL } from '../../../wailsjs/runtime/runtime'
+  import { OpenURL } from '../../../wailsjs/go/app/App.js'
   import { _ } from '$lib/i18n'
 
   interface OAuthStatus {
@@ -45,7 +45,7 @@
   }
 
   function openInstallDocs() {
-    BrowserOpenURL(INSTALL_URL)
+    OpenURL(INSTALL_URL).catch((err: unknown) => console.error('Failed to open URL:', err))
   }
 </script>
 

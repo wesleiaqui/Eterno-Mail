@@ -1,12 +1,8 @@
 <script lang="ts">
   // Per-version release announcement. Shown once after the user upgrades
-  // to a new Eterno Mail version. Only the explicit OK click records
-  // acknowledgement (via onAcknowledge → SetLastSeenVersion in App.svelte).
-  // Closing via ESC or outside-click leaves the version unrecorded, so
-  // the dialog fires again on next launch.
-  //
-  // Per-release update workflow: bump Version in app/state.go, then edit
-  // the body markup below to be the new release announcement.
+  // to a new Eterno Mail version. The runtime version is supplied by App.svelte
+  // from GetAppInfo(), whose source of truth is the repository VERSION file.
+  // Only the explicit OK click records acknowledgement.
   import { Dialog as DialogPrimitive } from 'bits-ui'
   import { cn } from '$lib/utils'
   import { Button } from '$lib/components/ui/button'
@@ -16,10 +12,11 @@
 
   interface Props {
     open: boolean
+    version: string
     onAcknowledge: () => void
   }
 
-  let { open = $bindable(false), onAcknowledge }: Props = $props()
+  let { open = $bindable(false), version, onAcknowledge }: Props = $props()
 
   const CHANGELOG_URL = 'https://github.com/wesleiaqui/eternomail/blob/main/CHANGELOG.md'
 
@@ -48,16 +45,13 @@
       </div>
 
       <div class="space-y-4 max-h-[60vh] overflow-y-auto text-sm">
-        <p>🚀 Welcome to Eterno Mail v0.3.3!</p>
+        <p>🚀 Welcome to Eterno Mail v{version}!</p>
 
-        <p>Here are the highlights of this release:</p>
-
-        <ul class="list-disc pl-6 space-y-1">
-          <li>✨ Eterno Mail branding, documentation and public legal links.</li>
-          <li>🧭 Refined sidebar navigation, sizing and icon alignment.</li>
-          <li>📥 Improved inbox actions, read-state handling and continuous loading.</li>
-          <li>🛡️ Reliability improvements for IMAP connections and synchronization.</li>
-        </ul>
+        <p>
+          This version is installed and ready to use. Release-specific details
+          are kept in the project change log so this dialog cannot drift from
+          the actual runtime version.
+        </p>
 
         <p>🏷 See the full change log here:</p>
 

@@ -106,6 +106,8 @@ type ComposerApp struct {
 	draftSyncCancel context.CancelFunc
 	draftSyncDone   chan struct{}
 	draftSyncMu     goSync.Mutex
+	closeMu         goSync.Mutex
+	closeAuthorized bool
 
 	// Composer state
 	originalMessage *message.Message     // For reply/forward
@@ -255,6 +257,28 @@ func (c *ComposerApp) Startup(ctx context.Context) {
 	c.notifyReady()
 
 	log.Info().Msg("Composer window started successfully")
+}
+
+// BeforeClose routes native/window-manager close requests through the
+// frontend's existing Save & Close / Discard flow. Returning true cancels the
+// current native close; CloseWindow authorizes exactly one subsequent close.
+func (c *ComposerApp) BeforeClose(ctx context.Context) bool {
+	c.closeMu.Lock()
+	if c.closeAuthorized {
+		c.closeAuthorized = false
+		c.closeMu.Unlock()
+		return false
+	}
+	c.closeMu.Unlock()
+
+	if c.ctx != nil {
+		// OnBeforeClose runs on the native close path. Dispatch after returning
+		// to Wails so the cancelled close cannot swallow the frontend event.
+		go func() {
+			wailsRuntime.EventsEmit(c.ctx, "composer:close-requested")
+		}()
+	}
+	return true
 }
 
 // Shutdown is called when the composer window is closing.
@@ -751,32 +775,12 @@ func (c *ComposerApp) SaveDraft(accountID string, msg smtp.ComposeMessage, exist
 	// Keep c.currentDraft in sync
 	c.currentDraft = localDraft
 
-	// Cancel any previous in-flight sync before starting a new one
-	c.cancelDraftSync()
+	// The main process owns detached-draft IMAP synchronization. It survives
+	// this window closing immediately after the local DB save and prevents a
+	// child-process APPEND from racing the parent's pending-draft sync.
+	c.notifyDraftSaved(localDraft.AccountID, localDraft.ID)
 
-	// Sync to IMAP in background with cancellation support
-	ctx, cancel := context.WithCancel(c.ctx)
-	done := make(chan struct{})
-	c.draftSyncMu.Lock()
-	c.draftSyncCancel = cancel
-	c.draftSyncDone = done
-	c.draftSyncMu.Unlock()
-
-	go func() {
-		defer recoverPanic("composer", "sync draft to IMAP")
-		defer close(done)
-		defer func() {
-			c.draftSyncMu.Lock()
-			if c.draftSyncDone == done {
-				c.draftSyncCancel = nil
-				c.draftSyncDone = nil
-			}
-			c.draftSyncMu.Unlock()
-		}()
-		c.syncDraftToIMAP(ctx, localDraft, msg)
-	}()
-
-	log.Info().Str("draftID", localDraft.ID).Bool("encrypted", enc.encrypted).Bool("pgpEncrypted", enc.pgpEncrypted).Msg("Draft saved")
+	log.Info().Str("draftID", localDraft.ID).Bool("encrypted", enc.encrypted).Bool("pgpEncrypted", enc.pgpEncrypted).Msg("Draft saved locally; main process will sync")
 	return localDraft, nil
 }
 
@@ -868,6 +872,9 @@ func (c *ComposerApp) syncDraftToIMAP(ctx context.Context, localDraft *draft.Dra
 
 // CloseWindow requests the window to close.
 func (c *ComposerApp) CloseWindow() {
+	c.closeMu.Lock()
+	c.closeAuthorized = true
+	c.closeMu.Unlock()
 	wailsRuntime.Quit(c.ctx)
 }
 

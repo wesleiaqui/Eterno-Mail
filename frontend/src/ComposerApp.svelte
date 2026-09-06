@@ -108,6 +108,11 @@
       }, 1000)
     })
 
+    // Native titlebar and window-manager close requests are intercepted by
+    // ComposerApp.BeforeClose and must use the same safe composer flow as the
+    // custom titlebar button.
+    EventsOn('composer:close-requested', requestClose)
+
     // Load compose mode and initial data
     try {
       composeMode = await GetComposeMode()
@@ -144,6 +149,7 @@
   onDestroy(() => {
     EventsOff('theme:changed')
     EventsOff('app:shutdown')
+    EventsOff('composer:close-requested')
   })
 
   // Window control functions

@@ -123,9 +123,9 @@ func (a *App) handleComposerMessageSent(payload ipc.MessageSentPayload) {
 	}()
 }
 
-// handleComposerDraftSaved is called when a composer saves a draft.
-// The composer window handles its own IMAP sync directly. We sync the Drafts
-// folder here so the main window's folder view shows the newly uploaded draft.
+// handleComposerDraftSaved is called after a detached composer has persisted a
+// draft locally. The main process owns its IMAP upload so the sync survives a
+// child window closing immediately after Save & Close.
 func (a *App) handleComposerDraftSaved(payload ipc.DraftSavedPayload) {
 	log := logging.WithComponent("app.ipc")
 
@@ -134,25 +134,13 @@ func (a *App) handleComposerDraftSaved(payload ipc.DraftSavedPayload) {
 		Str("draftID", payload.DraftID).
 		Msg("Composer saved draft notification")
 
-	// Sync the Drafts folder to pick up the newly uploaded draft.
-	// Refresh signal to the main window's MessageList rides on the folder:synced
-	// event emitted by SyncFolder — same path as the in-window save case.
-	// The notification is sent after the composer's IMAP upload completes,
-	// so we can sync immediately
 	go func() {
-		defer recoverPanic("app.ipc", "sync drafts folder")
-		draftsFolder, err := a.GetSpecialFolder(payload.AccountID, folder.TypeDrafts)
-		if err != nil || draftsFolder == nil {
-			log.Warn().Err(err).Str("accountID", payload.AccountID).Msg("Could not find Drafts folder for sync")
+		defer recoverPanic("app.ipc", "sync detached pending drafts")
+		if err := a.SyncPendingDrafts(payload.AccountID); err != nil {
+			log.Warn().Err(err).Str("accountID", payload.AccountID).Msg("Failed to sync detached pending drafts")
 			return
 		}
-
-		if err := a.SyncFolder(payload.AccountID, draftsFolder.ID); err != nil {
-			log.Warn().Err(err).Str("folderID", draftsFolder.ID).Msg("Failed to sync Drafts folder")
-			return
-		}
-
-		log.Debug().Str("folderID", draftsFolder.ID).Msg("Synced Drafts folder after composer draft save")
+		log.Debug().Str("accountID", payload.AccountID).Msg("Synced detached pending drafts")
 	}()
 }
 

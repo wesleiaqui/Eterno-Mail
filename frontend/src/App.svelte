@@ -605,10 +605,18 @@
 
   // Handle unified inbox selection from sidebar (All Inboxes)
   function handleUnifiedInboxSelect() {
+    handleUnifiedSpecialFolderSelect('inbox', 'All Inboxes')
+  }
+
+  // Top-level special folders are synthetic aggregate views; child rows keep
+  // selecting their real account/folder pair.
+  function handleUnifiedSpecialFolderSelect(folderType: string, displayName: string) {
     selectedAccountId = 'unified'
-    selectedFolderId = 'inbox'
-    selectedFolderName = 'All Inboxes'
-    selectedFolderType = 'inbox'
+    selectedFolderId = folderType
+    // Sidebar passes its stable translation key. Persist the type as the
+    // navigation identity and derive the visible text through i18n.
+    selectedFolderName = $_(displayName)
+    selectedFolderType = folderType
     selectionSource = 'unified'
     selectedThreadId = null
     selectedConversationFolderId = null
@@ -618,9 +626,9 @@
     // Persist state
     saveUIState({
       selectedAccountId: 'unified',
-      selectedFolderId: 'inbox',
-      selectedFolderName: 'All Inboxes',
-      selectedFolderType: 'inbox',
+      selectedFolderId: folderType,
+      selectedFolderName: displayName,
+      selectedFolderType: folderType,
       selectedThreadId: null,
       selectedConversationAccountId: null,
       selectedConversationFolderId: null,
@@ -1668,6 +1676,7 @@
         onUnifiedFolderSelect={handleUnifiedFolderSelect}
         onCompose={handleCompose}
         onUnifiedInboxSelect={handleUnifiedInboxSelect}
+        onUnifiedSpecialFolderSelect={handleUnifiedSpecialFolderSelect}
         onMessagesMoved={() => messageListRef?.handleActionComplete(false)}
         selectedAccountId={selectedAccountId}
         selectedFolderId={selectedFolderId}
@@ -1708,7 +1717,7 @@
     <!-- Message List -->
     <section
       bind:this={messageListContainerRef}
-      class="spark-mail-list-pane {isResponsive() ? 'flex-1 min-w-0 border-r border-border bg-background' : 'flex-shrink-0 border-r border-border bg-background'}"
+      class="spark-mail-list-pane min-h-0 overflow-hidden {isResponsive() ? 'flex-1 min-w-0 border-r border-border bg-background' : 'flex-shrink-0 border-r border-border bg-background'}"
       style="{getLayoutMode() === 'full' ? `width: ${listWidth}px` : ''}"
       role="presentation"
       data-pane="messageList"
@@ -1747,7 +1756,7 @@
 
     <!-- Conversation Viewer -->
     <main
-      class="spark-viewer-pane {viewerIsOverlay ? `responsive-viewer-overlay bg-background ${viewerIsVisible ? 'responsive-viewer-visible' : ''}` : 'flex-1 min-w-0 bg-background'}"
+      class="spark-viewer-pane min-h-0 overflow-hidden {viewerIsOverlay ? `responsive-viewer-overlay bg-background ${viewerIsVisible ? 'responsive-viewer-visible' : ''}` : 'flex-1 min-w-0 bg-background'}"
       role="presentation"
       data-pane="viewer"
       onclick={() => handlePaneClick('viewer')}

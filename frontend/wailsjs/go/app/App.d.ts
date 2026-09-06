@@ -193,6 +193,8 @@ export function DownloadEncryptedAttachment(arg1:string,arg2:string,arg3:string)
 
 export function EmptyTrash(arg1:string,arg2:string):Promise<void>;
 
+export function EmptyUnifiedTrash():Promise<void>;
+
 export function FetchMessageBody(arg1:string):Promise<message.Message>;
 
 export function FetchServerMessage(arg1:string,arg2:string,arg3:number):Promise<message.Message>;
@@ -345,6 +347,8 @@ export function GetSMIMESignPolicy(arg1:string):Promise<string>;
 
 export function GetSearchCount(arg1:string,arg2:string,arg3:string,arg4:string):Promise<number>;
 
+export function GetSearchCountUnifiedFolder(arg1:string,arg2:string,arg3:string):Promise<number>;
+
 export function GetSearchCountUnifiedInbox(arg1:string,arg2:string):Promise<number>;
 
 export function GetSenderLogos(arg1:Array<string>):Promise<Array<senderlogo.SenderLogo>>;
@@ -382,6 +386,10 @@ export function GetTrustedCertificates(arg1:Array<string>):Promise<Array<certifi
 export function GetUIState():Promise<appstate.UIState>;
 
 export function GetUndoDescription():Promise<string>;
+
+export function GetUnifiedFolderConversations(arg1:string,arg2:number,arg3:number,arg4:string,arg5:string):Promise<Array<message.Conversation>>;
+
+export function GetUnifiedFolderCount(arg1:string,arg2:string):Promise<number>;
 
 export function GetUnifiedInboxConversations(arg1:number,arg2:number,arg3:string,arg4:string):Promise<Array<message.Conversation>>;
 
@@ -551,6 +559,8 @@ export function SearchContacts(arg1:string,arg2:number):Promise<Array<contact.Co
 
 export function SearchConversations(arg1:string,arg2:string,arg3:string,arg4:number,arg5:number,arg6:string):Promise<Array<message.ConversationSearchResult>>;
 
+export function SearchUnifiedFolder(arg1:string,arg2:string,arg3:number,arg4:number,arg5:string):Promise<Array<message.ConversationSearchResult>>;
+
 export function SearchUnifiedInbox(arg1:string,arg2:number,arg3:number,arg4:string):Promise<Array<message.ConversationSearchResult>>;
 
 export function SendMessage(arg1:string,arg2:smtp.ComposeMessage):Promise<void>;
@@ -664,6 +674,8 @@ export function SyncFolder(arg1:string,arg2:string):Promise<void>;
 export function SyncFolders(arg1:string):Promise<void>;
 
 export function SyncPendingDrafts(arg1:string):Promise<void>;
+
+export function SyncUnifiedFolder(arg1:string):Promise<void>;
 
 export function TestCardDAVConnection(arg1:string,arg2:string,arg3:string):Promise<void>;
 

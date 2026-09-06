@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hkdb/aerion/internal/folder"
 	"github.com/hkdb/aerion/internal/logging"
 	"github.com/hkdb/aerion/internal/message"
 	"github.com/hkdb/aerion/internal/pgp"
@@ -88,11 +89,31 @@ func (a *App) FetchMessageBody(messageID string) (*message.Message, error) {
 // sortOrder can be "newest" (default) or "oldest"
 // filter can be "" (all), "unread", "starred", or "attachments"
 func (a *App) GetConversations(accountID, folderID string, offset, limit int, sortOrder, filter string) ([]*message.Conversation, error) {
+	if folderID == "virtual:archive" {
+		allMail, err := a.GetSpecialFolder(accountID, folder.TypeAll)
+		if err != nil {
+			return nil, err
+		}
+		if allMail == nil {
+			return []*message.Conversation{}, nil
+		}
+		return a.messageStore.ListVirtualArchivedConversations([]string{allMail.ID}, offset, limit, sortOrder, filter)
+	}
 	return a.messageStore.ListConversationsByFolder(folderID, offset, limit, sortOrder, filter)
 }
 
 // GetConversationCount returns the total conversation count for a folder
 func (a *App) GetConversationCount(accountID, folderID, filter string) (int, error) {
+	if folderID == "virtual:archive" {
+		allMail, err := a.GetSpecialFolder(accountID, folder.TypeAll)
+		if err != nil {
+			return 0, err
+		}
+		if allMail == nil {
+			return 0, nil
+		}
+		return a.messageStore.CountVirtualArchivedConversations([]string{allMail.ID}, filter)
+	}
 	return a.messageStore.CountConversationsByFolder(folderID, filter)
 }
 

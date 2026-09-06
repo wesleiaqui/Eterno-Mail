@@ -110,6 +110,7 @@
     onFolderSelect?: (accountId: string, folderId: string, folderPath: string, folderName: string, folderType: string) => void
     onUnifiedFolderSelect?: (accountId: string, folderId: string, folderPath: string, folderName: string, folderType: string) => void
     onUnifiedInboxSelect?: () => void
+    onUnifiedSpecialFolderSelect?: (type: string, displayName: string) => void
     onCompose?: () => void
     onMessagesMoved?: () => void
     selectedAccountId?: string | null
@@ -127,6 +128,7 @@
     onFolderSelect,
     onUnifiedFolderSelect,
     onUnifiedInboxSelect,
+    onUnifiedSpecialFolderSelect,
     onCompose,
     onMessagesMoved,
     selectedAccountId = null,
@@ -275,20 +277,12 @@
   }
 
   function selectPrimaryFolder(type: string) {
-    const preferred = accountStore.accounts.find(item => item.account.id === selectedAccountId && selectedAccountId !== 'unified')
-    const orderedAccounts = preferred ? [preferred, ...accountStore.accounts.filter(item => item !== preferred)] : accountStore.accounts
-    for (const item of orderedAccounts) {
-      const target = findAccountFolder(item, type)
-      if (!target) continue
-      handleFolderSelect(item.account.id, target.id, target.path, target.name, target.type)
-      return
-    }
-    // A folder may not exist on every provider. Opening the full folder panel
-    // still gives the user a real, actionable place to choose from.
-    showAllFolders = true
+    const label = [...primaryFolders, ...secondaryFolders].find(item => item.type === type)?.label || type
+    onUnifiedSpecialFolderSelect?.(type, label)
   }
 
   function isPrimaryFolderSelected(type: string): boolean {
+    if (selectedAccountId === 'unified' && selectedFolderId === type) return true
     for (const item of accountStore.accounts) {
       const target = findAccountFolder(item, type)
       if (target?.id === selectedFolderId) return true
@@ -321,9 +315,11 @@
   }
 
   function getFolderGroupAccounts(type: string) {
-    // Keep the group useful even if one provider has not exposed/configured
-    // that special folder yet. Resolution happens when its account is chosen.
-    return accountStore.accounts.map(item => ({ account: item.account, type }))
+    // Every rendered child must be actionable. Do not turn a failed special
+    // folder lookup into an unexpected opening of the More panel.
+    return accountStore.accounts
+      .filter(item => !!findAccountFolder(item, type) || (type === 'archive' && !!findAccountFolder(item, 'all')))
+      .map(item => ({ account: item.account, type }))
   }
 
   function selectFolderGroupAccount(accountId: string, type: string): void {
@@ -334,9 +330,16 @@
       return
     }
 
-    // A provider may not support this special folder. Give the user a useful
-    // next action instead of a dead account row.
-    showAllFolders = true
+    if (item && type === 'archive') {
+      const allMail = findAccountFolder(item, 'all')
+      if (allMail) {
+        handleFolderSelect(item.account.id, 'virtual:archive', '', $_('sidebar.archived'), 'archive')
+        return
+      }
+    }
+
+    // Folder discovery can race this click; keep the selection inert rather
+    // than navigating somewhere unrelated.
   }
 
   const primaryFolders = [

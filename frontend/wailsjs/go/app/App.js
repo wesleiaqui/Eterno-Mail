@@ -346,6 +346,10 @@ export function EmptyTrash(arg1, arg2) {
   return window['go']['app']['App']['EmptyTrash'](arg1, arg2);
 }
 
+export function EmptyUnifiedTrash() {
+  return window['go']['app']['App']['EmptyUnifiedTrash']();
+}
+
 export function FetchMessageBody(arg1) {
   return window['go']['app']['App']['FetchMessageBody'](arg1);
 }
@@ -650,6 +654,10 @@ export function GetSearchCount(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['GetSearchCount'](arg1, arg2, arg3, arg4);
 }
 
+export function GetSearchCountUnifiedFolder(arg1, arg2, arg3) {
+  return window['go']['app']['App']['GetSearchCountUnifiedFolder'](arg1, arg2, arg3);
+}
+
 export function GetSearchCountUnifiedInbox(arg1, arg2) {
   return window['go']['app']['App']['GetSearchCountUnifiedInbox'](arg1, arg2);
 }
@@ -724,6 +732,14 @@ export function GetUIState() {
 
 export function GetUndoDescription() {
   return window['go']['app']['App']['GetUndoDescription']();
+}
+
+export function GetUnifiedFolderConversations(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['app']['App']['GetUnifiedFolderConversations'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function GetUnifiedFolderCount(arg1, arg2) {
+  return window['go']['app']['App']['GetUnifiedFolderCount'](arg1, arg2);
 }
 
 export function GetUnifiedInboxConversations(arg1, arg2, arg3, arg4) {
@@ -1062,6 +1078,10 @@ export function SearchConversations(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['app']['App']['SearchConversations'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
+export function SearchUnifiedFolder(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['app']['App']['SearchUnifiedFolder'](arg1, arg2, arg3, arg4, arg5);
+}
+
 export function SearchUnifiedInbox(arg1, arg2, arg3, arg4) {
   return window['go']['app']['App']['SearchUnifiedInbox'](arg1, arg2, arg3, arg4);
 }
@@ -1288,6 +1308,10 @@ export function SyncFolders(arg1) {
 
 export function SyncPendingDrafts(arg1) {
   return window['go']['app']['App']['SyncPendingDrafts'](arg1);
+}
+
+export function SyncUnifiedFolder(arg1) {
+  return window['go']['app']['App']['SyncUnifiedFolder'](arg1);
 }
 
 export function TestCardDAVConnection(arg1, arg2, arg3) {

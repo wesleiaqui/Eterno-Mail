@@ -18,7 +18,7 @@
   import { cn } from '$lib/utils'
   import { Button } from '$lib/components/ui/button'
   // @ts-ignore - wailsjs bindings
-  import { GetConversations, GetConversationCount, SyncFolder, ForceSyncFolder, CancelFolderSync, SetMessageListSortOrder, GetUnifiedInboxConversations, GetUnifiedInboxCount, SearchConversations, SearchUnifiedInbox, GetSearchCount, GetSearchCountUnifiedInbox, GetFTSIndexStatus, IsFTSIndexing, Trash, DeletePermanently, EmptyTrash, Undo, IMAPSearchFolder, IMAPSearchUnifiedInbox, FetchServerMessage } from '../../../../wailsjs/go/app/App'
+  import { GetConversations, GetConversationCount, SyncFolder, ForceSyncFolder, CancelFolderSync, SetMessageListSortOrder, GetUnifiedFolderConversations, GetUnifiedFolderCount, SearchConversations, SearchUnifiedFolder, GetSearchCount, GetSearchCountUnifiedFolder, SyncUnifiedFolder, EmptyUnifiedTrash, GetFTSIndexStatus, IsFTSIndexing, Trash, DeletePermanently, EmptyTrash, Undo, IMAPSearchFolder, IMAPSearchUnifiedInbox, FetchServerMessage } from '../../../../wailsjs/go/app/App'
   import { toasts } from '$lib/stores/toast'
   import { _ } from '$lib/i18n'
   import { ConfirmDialog } from '$lib/components/ui/confirm-dialog'
@@ -392,14 +392,26 @@
   let isIndexing = $state(false)
   let searchInputRef = $state<HTMLInputElement | null>(null)
 
-  // Check if a folder is an inbox by looking it up in the account store
-  function isInboxFolder(acctId: string, fldId: string): boolean {
+  function isUnifiedSpecialFolder(acctId: string, fldId: string): boolean {
     const acct = accountStore.accounts.find(a => a.account.id === acctId)
     if (!acct) return false
+    const configuredPath = (() => {
+      const account: any = acct.account
+      switch (folderId) {
+        case 'archive': return account.archiveFolderPath
+        case 'spam': return account.spamFolderPath
+        case 'all': return account.allMailFolderPath
+        case 'starred': return account.starredFolderPath
+        case 'sent': return account.sentFolderPath
+        case 'drafts': return account.draftsFolderPath
+        case 'trash': return account.trashFolderPath
+        default: return undefined
+      }
+    })()
     for (const tree of acct.folders) {
-      if (tree.folder?.id === fldId) return tree.folder.type === 'inbox'
+      if (tree.folder?.id === fldId) return tree.folder.type === folderId || tree.folder.path === configuredPath
       for (const child of tree.children || []) {
-        if (child.folder?.id === fldId) return child.folder.type === 'inbox'
+        if (child.folder?.id === fldId) return child.folder.type === folderId || child.folder.path === configuredPath
       }
     }
     return false
@@ -441,7 +453,7 @@
   onMount(() => {
     EventsOn('folder:synced', (data: { accountId: string; folderId: string }) => {
       // Reload if this is the current folder, or unified inbox when an inbox folder synced
-      if ((isUnifiedView && isInboxFolder(data.accountId, data.folderId)) || (!isUnifiedView && accountId && folderId && data.accountId === accountId && data.folderId === folderId)) {
+      if ((isUnifiedView && isUnifiedSpecialFolder(data.accountId, data.folderId)) || (!isUnifiedView && accountId && folderId && data.accountId === accountId && data.folderId === folderId)) {
         scheduleReload()
       }
     })
@@ -449,7 +461,7 @@
     // Listen for messages:updated events (e.g., from IDLE push notifications)
     EventsOn('messages:updated', (data: { accountId: string; folderId: string }) => {
       // Reload if this is the current folder, or unified inbox when an inbox folder updated
-      if ((isUnifiedView && isInboxFolder(data.accountId, data.folderId)) || (!isUnifiedView && accountId && folderId && data.accountId === accountId && data.folderId === folderId)) {
+      if ((isUnifiedView && isUnifiedSpecialFolder(data.accountId, data.folderId)) || (!isUnifiedView && accountId && folderId && data.accountId === accountId && data.folderId === folderId)) {
         scheduleReload()
       }
     })
@@ -571,7 +583,7 @@
   // Clear selection and search when folder changes
   $effect(() => {
     const currentAccount = isUnifiedView ? 'unified' : accountId
-    const currentFolder = isUnifiedView ? 'inbox' : folderId
+    const currentFolder = isUnifiedView ? folderId : folderId
 
     if (!isUnifiedView && (!accountId || !folderId)) {
       rememberListState()
@@ -663,7 +675,7 @@
   }
 
   // Check if viewing unified inbox
-  const isUnifiedView = $derived(accountId === 'unified' && folderId === 'inbox')
+  const isUnifiedView = $derived(accountId === 'unified' && !!folderId)
 
   // A bound backend call can occasionally stall while SQLite is recovering a
   // lock after a hot reload. Never leave the message pane in a permanent
@@ -705,7 +717,7 @@
       // useful for pagination, but must never hold the whole inbox hostage.
       const convList = await withLoadTimeout(
         isUnifiedView
-          ? GetUnifiedInboxConversations(currentOffset, limit, getMessageListSortOrder(), filterMode)
+          ? GetUnifiedFolderConversations(folderId!, currentOffset, limit, getMessageListSortOrder(), filterMode)
           : GetConversations(accountId!, folderId!, currentOffset, limit, getMessageListSortOrder(), filterMode),
         'conversation list',
       )
@@ -713,7 +725,7 @@
       try {
         count = await withLoadTimeout(
           isUnifiedView
-            ? GetUnifiedInboxCount(filterMode)
+            ? GetUnifiedFolderCount(folderId!, filterMode)
             : GetConversationCount(accountId!, folderId!, filterMode),
           'conversation count',
           4_000,
@@ -783,8 +795,18 @@
   }
 
   export async function syncFolder() {
-    // Can't sync unified inbox directly - individual folders must be synced
-    if (isUnifiedView || !accountId || !folderId) return
+    if (isUnifiedView) {
+      await SyncUnifiedFolder(folderId!)
+      await loadConversations(Math.max(conversations.length, PAGE_SIZE))
+      return
+    }
+    // virtual:archive is derived from All Mail; it is never a valid IMAP
+    // folder ID and must not reach SyncFolder.
+    if (folderId === 'virtual:archive') {
+      await loadConversations(Math.max(conversations.length, PAGE_SIZE))
+      return
+    }
+    if (!accountId || !folderId) return
 
     error = null
 
@@ -892,8 +914,8 @@
 
       if (isUnifiedView) {
         ;[results, count] = await Promise.all([
-          SearchUnifiedInbox(query, 0, PAGE_SIZE, filterMode),
-          GetSearchCountUnifiedInbox(query, filterMode),
+          SearchUnifiedFolder(folderId!, query, 0, PAGE_SIZE, filterMode),
+          GetSearchCountUnifiedFolder(folderId!, query, filterMode),
         ])
       } else if (accountId && folderId) {
         ;[results, count] = await Promise.all([
@@ -933,7 +955,7 @@
     try {
       let results: any[] = []
       if (isUnifiedView) {
-        results = await SearchUnifiedInbox(query, newOffset, PAGE_SIZE, filterMode)
+        results = await SearchUnifiedFolder(folderId!, query, newOffset, PAGE_SIZE, filterMode)
       } else if (accountId && folderId) {
         results = await SearchConversations(accountId, folderId, query, newOffset, PAGE_SIZE, filterMode)
       }
@@ -1011,6 +1033,14 @@
   async function performServerSearch(limit: number = SERVER_SEARCH_LIMIT) {
     const query = searchQuery.trim()
     if (!query || (!isUnifiedView && (!accountId || !folderId))) return
+
+    // The IMAP fallback currently has only an inbox implementation. Keep local
+    // FTS search correct for every special view instead of silently searching
+    // inbox while the user is viewing a different unified folder.
+    if (isUnifiedView && folderId !== 'inbox') {
+      toasts.error('Server search is currently available for unified Inbox only')
+      return
+    }
 
     isServerSearching = true
     error = null
@@ -1649,9 +1679,13 @@
   }
 
   async function handleEmptyTrash() {
-    if (!accountId || !folderId) return
     try {
-      await EmptyTrash(accountId, folderId)
+      if (isUnifiedView) {
+        await EmptyUnifiedTrash()
+      } else {
+        if (!accountId || !folderId) return
+        await EmptyTrash(accountId, folderId)
+      }
       toasts.success($_('toast.trashEmptied'))
       handleActionComplete(true)
       clearChecked()
@@ -1788,7 +1822,7 @@
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
             class="p-2 rounded-md hover:bg-muted transition-colors disabled:opacity-50"
-            disabled={loading || isUnifiedView}
+            disabled={loading}
           >
             <Icon
               icon="mdi:refresh"

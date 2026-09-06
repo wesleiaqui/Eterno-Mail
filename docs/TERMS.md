@@ -8,7 +8,7 @@ By downloading, installing, or using Eterno Mail ("the Application"), you agree 
 
 ## Description of Service
 
-Eterno Mail is an open-source desktop email client. The official Eterno Mail website and online documentation is hosted at [https://aerion.3df.io](https://aerion.3df.io). Eterno Mail allows you to:
+Eterno Mail is an open-source desktop email client. The official Eterno Mail website is [https://app.weslleys.com/](https://app.weslleys.com/). Eterno Mail allows you to:
 
 - Connect to email accounts via IMAP/SMTP
 - Send and receive emails
@@ -27,7 +27,7 @@ Eterno Mail is licensed under the Apache License 2.0. You can:
 - Modify the software and distribute your modifications
 - Use the software commercially
 
-Subject to the conditions of the Apache License 2.0, including preservation of copyright notices and disclaimers. The full license text is available in the LICENSE file included with the Application and at [https://github.com/hkdb/aerion](https://github.com/hkdb/aerion).
+Subject to the conditions of the Apache License 2.0, including preservation of copyright notices and disclaimers. The full license text is available in the LICENSE file included with the Application and in the [Eterno Mail repository](https://github.com/wesleiaqui/EternoMail).
 
 ## User Responsibilities
 
@@ -122,8 +122,6 @@ These Terms constitute the entire agreement between you and the developers of Et
 
 ## Contact Us
 
-If you have questions about these Terms of Use, please contact us at:
+If you have questions about these Terms of Use, please use:
 
-**Email:** aerion@3df.io
-
-**GitHub Issues:** [https://github.com/hkdb/aerion/issues](https://github.com/hkdb/aerion/issues)
+Use the [Eterno Mail website](https://app.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail).

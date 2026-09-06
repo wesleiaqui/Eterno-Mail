@@ -124,7 +124,7 @@ Key visual changes:
 #### 📝 Documentation Changes
 
 - **README.md:** Full rebranding to "Eterno Mail", added "Reformulated by Weslei" credit.
-- **SECURITY.md:** Product name updated to "Eterno Mail" (report email kept: `aerion@3df.io`).
+- **SECURITY.md:** Product name updated to "Eterno Mail".
 - **CONTRIBUTING.md:** Product references updated to "Eterno Mail".
 - **CHANGELOG.md:** Specific references updated (CASA Tier 2, Flathub, refocus).
 - **Makefile:** Linux install/uninstall targets updated to `io.github.hkdb.EternoMail.*`, with cleanup routine for legacy artifacts (`io.github.hkdb.Aerion.*`).
@@ -196,13 +196,13 @@ Although Linux is a first-class citizen here, it also works on:
 ### 🚀 Installation
 ---
 
-- [Official Installation Guide](https://aerion.3df.io/docs/getting-started/installation/)
+- [Download Eterno Mail](https://github.com/wesleiaqui/EternoMail/releases)
 
 
 ### 📖 Documentation
 ---
 
-- [Official Documentation](https://aerion.3df.io/docs/intro)
+- [Eterno Mail Website](https://app.weslleys.com/)
 
 
 ### ⚗️ Tech Stack

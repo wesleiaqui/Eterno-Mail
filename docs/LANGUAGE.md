@@ -8,7 +8,7 @@ If your language translation does not currently exist and you'd like to submit a
 
 Use this checklist to ensure your submission is complete:
 
-- [ ] **Claimed language** — filed a [Translation issue](https://github.com/hkdb/aerion/issues/new?template=translation.yml) to avoid duplicate efforts
+- [ ] **Claimed language** — coordinate through the [Eterno Mail repository](https://github.com/wesleiaqui/EternoMail) to avoid duplicate efforts
 - [ ] **Core locale JSON** — `frontend/src/lib/i18n/locales/<code>.json` created with all core mail/UI keys translated
 - [ ] **Extension locale JSONs** — one `extensions/<name>/frontend/i18n/locales/<code>.json` per shipping extension (e.g., `extensions/contacts/frontend/i18n/locales/<code>.json`). Optional per locale — extensions you skip fall back to English at runtime; see [§ Extension translations](#extension-translations).
 - [ ] **Register locale** — added `register()` call in `frontend/src/lib/i18n/index.ts` (core locale only — extensions self-register via Vite glob)
@@ -23,9 +23,9 @@ Use this checklist to ensure your submission is complete:
 
 ## Claim Your Language
 
-Check [existing translation issues](https://github.com/hkdb/aerion/issues?q=label%3Atranslate) first — if someone is already working on your language, consider collaborating with them instead.
+Check the [Eterno Mail repository](https://github.com/wesleiaqui/EternoMail) for existing translation work first — if someone is already working on your language, consider collaborating with them instead.
 
-Before starting any translation work, **file a [Translation issue](https://github.com/hkdb/aerion/issues/new?template=translation.yml)** to declare your intent. This prevents duplicate efforts and lets maintainers coordinate with contributors.
+Before starting any translation work, coordinate with maintainers through the [Eterno Mail repository](https://github.com/wesleiaqui/EternoMail). This prevents duplicate efforts and lets maintainers coordinate with contributors.
 
 ## Branch Target
 

@@ -1,6 +1,6 @@
 # CASA Tier 2 — Self-Assessment Questionnaire
 
-This document provides detailed responses to the Cloud Application Security Assessment (CASA) Tier 2 Self-Assessment Questionnaire for [Eterno Mail](https://github.com/hkdb/aerion), a lightweight cross-platform email client.
+This document provides detailed responses to the Cloud Application Security Assessment (CASA) Tier 2 Self-Assessment Questionnaire for [Eterno Mail](https://github.com/wesleiaqui/EternoMail), a lightweight cross-platform email client.
 
 ---
 
@@ -176,7 +176,7 @@ Eterno Mail is a **local desktop application** with no web infrastructure. It do
 
 The only external DNS dependencies are:
 
-- **github.com/hkdb/aerion** — Source code repository and release distribution (actively maintained by the project owner)
+- **github.com/wesleiaqui/EternoMail** — Source code repository and release distribution (actively maintained by the project owner)
 - **Flathub (flathub.org)** — Flatpak package distribution (maintained by the Flathub organization)
 
 Neither of these involves project-owned DNS records or subdomains that could be subject to takeover. The application itself connects only to user-configured mail servers, OAuth providers (Google/Microsoft), and optionally CardDAV/key servers — all specified by the end user, not hardcoded infrastructure.
@@ -481,7 +481,7 @@ Eterno Mail stores all data locally on the user's machine. There is no cloud bac
 - **No cloud sync**: All data remains on the user's local machine.
 - **No third-party data sharing**: No data is transmitted to any party other than the user's configured mail/contact/key servers and OAuth providers.
 - **User-controlled data lifecycle**: Users can delete accounts, messages, contacts, and all associated data through the application UI.
-- **Privacy Policy**: Published at [`docs/PRIVACY.md`](https://github.com/hkdb/aerion/blob/main/docs/PRIVACY.md).
+- **Privacy Policy**: Published at [`docs/PRIVACY.md`](https://github.com/wesleiaqui/EternoMail/blob/main/docs/PRIVACY.md).
 
 ---
 

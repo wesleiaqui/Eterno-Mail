@@ -10,15 +10,11 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 ### Reporting Bugs
 
-1. Check if the bug has already been reported in [Issues](https://github.com/hkdb/aerion/issues)
-2. If not, create a new issue with:
-    - Select the `Bug` template and fill the form out in detail.
+To report a bug, contact the maintainers through the [Eterno Mail website](https://app.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail). Include a clear description and steps to reproduce it.
 
 ### Suggesting Features
 
-1. Check existing issues for similar suggestions
-2. Determine if your request is a brand new feature or an enahncement to an existing feature
-3. Create a new issue with the `feature request` or `enhancement` template depending on step 2.
+Submit feature suggestions through the [Eterno Mail website](https://app.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail). Describe whether the request is a new feature or an enhancement.
 
 ### Translation Pull Requests
 
@@ -165,8 +161,8 @@ cd frontend && npm test
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/hkdb/aerion.git
-   cd aerion
+   git clone https://github.com/wesleiaqui/EternoMail.git
+   cd EternoMail
    ```
 
 2. **Install Go dependencies**
@@ -210,9 +206,7 @@ make flatpak
 
 ## Questions?
 
-- Open an [Issue](https://github.com/hkdb/aerion/issues) with the `Question` template for questions
-- Check existing issues first
-- Be patient - maintainers are volunteers
+- Contact the maintainers through the [Eterno Mail website](https://app.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail).
 
 ## License
 

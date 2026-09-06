@@ -39,10 +39,10 @@ Each rollback section lists the **data lost on rollback** for that migration. Th
 3. **Download the rollback script** from the Eterno Mail repo. On the branch where the 0.3.0 schema lives (0.3.0 or later):
 
    ```bash
-   curl -O https://raw.githubusercontent.com/hkdb/aerion/main/tools/db/rollback-v39-to-v30.sql
+   curl -O https://raw.githubusercontent.com/wesleiaqui/EternoMail/main/tools/db/rollback-v39-to-v30.sql
    ```
 
-   (Or download via your browser from `https://github.com/hkdb/aerion/blob/main/tools/db/rollback-v39-to-v30.sql`.)
+   (Or download via your browser from `https://github.com/wesleiaqui/EternoMail/blob/main/tools/db/rollback-v39-to-v30.sql`.)
 
 4. **Run the script against your DB**:
 
@@ -131,4 +131,3 @@ Per-slot keyring entries (keyed as `oauth_user_client:<configID>`) are NOT clear
 - All emails and display names.
 - Send-count and last-used autocomplete metadata (per-email).
 - CardDAV addressbook membership, href, and ETag (for re-sync identity).
-

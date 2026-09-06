@@ -27,7 +27,7 @@
 
   let dontShowAgain = $state(false)
 
-  const INSTALL_URL = 'https://aerion.3df.io/docs/getting-started/installation/'
+  const INSTALL_URL = 'https://github.com/wesleiaqui/EternoMail/releases'
 
   function iconFor(present: boolean): string {
     if (present) return 'lucide:check'
@@ -75,7 +75,7 @@
       class="text-sm text-primary hover:underline break-all text-left focus:outline-none focus-visible:outline-none focus:ring-0"
       onclick={openInstallDocs}
     >
-      https://aerion.3df.io/docs/getting-started/installation/
+      https://github.com/wesleiaqui/EternoMail/releases
     </button>
 
     <label class="flex items-center gap-3 text-sm mt-2">

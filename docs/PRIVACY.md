@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Eterno Mail ("we," "our," or "the Application") is an open-source desktop email client. The official Eterno Mail website and online documentation is hosted at [https://aerion.3df.io](https://aerion.3df.io). This Privacy Policy explains how Eterno Mail handles your information. Because Eterno Mail is a desktop application that runs entirely on your computer, our approach to privacy is fundamentally different from cloud-based services.
+Eterno Mail ("we," "our," or "the Application") is an open-source desktop email client. The official Eterno Mail website is [https://app.weslleys.com/](https://app.weslleys.com/). This Privacy Policy explains how Eterno Mail handles your information. Because Eterno Mail is a desktop application that runs entirely on your computer, our approach to privacy is fundamentally different from cloud-based services.
 
 **Key Point:** Eterno Mail does not operate any servers that collect, store, or process your data. All your information stays on your device.
 
@@ -115,12 +115,10 @@ We may update this Privacy Policy from time to time. Changes will be reflected i
 
 ## Open Source Transparency
 
-Eterno Mail is open-source software. You can review exactly how we handle your data by examining our source code at [https://github.com/hkdb/aerion](https://github.com/hkdb/aerion).
+Eterno Mail is open-source software. You can review exactly how we handle your data by examining the [Eterno Mail source code](https://github.com/wesleiaqui/EternoMail).
 
 ## Contact Us
 
-If you have questions about this Privacy Policy, please contact us at:
+If you have questions about this Privacy Policy, please use:
 
-**Email:** aerion@3df.io
-
-**GitHub Issues:** [https://github.com/hkdb/aerion/issues](https://github.com/hkdb/aerion/issues)
+Use the [Eterno Mail website](https://app.weslleys.com/) or [project repository](https://github.com/wesleiaqui/EternoMail).

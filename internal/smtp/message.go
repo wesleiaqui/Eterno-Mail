@@ -58,12 +58,15 @@ func (a *Attachment) ResolveContent() ([]byte, error) {
 // ComposeMessage represents an email message to be composed and sent
 type ComposeMessage struct {
 	// Envelope
-	From    Address   `json:"from"`
-	To      []Address `json:"to"`
-	Cc      []Address `json:"cc"`
-	Bcc     []Address `json:"bcc"`
-	ReplyTo *Address  `json:"reply_to,omitempty"`
-	Subject string    `json:"subject"`
+	From Address `json:"from"`
+	// IdentityID is the canonical local identity selected by the composer. It is
+	// draft metadata only and is not emitted as an email header.
+	IdentityID string    `json:"identity_id,omitempty"`
+	To         []Address `json:"to"`
+	Cc         []Address `json:"cc"`
+	Bcc        []Address `json:"bcc"`
+	ReplyTo    *Address  `json:"reply_to,omitempty"`
+	Subject    string    `json:"subject"`
 
 	// Content
 	TextBody string `json:"text_body"` // Plain text version
@@ -78,10 +81,10 @@ type ComposeMessage struct {
 
 	// Options
 	RequestReadReceipt bool `json:"request_read_receipt"`
-	SignMessage         bool `json:"sign_message"`    // S/MIME sign this message
-	EncryptMessage      bool `json:"encrypt_message"` // S/MIME encrypt this message
-	PGPSignMessage      bool `json:"pgp_sign_message"`    // PGP sign this message
-	PGPEncryptMessage   bool `json:"pgp_encrypt_message"` // PGP encrypt this message
+	SignMessage        bool `json:"sign_message"`        // S/MIME sign this message
+	EncryptMessage     bool `json:"encrypt_message"`     // S/MIME encrypt this message
+	PGPSignMessage     bool `json:"pgp_sign_message"`    // PGP sign this message
+	PGPEncryptMessage  bool `json:"pgp_encrypt_message"` // PGP encrypt this message
 }
 
 // AllRecipients returns all recipients (To + Cc + Bcc)

@@ -558,6 +558,7 @@
         name: selectedIdentity?.name || '',
         address: selectedIdentity?.email || '',
       }),
+      identity_id: selectedIdentityId,
       to: toRecipients,
       cc: ccRecipients,
       bcc: bccRecipients,
@@ -870,8 +871,6 @@
     // Initialize from initialMessage if provided (reply/forward)
     if (initialMessage) {
       initializeFromMessage()
-      // Store initial content hash so we don't immediately save
-      lastContent = getContentHash()
     }
 
     // Append signature for the selected identity (after editor is ready)
@@ -893,6 +892,10 @@
         if (!hasSignatureMarker(preQuoteContent)) {
           appendSignatureForIdentity(identity)
         }
+      }
+      if (initialMessage) {
+        // Capture only after restored state and the initial signature settle.
+        lastContent = getContentHash()
       }
       // Focus editor body for reply/reply-all, To field for new/forward
       const mode = getDisplayMode()
@@ -920,9 +923,18 @@
     })
   })
 
-  // Select identity based on the From address the backend determined for reply/forward
+  // Prefer the canonical draft identity. Replies/forwards and legacy drafts
+  // fall back to an exact From-address match.
   function selectIdentityForReply(): account.Identity | null {
     if (!initialMessage) return null
+
+    const draftIdentityId = (initialMessage as any).identity_id || ''
+    if (draftIdentityId) {
+      const storedIdentity = identities.find(identity =>
+        identity.id === draftIdentityId && identity.accountId === accountId
+      )
+      if (storedIdentity) return storedIdentity
+    }
 
     // PrepareReply already determines the correct From based on the account
     // that owns the message. Match it to a local identity.

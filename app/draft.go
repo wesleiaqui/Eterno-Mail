@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	goImap "github.com/emersion/go-imap/v2"
@@ -98,8 +99,12 @@ func (ops *draftOps) resolveDraftReference(ref string) (*draft.Draft, *message.M
 // its UID and folder lets the normal sync path delete/replace that exact IMAP
 // message on the next save rather than appending a duplicate.
 func (ops *draftOps) materializeRemoteDraft(msg *message.Message) (*draft.Draft, error) {
+	identityID := ops.resolveIdentityID(msg.AccountID, smtp.ComposeMessage{
+		From: smtp.Address{Name: msg.FromName, Address: msg.FromEmail},
+	})
 	d := &draft.Draft{
 		AccountID:      msg.AccountID,
+		IdentityID:     identityID,
 		ToList:         msg.ToList,
 		CcList:         msg.CcList,
 		BccList:        msg.BccList,
@@ -116,6 +121,29 @@ func (ops *draftOps) materializeRemoteDraft(msg *message.Message) (*draft.Draft,
 		return nil, fmt.Errorf("failed to adopt remote draft: %w", err)
 	}
 	return d, nil
+}
+
+// resolveIdentityID accepts an explicit identity ID only when it belongs to
+// the saving account. Legacy/external drafts fall back to an exact From-email
+// match; display names are never used for identity selection.
+func (ops *draftOps) resolveIdentityID(accountID string, msg smtp.ComposeMessage) string {
+	identities, err := ops.accountStore.GetIdentities(accountID)
+	if err != nil {
+		return ""
+	}
+	if msg.IdentityID != "" {
+		for _, identity := range identities {
+			if identity.ID == msg.IdentityID {
+				return identity.ID
+			}
+		}
+	}
+	for _, identity := range identities {
+		if strings.EqualFold(identity.Email, msg.From.Address) {
+			return identity.ID
+		}
+	}
+	return ""
 }
 
 // getSpecialFolder looks up a special folder for an account, checking manual
@@ -244,6 +272,7 @@ func (ops *draftOps) saveDraftToDB(accountID string, localDraft *draft.Draft, ms
 		localDraft.BodyHTML = enc.bodyHTML
 		localDraft.BodyText = enc.bodyText
 		localDraft.InReplyToID = msg.InReplyTo
+		localDraft.IdentityID = ops.resolveIdentityID(accountID, msg)
 		localDraft.SignMessage = msg.SignMessage
 		localDraft.Encrypted = enc.encrypted
 		localDraft.EncryptedBody = enc.encryptedBody
@@ -270,6 +299,7 @@ func (ops *draftOps) saveDraftToDB(accountID string, localDraft *draft.Draft, ms
 		BodyHTML:         enc.bodyHTML,
 		BodyText:         enc.bodyText,
 		InReplyToID:      msg.InReplyTo,
+		IdentityID:       ops.resolveIdentityID(accountID, msg),
 		SignMessage:      msg.SignMessage,
 		Encrypted:        enc.encrypted,
 		EncryptedBody:    enc.encryptedBody,
@@ -554,6 +584,7 @@ func (ops *draftOps) toComposeMessage(d *draft.Draft) *smtp.ComposeMessage {
 
 	return &smtp.ComposeMessage{
 		From:              smtp.Address{Address: identityEmail},
+		IdentityID:        d.IdentityID,
 		To:                parseAddressList(d.ToList),
 		Cc:                parseAddressList(d.CcList),
 		Bcc:               parseAddressList(d.BccList),

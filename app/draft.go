@@ -31,6 +31,13 @@ type DraftResult struct {
 	Draft *draft.Draft `json:"draft"`
 }
 
+// DraftEditResult gives the composer both the editable message and the only
+// valid reference for subsequent saves/deletes: the local draft ID.
+type DraftEditResult struct {
+	DraftID string               `json:"draftId"`
+	Message *smtp.ComposeMessage `json:"message"`
+}
+
 // encryptResult holds the result of encrypting a draft body for storage
 type encryptResult struct {
 	bodyHTML         string
@@ -63,6 +70,52 @@ type draftOps struct {
 	pgpSigner      *pgp.Signer
 	pgpEncryptor   *pgp.Encryptor
 	pgpDecryptor   *pgp.Decryptor
+}
+
+// resolveDraftReference accepts either a local draft ID or a message-row ID
+// from the Drafts folder. It never treats a message ID as a draft ID.
+func (ops *draftOps) resolveDraftReference(ref string) (*draft.Draft, *message.Message, error) {
+	if ref == "" {
+		return nil, nil, nil
+	}
+	d, err := ops.draftStore.Get(ref)
+	if err != nil || d != nil {
+		return d, nil, err
+	}
+
+	msg, err := ops.messageStore.Get(ref)
+	if err != nil || msg == nil {
+		return nil, msg, err
+	}
+	d, err = ops.draftStore.GetByIMAPUID(msg.FolderID, msg.UID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return d, msg, nil
+}
+
+// materializeRemoteDraft adopts a server-only Drafts-folder message. Keeping
+// its UID and folder lets the normal sync path delete/replace that exact IMAP
+// message on the next save rather than appending a duplicate.
+func (ops *draftOps) materializeRemoteDraft(msg *message.Message) (*draft.Draft, error) {
+	d := &draft.Draft{
+		AccountID:      msg.AccountID,
+		ToList:         msg.ToList,
+		CcList:         msg.CcList,
+		BccList:        msg.BccList,
+		Subject:        msg.Subject,
+		BodyHTML:       msg.BodyHTML,
+		BodyText:       msg.BodyText,
+		InReplyToID:    msg.InReplyTo,
+		ReferencesList: msg.References,
+		IMAPUID:        msg.UID,
+		FolderID:       msg.FolderID,
+		SyncStatus:     draft.SyncStatusSynced,
+	}
+	if err := ops.draftStore.Create(d); err != nil {
+		return nil, fmt.Errorf("failed to adopt remote draft: %w", err)
+	}
+	return d, nil
 }
 
 // getSpecialFolder looks up a special folder for an account, checking manual
@@ -500,6 +553,7 @@ func (ops *draftOps) toComposeMessage(d *draft.Draft) *smtp.ComposeMessage {
 	}
 
 	return &smtp.ComposeMessage{
+		From:              smtp.Address{Address: identityEmail},
 		To:                parseAddressList(d.ToList),
 		Cc:                parseAddressList(d.CcList),
 		Bcc:               parseAddressList(d.BccList),
@@ -568,17 +622,14 @@ func (a *App) SaveDraft(accountID string, msg smtp.ComposeMessage, existingDraft
 		Str("subject", msg.Subject).
 		Msg("SaveDraft called")
 
-	var localDraft *draft.Draft
-
-	// Try to load existing draft if ID provided
-	if existingDraftID != "" {
-		existing, err := a.draftStore.Get(existingDraftID)
+	localDraft, remoteMessage, err := a.draftOps.resolveDraftReference(existingDraftID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve draft reference: %w", err)
+	}
+	if localDraft == nil && remoteMessage != nil {
+		localDraft, err = a.draftOps.materializeRemoteDraft(remoteMessage)
 		if err != nil {
-			log.Warn().Err(err).Str("draftID", existingDraftID).Msg("Failed to load existing draft")
-		}
-		if err == nil && existing != nil {
-			localDraft = existing
-			log.Debug().Str("draftID", existingDraftID).Msg("Loaded existing draft for update")
+			return nil, err
 		}
 	}
 
@@ -706,18 +757,22 @@ func (a *App) draftToComposeMessage(d *draft.Draft) *smtp.ComposeMessage {
 func (a *App) DeleteDraft(draftID string) error {
 	log := logging.WithComponent("app")
 
-	// Cancel any in-flight IMAP sync goroutine and wait for it to finish.
-	// This ensures the goroutine can't upload the draft after we delete it.
-	a.cancelDraftSync(draftID)
-
-	// Get the draft to find IMAP UID (re-read after cancel to get latest state)
-	d, err := a.draftStore.Get(draftID)
+	d, remoteMessage, err := a.draftOps.resolveDraftReference(draftID)
 	if err != nil {
-		return fmt.Errorf("failed to get draft: %w", err)
+		return fmt.Errorf("failed to resolve draft reference: %w", err)
+	}
+	if d == nil && remoteMessage != nil {
+		d, err = a.draftOps.materializeRemoteDraft(remoteMessage)
+		if err != nil {
+			return err
+		}
 	}
 	if d == nil {
 		return nil // Already deleted
 	}
+
+	// Cancel any in-flight IMAP sync for the canonical draft ID.
+	a.cancelDraftSync(d.ID)
 
 	draftsFolder, err := a.draftOps.deleteDraftCore(a.ctx, d)
 	if err != nil {
@@ -744,49 +799,36 @@ func (a *App) DeleteDraft(draftID string) error {
 		}()
 	}
 
-	log.Info().Str("draftID", draftID).Msg("Draft deleted")
+	log.Info().Str("draftID", d.ID).Msg("Draft deleted")
 	return nil
 }
 
 // GetDraft returns a draft by ID as a ComposeMessage (for editing in composer)
 // The ID can be either a draft ID or a message ID (from the Drafts folder)
 func (a *App) GetDraft(id string) (*smtp.ComposeMessage, error) {
-	log := logging.WithComponent("app")
+	result, err := a.GetDraftForEdit(id)
+	if err != nil || result == nil {
+		return nil, err
+	}
+	return result.Message, nil
+}
 
-	// First, try to get it as a draft ID
-	d, err := a.draftStore.Get(id)
+// GetDraftForEdit resolves/adopts a draft and returns its canonical local ID.
+func (a *App) GetDraftForEdit(ref string) (*DraftEditResult, error) {
+	d, remoteMessage, err := a.draftOps.resolveDraftReference(ref)
 	if err != nil {
 		return nil, err
 	}
-	if d != nil {
-		log.Debug().Str("draftID", id).Msg("Found draft by draft ID")
-		return a.draftToComposeMessage(d), nil
+	if d == nil && remoteMessage != nil {
+		d, err = a.draftOps.materializeRemoteDraft(remoteMessage)
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	// Not found as draft ID - try as message ID
-	// Get the message to find its IMAP UID and folder
-	msg, err := a.messageStore.Get(id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get message: %w", err)
-	}
-	if msg == nil {
+	if d == nil {
 		return nil, nil
 	}
-
-	// Look up draft by IMAP UID and folder
-	d, err = a.draftStore.GetByIMAPUID(msg.FolderID, msg.UID)
-	if err != nil {
-		return nil, err
-	}
-	if d != nil {
-		log.Debug().Str("message_ref", logging.ShortHash(id)).Str("draft_id", d.ID).Msg("Found draft by message IMAP UID")
-		return a.draftToComposeMessage(d), nil
-	}
-
-	// No draft found - this might be a draft that was created outside Aerion
-	// (e.g., from webmail). Build a ComposeMessage from the message itself.
-	log.Debug().Str("message_ref", logging.ShortHash(id)).Msg("No local draft found, building from message")
-	return a.messageToComposeMessage(msg), nil
+	return &DraftEditResult{DraftID: d.ID, Message: a.draftToComposeMessage(d)}, nil
 }
 
 // messageToComposeMessage converts a message (from Drafts folder) to a ComposeMessage

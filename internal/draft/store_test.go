@@ -198,3 +198,37 @@ func TestSyncStatusUpdate(t *testing.T) {
 		t.Errorf("FolderID = %q, want %q", got.FolderID, folderID)
 	}
 }
+
+func TestGetByIMAPUIDFindsCanonicalDraft(t *testing.T) {
+	db := openTestDB(t)
+	accountID := insertTestAccount(t, db)
+	folderID := insertTestFolder(t, db, accountID)
+	store := NewStore(db)
+
+	d := &Draft{
+		AccountID:  accountID,
+		Subject:    "Drafts-folder draft",
+		IMAPUID:    42,
+		FolderID:   folderID,
+		SyncStatus: SyncStatusSynced,
+	}
+	if err := store.Create(d); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	got, err := store.GetByIMAPUID(folderID, 42)
+	if err != nil {
+		t.Fatalf("GetByIMAPUID failed: %v", err)
+	}
+	if got == nil || got.ID != d.ID {
+		t.Fatalf("GetByIMAPUID returned %+v, want draft %q", got, d.ID)
+	}
+
+	missing, err := store.GetByIMAPUID(folderID, 43)
+	if err != nil {
+		t.Fatalf("GetByIMAPUID missing lookup failed: %v", err)
+	}
+	if missing != nil {
+		t.Fatalf("GetByIMAPUID returned unexpected draft %+v", missing)
+	}
+}

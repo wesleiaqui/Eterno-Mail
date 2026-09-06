@@ -265,6 +265,8 @@ export function GetDarkMailContent():Promise<boolean>;
 
 export function GetDraft(arg1:string):Promise<smtp.ComposeMessage>;
 
+export function GetDraftForEdit(arg1:string):Promise<{draftId:string;message:smtp.ComposeMessage}>;
+
 export function GetFTSIndexStatus(arg1:string):Promise<message.FTSIndexStatus>;
 
 export function GetFTSIndexStatusAll():Promise<Record<string, message.FTSIndexStatus>>;

@@ -355,13 +355,20 @@ func (c *ComposerApp) loadInitialData() error {
 
 	// If resuming a draft, load it
 	if c.config.DraftID != "" {
-		draft, err := c.draftStore.Get(c.config.DraftID)
+		draft, remoteMessage, err := c.draftOps.resolveDraftReference(c.config.DraftID)
 		if err != nil {
 			log.Error().Err(err).Str("draftID", c.config.DraftID).Msg("Failed to get draft from store")
 			return fmt.Errorf("failed to load draft: %w", err)
 		}
+		if draft == nil && remoteMessage != nil {
+			draft, err = c.draftOps.materializeRemoteDraft(remoteMessage)
+			if err != nil {
+				return err
+			}
+		}
 		if draft != nil {
 			c.currentDraft = draft
+			c.config.DraftID = draft.ID
 			log.Info().
 				Str("draftID", c.config.DraftID).
 				Str("subject", draft.Subject).
@@ -714,17 +721,14 @@ func (c *ComposerApp) SaveDraft(accountID string, msg smtp.ComposeMessage, exist
 		Str("subject", msg.Subject).
 		Msg("Saving draft")
 
-	var localDraft *draft.Draft
-
-	// Try to load existing draft if ID provided
-	if existingDraftID != "" {
-		existing, err := c.draftStore.Get(existingDraftID)
+	localDraft, remoteMessage, err := c.draftOps.resolveDraftReference(existingDraftID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve draft reference: %w", err)
+	}
+	if localDraft == nil && remoteMessage != nil {
+		localDraft, err = c.draftOps.materializeRemoteDraft(remoteMessage)
 		if err != nil {
-			log.Warn().Err(err).Str("draftID", existingDraftID).Msg("Failed to load existing draft from ID")
-		}
-		if err == nil && existing != nil {
-			localDraft = existing
-			log.Debug().Str("draftID", existingDraftID).Msg("Loaded existing draft from provided ID")
+			return nil, err
 		}
 	}
 
@@ -800,11 +804,16 @@ func (c *ComposerApp) DeleteDraft(draftID string) error {
 	// This ensures the goroutine can't upload the draft after we delete it.
 	c.cancelDraftSync()
 
-	// Load the draft directly from database (re-read after cancel to get latest state)
-	draftToDelete, err := c.draftStore.Get(draftID)
+	draftToDelete, remoteMessage, err := c.draftOps.resolveDraftReference(draftID)
 	if err != nil {
 		log.Warn().Err(err).Str("draftID", draftID).Msg("Failed to load draft for deletion")
 		return fmt.Errorf("failed to load draft: %w", err)
+	}
+	if draftToDelete == nil && remoteMessage != nil {
+		draftToDelete, err = c.draftOps.materializeRemoteDraft(remoteMessage)
+		if err != nil {
+			return err
+		}
 	}
 	if draftToDelete == nil {
 		log.Debug().Str("draftID", draftID).Msg("Draft not found in database, nothing to delete")
